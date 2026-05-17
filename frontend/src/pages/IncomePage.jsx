@@ -41,15 +41,18 @@ const daysAgo = (n) => {
 
 const PAYMENT_TERMS = ["dp", "termin_1", "termin_2", "pelunasan", "lain-lain"];
 const MATERIAL_TYPES = [
-  "Pasir Sungai",
-  "Pasir Hitam",
-  "Batu Split 1-2",
-  "Batu Split 2-3",
-  "Base Course A",
-  "Base Course B",
-  "Lainnya",
+  "Limestone (urugan)",
+  "Dolomite",
+  "Boulder",
+  "Clay",
 ];
-const UNITS = ["m3", "ton"];
+const MATERIAL_UNITS = {
+  "Limestone (urugan)": ["m3", "ritase"],
+  Dolomite: ["ton", "ritase"],
+  Boulder: ["ton"],
+  Clay: ["ton", "ritase"],
+};
+const ALL_UNITS = ["m3", "ton", "ritase"];
 const TABS = [
   { key: "all", label: "📂 Semua" },
   { key: "project_payment", label: "📁 Pembayaran Proyek" },
@@ -101,9 +104,9 @@ const defaultProjectForm = () => ({
 const defaultMaterialForm = () => ({
   income_date: todayStr(),
   customer_name: "",
-  material_type: "",
+  material_type: MATERIAL_TYPES[0],
   quantity: "",
-  unit: "m3",
+  unit: MATERIAL_UNITS[MATERIAL_TYPES[0]][0],
   unit_price: "",
   amount: "",
   payment_method: "transfer",
@@ -131,6 +134,7 @@ const IncomePage = () => {
   // Forms
   const [projectForm, setProjectForm] = useState(defaultProjectForm());
   const [materialForm, setMaterialForm] = useState(defaultMaterialForm());
+  const [priceHint, setPriceHint] = useState(null); // {price, unit, is_custom}
 
   // ── Fetch records ──
   const fetchRecords = useCallback(async () => {
@@ -197,6 +201,31 @@ const IncomePage = () => {
     }
   }, [materialForm.quantity, materialForm.unit_price]);
 
+  // Auto-fill unit_price from material price API
+  useEffect(() => {
+    const { material_type, unit, customer_name } = materialForm;
+    if (!material_type || !unit) return;
+    let cancelled = false;
+    const lookup = async () => {
+      try {
+        const params = new URLSearchParams({ material_type, unit });
+        if (customer_name.trim()) params.set("customer_name", customer_name.trim());
+        const data = await authFetchHelper(`${API_URL}/material-prices/lookup?${params}`);
+        if (cancelled) return;
+        if (data?.found) {
+          setMaterialForm((prev) => ({ ...prev, unit_price: String(data.price_per_unit) }));
+          setPriceHint({ price: data.price_per_unit, unit, is_custom: data.is_custom });
+        } else {
+          setPriceHint(null);
+        }
+      } catch {
+        if (!cancelled) setPriceHint(null);
+      }
+    };
+    const timer = setTimeout(lookup, 400); // debounce 400ms
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [materialForm.material_type, materialForm.unit, materialForm.customer_name]);
+
   // ── Summary ──
   const summary = {
     total: records.reduce((s, r) => s + (r.amount || 0), 0),
@@ -214,6 +243,7 @@ const IncomePage = () => {
     setEditId(null);
     setProjectForm(defaultProjectForm());
     setMaterialForm(defaultMaterialForm());
+    setPriceHint(null);
     setModalTab(
       activeTab === "material_sale" ? "material_sale" : "project_payment",
     );
@@ -248,6 +278,7 @@ const IncomePage = () => {
         notes: r.notes ?? "",
       });
     }
+    setPriceHint(null);
     setShowModal(true);
   };
 
@@ -924,23 +955,26 @@ const IncomePage = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Jenis Material
+                      Jenis Material <span className="text-red-500">*</span>
                     </label>
                     <select
+                      required
                       value={materialForm.material_type}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        const mat = e.target.value;
+                        const units = MATERIAL_UNITS[mat] || [];
                         setMaterialForm((p) => ({
                           ...p,
-                          material_type: e.target.value,
-                        }))
-                      }
+                          material_type: mat,
+                          unit: units[0] || "ton",
+                          unit_price: "",
+                        }));
+                        setPriceHint(null);
+                      }}
                       className={inputCls("emerald")}
                     >
-                      <option value="">-- Pilih Material --</option>
                       {MATERIAL_TYPES.map((m) => (
-                        <option key={m} value={m}>
-                          {m}
-                        </option>
+                        <option key={m} value={m}>{m}</option>
                       ))}
                     </select>
                   </div>
@@ -974,21 +1008,29 @@ const IncomePage = () => {
                           setMaterialForm((p) => ({
                             ...p,
                             unit: e.target.value,
+                            unit_price: "",
                           }))
                         }
                         className={inputCls("emerald")}
                       >
-                        {UNITS.map((u) => (
-                          <option key={u} value={u}>
-                            {u}
-                          </option>
+                        {(MATERIAL_UNITS[materialForm.material_type] || ALL_UNITS).map((u) => (
+                          <option key={u} value={u}>{u}</option>
                         ))}
                       </select>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
                       Harga Satuan (Rp)
+                      {priceHint && (
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                          priceHint.is_custom
+                            ? "bg-blue-100 text-blue-600"
+                            : "bg-emerald-100 text-emerald-600"
+                        }`}>
+                          {priceHint.is_custom ? "✓ harga customer" : "✓ harga default"}
+                        </span>
+                      )}
                     </label>
                     <input
                       type="number"
@@ -1003,6 +1045,11 @@ const IncomePage = () => {
                       placeholder="50000"
                       className={inputCls("emerald")}
                     />
+                    {materialForm.unit_price && (
+                      <p className="text-xs text-gray-400 mt-1">
+                        {formatIDR(materialForm.unit_price)} / {materialForm.unit}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">

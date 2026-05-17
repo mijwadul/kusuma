@@ -1,4 +1,5 @@
 from .base import Base
+from .customer import Customer, ProjectMaterialItem
 from .employee import Employee
 from .equipment import Equipment
 from .expense import Expense
@@ -6,6 +7,7 @@ from .fuel_log import FuelLog
 from .fuel_price import FuelPrice
 from .income_record import IncomeRecord
 from .loan import EmployeeLoan
+from .material_price import MaterialPrice
 from .payroll import Attendance, BonusDeduction, PayrollRecord
 from .project import Project
 from .user import User

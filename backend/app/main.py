@@ -15,6 +15,8 @@ from .api.v1.fuel import router as fuel_router
 from .api.v1.income_records import router as income_records_router
 from .api.v1.work_logs import router as work_logs_router
 from .api.v1.reports import router as reports_router
+from .api.v1.material_prices import router as material_prices_router
+from .api.v1.projects import router as projects_router
 from .core.auth import get_password_hash
 from .core.config import settings
 from .core.database import SessionLocal, engine
@@ -35,6 +37,9 @@ def bootstrap_database():
         _migrate_work_logs_columns_if_needed()
         _migrate_expenses_if_needed()
         _migrate_income_records_if_needed()
+        _migrate_material_prices_if_needed()
+        _migrate_customers_if_needed()
+        _migrate_projects_columns_if_needed()
 
     default_admin_email = settings.DEFAULT_ADMIN_EMAIL.strip().lower()
     default_admin_password = settings.DEFAULT_ADMIN_PASSWORD
@@ -359,6 +364,97 @@ def _migrate_income_records_if_needed():
             )
 
 
+
+def _migrate_material_prices_if_needed():
+    """Create material_prices table if it doesn't exist. SQLite only."""
+    if engine.dialect.name != "sqlite":
+        return
+    inspector = inspect(engine)
+    if "material_prices" not in set(inspector.get_table_names()):
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    """
+                CREATE TABLE material_prices (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    material_type VARCHAR(100) NOT NULL,
+                    customer_name VARCHAR(200),
+                    unit VARCHAR(20) NOT NULL,
+                    price_per_unit FLOAT NOT NULL,
+                    is_active BOOLEAN DEFAULT 1,
+                    notes TEXT,
+                    created_by INTEGER REFERENCES users(id),
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME
+                )
+            """
+                )
+            )
+
+
+
+def _migrate_customers_if_needed():
+    """Create customers and project_material_items tables if they don't exist. SQLite only."""
+    if engine.dialect.name != "sqlite":
+        return
+    inspector = inspect(engine)
+    tables = set(inspector.get_table_names())
+
+    if "customers" not in tables:
+        with engine.begin() as conn:
+            conn.execute(text("""
+                CREATE TABLE customers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name VARCHAR(200) NOT NULL,
+                    company VARCHAR(200),
+                    contact_person VARCHAR(100),
+                    phone VARCHAR(50),
+                    email VARCHAR(100),
+                    address TEXT,
+                    notes TEXT,
+                    is_active BOOLEAN DEFAULT 1,
+                    materials_json TEXT,
+                    created_by INTEGER REFERENCES users(id),
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME
+                )
+            """))
+
+    if "project_material_items" not in tables:
+        with engine.begin() as conn:
+            conn.execute(text("""
+                CREATE TABLE project_material_items (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    project_id INTEGER NOT NULL REFERENCES projects(id),
+                    material_type VARCHAR(100) NOT NULL,
+                    unit VARCHAR(20) NOT NULL,
+                    target_quantity FLOAT NOT NULL,
+                    unit_price FLOAT,
+                    notes TEXT
+                )
+            """))
+
+
+def _migrate_projects_columns_if_needed():
+    """Add new columns to projects table if missing. SQLite only."""
+    if engine.dialect.name != "sqlite":
+        return
+    inspector = inspect(engine)
+    if "projects" not in set(inspector.get_table_names()):
+        return
+    existing = {col["name"] for col in inspector.get_columns("projects")}
+    new_cols = {
+        "client_name": "VARCHAR(200)",
+        "description": "TEXT",
+        "notes": "TEXT",
+        "created_by": "INTEGER",
+    }
+    with engine.begin() as conn:
+        for col, typ in new_cols.items():
+            if col not in existing:
+                conn.execute(text(f'ALTER TABLE projects ADD COLUMN "{col}" {typ}'))
+
+
 # Exception handler — traceback hanya ditampilkan saat DEBUG=True
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -385,6 +481,8 @@ app.include_router(
     income_records_router, prefix="/api/v1/income-records", tags=["income-records"]
 )
 app.include_router(reports_router, prefix="/api/v1/reports", tags=["reports"])
+app.include_router(material_prices_router, prefix="/api/v1/material-prices", tags=["material-prices"])
+app.include_router(projects_router, prefix="/api/v1/projects-data", tags=["projects"])
 
 
 @app.get("/")
