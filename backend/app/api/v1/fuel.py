@@ -1,8 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import List, Optional, Set
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, cast, Date
 from ...core.auth import get_current_user
 from ...core.database import get_db
 from ...models import FuelLog, Equipment, User, WorkLog, FuelPrice
@@ -379,15 +379,21 @@ def delete_fuel_log(
 @router.get("/price", response_model=List[FuelPriceSchema])
 def get_fuel_prices(
     fuel_type: Optional[str] = None,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Ambil daftar harga BBM"""
+    """Ambil daftar pembelian BBM, opsional filter berdasarkan tanggal"""
     query = db.query(FuelPrice)
-    
+
     if fuel_type:
         query = query.filter(FuelPrice.fuel_type == fuel_type)
-    
+    if start_date:
+        query = query.filter(cast(FuelPrice.effective_date, Date) >= start_date)
+    if end_date:
+        query = query.filter(cast(FuelPrice.effective_date, Date) <= end_date)
+
     prices = query.order_by(FuelPrice.effective_date.desc()).all()
     return prices
 
@@ -398,11 +404,12 @@ def create_fuel_price(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Tambah pembelian BBM baru"""
-    # Check if user has permission
+    """Tambah pembelian BBM baru. GM langsung auto-approved."""
     if not current_user.is_admin and not current_user.is_superuser and current_user.role not in ['gm', 'finance', 'admin']:
         raise HTTPException(status_code=403, detail="Not authorized to create fuel purchases")
-    
+
+    is_gm = current_user.role in ('gm', 'admin') or current_user.is_admin or current_user.is_superuser
+
     fuel_price = FuelPrice(
         price_per_liter=price_data.price_per_liter,
         fuel_type=price_data.fuel_type,
@@ -410,14 +417,17 @@ def create_fuel_price(
         liters=price_data.liters,
         total_price=price_data.total_price,
         notes=price_data.notes,
-        approval_status="pending",
-        created_by=current_user.id if current_user else None
+        approval_status="approved" if is_gm else "pending",
+        approved_by=current_user.id if is_gm else None,
+        approved_at=datetime.now() if is_gm else None,
+        created_by=current_user.id if current_user else None,
     )
-    
+
     db.add(fuel_price)
     db.commit()
     db.refresh(fuel_price)
     return fuel_price
+
 
 
 @router.put("/price/{price_id}/approve", response_model=FuelPriceSchema)

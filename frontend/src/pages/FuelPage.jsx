@@ -11,6 +11,8 @@ import {
   Save,
   Edit,
   Trash2,
+  AlertTriangle,
+  PackageX,
 } from "lucide-react";
 import { API_URL } from "../api/auth";
 import { toast } from "sonner";
@@ -23,6 +25,7 @@ const FuelPage = () => {
 
   const [equipment, setEquipment] = useState([]);
   const [fuelLogs, setFuelLogs] = useState([]);
+  const [fuelStock, setFuelStock] = useState(null); // { current_stock, total_purchased, total_consumed }
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(!!preselectedEquipmentId);
   const [editingLog, setEditingLog] = useState(null);
@@ -46,6 +49,7 @@ const FuelPage = () => {
     fetchEquipment();
     fetchFuelLogs();
     fetchFuelStats();
+    fetchFuelStock();
   }, []);
 
   const getToken = () => localStorage.getItem("token");
@@ -109,6 +113,20 @@ const FuelPage = () => {
     }
   };
 
+  const fetchFuelStock = async () => {
+    try {
+      const token = getToken();
+      const response = await fetch(`${API_URL}/fuel/stock`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        setFuelStock(await response.json());
+      }
+    } catch (error) {
+      console.error("Error fetching fuel stock:", error);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const eqIdNum = Number.parseInt(String(formData.equipment_id), 10);
@@ -165,6 +183,7 @@ const FuelPage = () => {
         });
         fetchFuelLogs();
         fetchFuelStats();
+        fetchFuelStock();
         toast.success(
           isEditing
             ? "Catatan BBM berhasil diupdate!"
@@ -236,6 +255,7 @@ const FuelPage = () => {
       if (response.ok) {
         fetchFuelLogs();
         fetchFuelStats();
+        fetchFuelStock();
         toast.success("Catatan berhasil dihapus!");
         setShowDeleteModal(false);
         setDeleteLogId(null);
@@ -271,10 +291,16 @@ const FuelPage = () => {
     );
   }
 
+  // Hitung apakah stok cukup
+  const currentStock = fuelStock?.current_stock ?? null;
+  const stockOk = currentStock === null || currentStock > 0;
+  const inputLiters = parseFloat(formData.liters_filled) || 0;
+  const litersExceedStock = currentStock !== null && inputLiters > currentStock;
+
   return (
     <div>
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-4">
         <div className="flex items-center space-x-3">
           <div className="p-3 bg-amber-100 rounded-lg">
             <Fuel className="h-8 w-8 text-amber-600" />
@@ -288,13 +314,67 @@ const FuelPage = () => {
           </div>
         </div>
         <button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 transition-colors shadow-md"
+          onClick={() => {
+            if (!stockOk) {
+              toast.error('Stok BBM habis! Catat pembelian BBM terlebih dahulu di menu Pembelian & Stok BBM.');
+              return;
+            }
+            setShowForm(!showForm);
+          }}
+          className={`px-6 py-3 rounded-lg flex items-center space-x-2 transition-colors shadow-md text-white ${
+            stockOk
+              ? 'bg-amber-500 hover:bg-amber-600'
+              : 'bg-gray-400 cursor-not-allowed'
+          }`}
         >
           {showForm ? <X size={20} /> : <Plus size={20} />}
           <span>{showForm ? "Batal" : "Isi Solar"}</span>
         </button>
       </div>
+
+      {/* Stok BBM Banner */}
+      {fuelStock !== null && (
+        <div className={`mb-5 rounded-xl border px-5 py-4 flex items-center gap-4 ${
+          currentStock <= 0
+            ? 'bg-red-50 border-red-200'
+            : currentStock < 500
+            ? 'bg-amber-50 border-amber-200'
+            : 'bg-green-50 border-green-200'
+        }`}>
+          {currentStock <= 0 ? (
+            <PackageX className="h-6 w-6 text-red-500 shrink-0" />
+          ) : (
+            <Fuel className={`h-6 w-6 shrink-0 ${
+              currentStock < 500 ? 'text-amber-500' : 'text-green-600'
+            }`} />
+          )}
+          <div className="flex-1">
+            <p className={`font-bold text-sm ${
+              currentStock <= 0 ? 'text-red-700' : currentStock < 500 ? 'text-amber-700' : 'text-green-700'
+            }`}>
+              {currentStock <= 0
+                ? 'Stok BBM Habis — Pengisian tidak dapat dilakukan'
+                : currentStock < 500
+                ? `Stok BBM Menipis — Sisa ${currentStock.toLocaleString('id-ID')} Liter`
+                : `Stok BBM Tersedia — ${currentStock.toLocaleString('id-ID')} Liter`
+              }
+            </p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Total Dibeli: {fuelStock.total_purchased.toLocaleString('id-ID')} L
+              &nbsp;·&nbsp;
+              Total Terpakai: {fuelStock.total_consumed.toLocaleString('id-ID')} L
+            </p>
+          </div>
+          {currentStock <= 0 && (
+            <a
+              href="/fuel-prices"
+              className="text-xs font-semibold text-red-600 border border-red-300 rounded-lg px-3 py-1.5 hover:bg-red-100 whitespace-nowrap"
+            >
+              + Catat Pembelian
+            </a>
+          )}
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -471,11 +551,35 @@ const FuelPage = () => {
               />
             </div>
 
+            {/* Sisa Stok Warning */}
+            {currentStock !== null && (
+              <div className={`mb-2 px-4 py-3 rounded-lg text-sm flex items-center gap-2 ${
+                currentStock <= 0
+                  ? 'bg-red-50 border border-red-200 text-red-700'
+                  : litersExceedStock
+                  ? 'bg-orange-50 border border-orange-200 text-orange-700'
+                  : 'bg-green-50 border border-green-200 text-green-700'
+              }`}>
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span>
+                  {currentStock <= 0
+                    ? 'Stok BBM habis. Tidak dapat melakukan pengisian.'
+                    : litersExceedStock
+                    ? `Input melebihi sisa stok! Sisa stok: ${currentStock.toLocaleString('id-ID')} L`
+                    : `Sisa stok BBM: ${currentStock.toLocaleString('id-ID')} L`
+                  }
+                </span>
+              </div>
+            )}
+
             {/* Buttons */}
             <div className="flex space-x-3 pt-4">
               <button
                 type="submit"
-                className={`flex-1 ${editingLog ? "bg-blue-500 hover:bg-blue-600" : "bg-amber-500 hover:bg-amber-600"} text-white py-3 rounded-lg font-semibold flex items-center justify-center space-x-2 transition-colors`}
+                disabled={currentStock !== null && (currentStock <= 0 || litersExceedStock)}
+                className={`flex-1 ${
+                  editingLog ? "bg-blue-500 hover:bg-blue-600" : "bg-amber-500 hover:bg-amber-600"
+                } text-white py-3 rounded-lg font-semibold flex items-center justify-center space-x-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <Save size={20} />
                 <span>{editingLog ? "Update Catatan" : "Simpan Catatan"}</span>

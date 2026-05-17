@@ -23,7 +23,7 @@ python-jose[cryptography]  # JWT token
 # ─── Utilities ────────────────────────────────────────────────
 python-multipart           # parsing form data (login)
 jinja2                     # HTML templates
-weasyprint                 # generate laporan PDF
+reportlab                  # generate laporan PDF
 
 # ─── Testing ──────────────────────────────────────────────────
 pytest                     # test runner

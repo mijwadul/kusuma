@@ -297,9 +297,9 @@ export default function ReportsPage() {
               />
               <SummaryCard
                 icon={Users}
-                label="Pengeluaran Gaji"
+                label="Estimasi Gaji"
                 value={formatRupiah(report.summary.total_payroll_expense)}
-                sub={`${report.payroll.length} payroll`}
+                sub={`${report.summary.total_employees} karyawan · ${report.summary.total_present_days} hari hadir`}
                 color="text-purple-600"
                 iconBg="bg-purple-50"
               />
@@ -471,54 +471,69 @@ export default function ReportsPage() {
               )}
             </Section>
 
-            {/* ── 4. Gaji Karyawan ─────────────────────────────────── */}
-            <Section title="4. Pengeluaran Gaji Karyawan">
-              {report.payroll.length === 0 ? (
-                <p className="text-sm text-gray-400 italic py-3">Tidak ada data payroll pada periode ini.</p>
+            {/* ── 4. Estimasi Gaji Karyawan (berbasis Absensi) ─────── */}
+            <Section title="4. Estimasi Gaji Karyawan (Berdasarkan Absensi)">
+              {report.attendance_summary.length === 0 ? (
+                <p className="text-sm text-gray-400 italic py-3">Tidak ada data absensi pada periode ini.</p>
               ) : (
-                <TableWrapper>
-                  <thead>
-                    <tr>
-                      <Th>No</Th>
-                      <Th>Nama</Th>
-                      <Th>Jabatan</Th>
-                      <Th>Periode</Th>
-                      <Th right>Gaji Pokok</Th>
-                      <Th right>Tunjangan</Th>
-                      <Th right>Potongan</Th>
-                      <Th right>Gaji Bersih</Th>
-                      <Th>Status</Th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {report.payroll.map((pr, idx) => (
-                      <tr key={pr.id} className="hover:bg-gray-50">
-                        <Td muted>{idx + 1}</Td>
-                        <Td bold>{pr.employee_name}</Td>
-                        <Td muted>{pr.position || "-"}</Td>
-                        <Td>
-                          {formatDate(pr.period_start)}
-                          {pr.period_start && pr.period_end ? " – " : ""}
-                          {formatDate(pr.period_end)}
-                        </Td>
-                        <Td right>{formatRupiah(pr.basic_salary)}</Td>
-                        <Td right>{formatRupiah(pr.allowance + pr.overtime_amount)}</Td>
-                        <Td right>{formatRupiah(pr.total_deduction)}</Td>
-                        <Td right bold>{formatRupiah(pr.net_salary)}</Td>
-                        <Td>
-                          <StatusBadge status={pr.payment_status} />
-                        </Td>
+                <>
+                  <p className="text-xs text-gray-400 italic mb-3">
+                    * Estimasi dihitung dari: Hari Hadir × Gaji Harian masing-masing karyawan
+                  </p>
+                  <TableWrapper>
+                    <thead>
+                      <tr>
+                        <Th>No</Th>
+                        <Th>Nama Karyawan</Th>
+                        <Th>Jabatan</Th>
+                        <Th right>Hadir</Th>
+                        <Th right>Terlambat</Th>
+                        <Th right>Tidak Hadir</Th>
+                        <Th right>Total Jam</Th>
+                        <Th right>Lembur</Th>
+                        <Th right>Gaji Harian</Th>
+                        <Th right>Est. Gaji</Th>
                       </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <TotalRow
-                      cols={9}
-                      label={`Total (${report.payroll.length} karyawan)`}
-                      value={formatRupiah(report.summary.total_payroll_expense)}
-                    />
-                  </tfoot>
-                </TableWrapper>
+                    </thead>
+                    <tbody>
+                      {report.attendance_summary.map((att, idx) => (
+                        <tr key={att.employee_id} className="hover:bg-gray-50">
+                          <Td muted>{idx + 1}</Td>
+                          <Td bold>{att.employee_name}</Td>
+                          <Td muted>{att.position || "-"}</Td>
+                          <Td right>
+                            <span className="text-green-700 font-semibold">{att.present_days}h</span>
+                          </Td>
+                          <Td right>
+                            <span className={att.late_days > 0 ? "text-amber-600" : "text-gray-400"}>
+                              {att.late_days}h
+                            </span>
+                          </Td>
+                          <Td right>
+                            <span className={att.absent_days > 0 ? "text-red-500" : "text-gray-400"}>
+                              {att.absent_days}h
+                            </span>
+                          </Td>
+                          <Td right>{formatNum(att.total_work_hours)} jam</Td>
+                          <Td right>
+                            <span className={att.total_overtime_hours > 0 ? "text-purple-600 font-medium" : "text-gray-400"}>
+                              {formatNum(att.total_overtime_hours)} jam
+                            </span>
+                          </Td>
+                          <Td right>{formatRupiah(att.daily_salary)}</Td>
+                          <Td right bold>{formatRupiah(att.estimated_salary)}</Td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <TotalRow
+                        cols={10}
+                        label={`Total Estimasi (${report.attendance_summary.length} karyawan · ${report.summary.total_present_days} hari hadir)`}
+                        value={formatRupiah(report.summary.total_payroll_expense)}
+                      />
+                    </tfoot>
+                  </TableWrapper>
+                </>
               )}
             </Section>
 

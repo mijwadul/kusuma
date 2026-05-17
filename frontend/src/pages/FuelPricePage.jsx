@@ -18,6 +18,7 @@ const FuelPricePage = () => {
   const [totalPrice, setTotalPrice] = useState('');
   const [pricePerLiter, setPricePerLiter] = useState('');
   const [notes, setNotes] = useState('');
+  const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
   const [purchases, setPurchases] = useState([]);
   const [stockInfo, setStockInfo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,6 +27,12 @@ const FuelPricePage = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+
+  // Filter tanggal riwayat pembelian
+  const today = new Date().toISOString().split('T')[0];
+  const firstOfMonth = today.slice(0, 8) + '01';
+  const [filterStart, setFilterStart] = useState(firstOfMonth);
+  const [filterEnd, setFilterEnd] = useState(today);
 
   useEffect(() => {
     fetchCurrentUser();
@@ -68,10 +75,14 @@ const FuelPricePage = () => {
     }
   };
 
-  const fetchPurchases = async () => {
+  const fetchPurchases = async (start, end) => {
+    const s = start || filterStart;
+    const e = end || filterEnd;
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/v1/fuel/price', {
+      let url = '/api/v1/fuel/price';
+      if (s && e) url += `?start_date=${s}&end_date=${e}`;
+      const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -90,20 +101,25 @@ const FuelPricePage = () => {
       toast.error('Masukkan jumlah liter dan setidaknya salah satu harga (Total atau Per Liter)');
       return;
     }
+    if (!purchaseDate) {
+      toast.error('Pilih tanggal pembelian');
+      return;
+    }
 
     const litersNum = parseFloat(liters);
     let totalPriceNum = parseFloat(totalPrice);
     let pricePerLiterNum = parseFloat(pricePerLiter);
 
-    // Hitung yang kosong jika salah satu ada
     if (!totalPrice && pricePerLiter) {
       totalPriceNum = litersNum * pricePerLiterNum;
     } else if (!pricePerLiter && totalPrice) {
       pricePerLiterNum = totalPriceNum / litersNum;
     } else {
-      // Jika keduanya diisi, utamakan total price dan pastikan price per liter sesuai
       pricePerLiterNum = totalPriceNum / litersNum;
     }
+
+    // Kirim tanggal jam 12:00 UTC supaya tidak bergeser karena timezone
+    const effectiveDate = purchaseDate + 'T12:00:00.000Z';
 
     try {
       const token = localStorage.getItem('token');
@@ -116,7 +132,7 @@ const FuelPricePage = () => {
         body: JSON.stringify({
           price_per_liter: pricePerLiterNum,
           fuel_type: 'solar',
-          effective_date: new Date().toISOString(),
+          effective_date: effectiveDate,
           liters: litersNum,
           total_price: totalPriceNum,
           notes: notes
@@ -128,8 +144,13 @@ const FuelPricePage = () => {
         setTotalPrice('');
         setPricePerLiter('');
         setNotes('');
+        setPurchaseDate(new Date().toISOString().split('T')[0]);
         fetchPurchases();
-        toast.success('Pembelian BBM berhasil dicatat dan menunggu approval GM');
+        if (isGM) {
+          toast.success('Pembelian BBM berhasil dicatat dan langsung disetujui');
+        } else {
+          toast.success('Pembelian BBM berhasil dicatat, menunggu approval GM');
+        }
       } else {
         toast.error('Gagal mencatat pembelian BBM');
       }
@@ -284,8 +305,30 @@ const FuelPricePage = () => {
         {/* Form Pembelian */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl shadow-sm p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Catat Pembelian BBM Baru</h3>
+            <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">
+              Catat Pembelian BBM Baru
+              {isGM && (
+                <span className="ml-2 text-xs font-normal text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                  ✓ Auto-Approve
+                </span>
+              )}
+            </h3>
             <div className="space-y-4">
+
+              {/* Tanggal Pembelian */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tanggal Pembelian
+                </label>
+                <input
+                  type="date"
+                  value={purchaseDate}
+                  max={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => setPurchaseDate(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Total Liter (Solar)</label>
                 <input
@@ -333,14 +376,17 @@ const FuelPricePage = () => {
 
               <button
                 onClick={handleSavePurchase}
-                disabled={!liters || !totalPrice}
+                disabled={!liters || !totalPrice || !purchaseDate}
                 className="w-full py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 flex justify-center items-center font-medium"
               >
                 <Save className="h-5 w-5 mr-2" />
-                Submit Pembelian
+                {isGM ? 'Catat & Setujui Pembelian' : 'Submit Pembelian'}
               </button>
               <p className="text-xs text-gray-500 text-center mt-2">
-                * Pembelian memerlukan persetujuan GM sebelum masuk ke perhitungan stok
+                {isGM
+                  ? '✓ Pembelian oleh GM langsung disetujui dan masuk ke perhitungan stok'
+                  : '* Pembelian memerlukan persetujuan GM sebelum masuk ke perhitungan stok'
+                }
               </p>
             </div>
           </div>
@@ -353,6 +399,41 @@ const FuelPricePage = () => {
               <History className="h-5 w-5 mr-2 text-gray-500" />
               Riwayat Pembelian
             </h3>
+
+            {/* Filter Tanggal */}
+            <div className="flex flex-wrap items-end gap-3 mb-4 p-3 bg-amber-50 rounded-lg border border-amber-100">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Dari Tanggal</label>
+                <input
+                  type="date"
+                  value={filterStart}
+                  onChange={(e) => setFilterStart(e.target.value)}
+                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Sampai Tanggal</label>
+                <input
+                  type="date"
+                  value={filterEnd}
+                  onChange={(e) => setFilterEnd(e.target.value)}
+                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                />
+              </div>
+              <button
+                onClick={() => fetchPurchases(filterStart, filterEnd)}
+                className="flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"
+              >
+                <History className="h-4 w-4" />
+                Filter
+              </button>
+              <button
+                onClick={() => { setFilterStart(''); setFilterEnd(''); fetchPurchases('', ''); }}
+                className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50"
+              >
+                Semua
+              </button>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -373,7 +454,9 @@ const FuelPricePage = () => {
                       onClick={() => openDetail(purchase)}
                     >
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {new Date(purchase.created_at).toLocaleDateString('id-ID')}
+                        {purchase.effective_date
+                          ? new Date(purchase.effective_date).toLocaleDateString('id-ID')
+                          : new Date(purchase.created_at).toLocaleDateString('id-ID')}
                       </td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-900 text-right">
                         {purchase.liters?.toLocaleString('id-ID') || '-'} L

@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import date, datetime
 from typing import List, Optional
 
@@ -13,13 +14,13 @@ from ...models.employee import Employee
 from ...models.fuel_log import FuelLog
 from ...models.fuel_price import FuelPrice
 from ...models.income_record import IncomeRecord
-from ...models.payroll import PayrollRecord
+from ...models.payroll import Attendance
 from ...models.work_log import WorkLog
 
 router = APIRouter()
 
 
-# ── Schema ──────────────────────────────────────────────────────────────────
+# ── Schemas ──────────────────────────────────────────────────────────────────
 
 class FuelPurchaseItem(BaseModel):
     id: int
@@ -29,9 +30,6 @@ class FuelPurchaseItem(BaseModel):
     harga_per_liter: float
     total_harga: Optional[float]
     catatan: Optional[str]
-
-    class Config:
-        from_attributes = True
 
 
 class FuelByEquipmentItem(BaseModel):
@@ -60,18 +58,17 @@ class WorkLogByEquipmentItem(BaseModel):
     log_count: int
 
 
-class PayrollItem(BaseModel):
-    id: int
+class AttendanceEmployeeItem(BaseModel):
+    employee_id: int
     employee_name: str
     position: Optional[str]
-    period_start: Optional[str]
-    period_end: Optional[str]
-    basic_salary: float
-    allowance: float
-    overtime_amount: float
-    total_deduction: float
-    net_salary: float
-    payment_status: str
+    present_days: int
+    absent_days: int
+    late_days: int
+    total_work_hours: float
+    total_overtime_hours: float
+    daily_salary: float
+    estimated_salary: float  # present_days * daily_salary
 
 
 class MaterialSaleItem(BaseModel):
@@ -94,6 +91,8 @@ class ReportSummary(BaseModel):
     total_payroll_expense: float
     total_material_sales: float
     net_balance: float
+    total_present_days: int
+    total_employees: int
 
 
 class RangeReport(BaseModel):
@@ -104,11 +103,11 @@ class RangeReport(BaseModel):
     fuel_by_equipment: List[FuelByEquipmentItem]
     work_logs_by_equipment: List[WorkLogByEquipmentItem]
     work_logs_detail: List[WorkLogDetailItem]
-    payroll: List[PayrollItem]
+    attendance_summary: List[AttendanceEmployeeItem]
     material_sales: List[MaterialSaleItem]
 
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
+# ── Helper ───────────────────────────────────────────────────────────────────
 
 def _fmt_date(d) -> Optional[str]:
     if d is None:
@@ -118,7 +117,7 @@ def _fmt_date(d) -> Optional[str]:
     return str(d)
 
 
-# ── Endpoint ──────────────────────────────────────────────────────────────────
+# ── Endpoint ─────────────────────────────────────────────────────────────────
 
 @router.get("/range", response_model=RangeReport)
 def get_range_report(
@@ -128,19 +127,17 @@ def get_range_report(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Generate laporan operasional berdasarkan rentang tanggal.
-    Mencakup:
-    - Pembelian BBM yang sudah diapprove
-    - BBM per alat (dari catatan pengisian)
-    - Jam kerja alat
-    - Pengeluaran gaji karyawan/operator
-    - Penjualan material
+    Laporan operasional berdasarkan rentang tanggal:
+    1. Pembelian BBM (approved)
+    2. BBM per alat (catatan pengisian)
+    3. Jam kerja alat
+    4. Estimasi gaji berdasarkan absensi nyata
+    5. Penjualan material
     """
     if start_date > end_date:
-        raise HTTPException(
-            status_code=400,
-            detail="start_date tidak boleh lebih besar dari end_date",
-        )
+        raise HTTPException(status_code=400, detail="start_date tidak boleh lebih besar dari end_date")
+
+    equipment_map: dict = {}
 
     # ── 1. Pembelian BBM (approved) ──────────────────────────────────────────
     fuel_purchases_rows = (
@@ -163,19 +160,17 @@ def get_range_report(
         liters = float(fp.liters or 0)
         total_fuel_expense += total_price
         total_fuel_liters_purchased += liters
-        fuel_purchases.append(
-            FuelPurchaseItem(
-                id=fp.id,
-                tanggal=_fmt_date(fp.effective_date),
-                jenis_bbm=fp.fuel_type,
-                liter=liters if fp.liters else None,
-                harga_per_liter=float(fp.price_per_liter),
-                total_harga=total_price if fp.total_price else None,
-                catatan=fp.notes,
-            )
-        )
+        fuel_purchases.append(FuelPurchaseItem(
+            id=fp.id,
+            tanggal=_fmt_date(fp.effective_date),
+            jenis_bbm=fp.fuel_type,
+            liter=liters if fp.liters else None,
+            harga_per_liter=float(fp.price_per_liter),
+            total_harga=total_price if fp.total_price else None,
+            catatan=fp.notes,
+        ))
 
-    # ── 2. BBM per Alat (dari fuel_logs) ────────────────────────────────────
+    # ── 2. BBM per Alat ──────────────────────────────────────────────────────
     fuel_log_rows = (
         db.query(
             FuelLog.equipment_id,
@@ -190,28 +185,24 @@ def get_range_report(
         .all()
     )
 
-    eq_ids_fuel = [r.equipment_id for r in fuel_log_rows if r.equipment_id]
-    equipment_map: dict = {}
-    if eq_ids_fuel:
-        equips = db.query(Equipment).filter(Equipment.id.in_(eq_ids_fuel)).all()
-        equipment_map = {e.id: e for e in equips}
+    eq_ids = [r.equipment_id for r in fuel_log_rows if r.equipment_id]
+    if eq_ids:
+        for e in db.query(Equipment).filter(Equipment.id.in_(eq_ids)).all():
+            equipment_map[e.id] = e
 
     fuel_by_equipment: List[FuelByEquipmentItem] = []
     for row in fuel_log_rows:
         eq = equipment_map.get(row.equipment_id)
-        fuel_by_equipment.append(
-            FuelByEquipmentItem(
-                equipment_id=row.equipment_id or 0,
-                equipment_name=eq.name if eq else f"Alat #{row.equipment_id}",
-                equipment_type=eq.type if eq else "-",
-                total_liters=round(float(row.total_liters), 2),
-                refuel_count=int(row.refuel_count),
-            )
-        )
+        fuel_by_equipment.append(FuelByEquipmentItem(
+            equipment_id=row.equipment_id or 0,
+            equipment_name=eq.name if eq else f"Alat #{row.equipment_id}",
+            equipment_type=eq.type if eq else "-",
+            total_liters=round(float(row.total_liters), 2),
+            refuel_count=int(row.refuel_count),
+        ))
     fuel_by_equipment.sort(key=lambda x: x.equipment_name)
 
-    # ── 3. Jam Kerja Alat ───────────────────────────────────────────────────
-    # 3a. Ringkasan per alat
+    # ── 3. Jam Kerja Alat ────────────────────────────────────────────────────
     wl_summary_rows = (
         db.query(
             WorkLog.equipment_id,
@@ -226,31 +217,26 @@ def get_range_report(
         .all()
     )
 
-    eq_ids_work = [r.equipment_id for r in wl_summary_rows if r.equipment_id]
-    if eq_ids_work:
-        new_equips = db.query(Equipment).filter(Equipment.id.in_(eq_ids_work)).all()
-        for e in new_equips:
+    wl_eq_ids = [r.equipment_id for r in wl_summary_rows if r.equipment_id]
+    if wl_eq_ids:
+        for e in db.query(Equipment).filter(Equipment.id.in_(wl_eq_ids)).all():
             equipment_map[e.id] = e
 
     work_logs_by_equipment: List[WorkLogByEquipmentItem] = []
     total_work_hours = 0.0
-
     for row in wl_summary_rows:
         eq = equipment_map.get(row.equipment_id)
         hrs = round(float(row.total_hours), 2)
         total_work_hours += hrs
-        work_logs_by_equipment.append(
-            WorkLogByEquipmentItem(
-                equipment_id=row.equipment_id or 0,
-                equipment_name=eq.name if eq else f"Alat #{row.equipment_id}",
-                equipment_type=eq.type if eq else "-",
-                total_hours=hrs,
-                log_count=int(row.log_count),
-            )
-        )
+        work_logs_by_equipment.append(WorkLogByEquipmentItem(
+            equipment_id=row.equipment_id or 0,
+            equipment_name=eq.name if eq else f"Alat #{row.equipment_id}",
+            equipment_type=eq.type if eq else "-",
+            total_hours=hrs,
+            log_count=int(row.log_count),
+        ))
     work_logs_by_equipment.sort(key=lambda x: x.equipment_name)
 
-    # 3b. Detail per baris
     wl_detail_rows = (
         db.query(WorkLog)
         .filter(
@@ -264,60 +250,72 @@ def get_range_report(
     work_logs_detail: List[WorkLogDetailItem] = []
     for wl in wl_detail_rows:
         eq = equipment_map.get(wl.equipment_id)
-        work_logs_detail.append(
-            WorkLogDetailItem(
-                id=wl.id,
-                equipment_name=eq.name if eq else f"Alat #{wl.equipment_id}",
-                equipment_type=eq.type if eq else "-",
-                operator_name=wl.operator_name,
-                work_date=_fmt_date(wl.work_date),
-                total_hours=round(float(wl.total_hours), 2),
-                work_description=wl.work_description,
-            )
-        )
+        work_logs_detail.append(WorkLogDetailItem(
+            id=wl.id,
+            equipment_name=eq.name if eq else f"Alat #{wl.equipment_id}",
+            equipment_type=eq.type if eq else "-",
+            operator_name=wl.operator_name,
+            work_date=_fmt_date(wl.work_date),
+            total_hours=round(float(wl.total_hours), 2),
+            work_description=wl.work_description,
+        ))
 
-    # ── 4. Gaji Karyawan ─────────────────────────────────────────────────────
-    payroll_rows = (
-        db.query(PayrollRecord)
+    # ── 4. Estimasi Gaji berdasarkan Absensi ─────────────────────────────────
+    att_rows = (
+        db.query(Attendance)
         .filter(
-            PayrollRecord.period_end >= start_date,
-            PayrollRecord.period_end <= end_date,
-            PayrollRecord.payment_status.in_(["approved", "paid"]),
+            Attendance.date >= start_date,
+            Attendance.date <= end_date,
         )
-        .order_by(PayrollRecord.period_end.asc())
         .all()
     )
 
-    emp_ids = list({pr.employee_id for pr in payroll_rows})
+    att_emp_ids = list({a.employee_id for a in att_rows})
     emp_map: dict = {}
-    if emp_ids:
-        emps = db.query(Employee).filter(Employee.id.in_(emp_ids)).all()
-        emp_map = {e.id: e for e in emps}
+    if att_emp_ids:
+        emp_map = {e.id: e for e in db.query(Employee).filter(Employee.id.in_(att_emp_ids)).all()}
 
-    payroll_items: List[PayrollItem] = []
+    agg: dict = defaultdict(lambda: {
+        "present": 0, "absent": 0, "late": 0,
+        "work_hours": 0.0, "ot_hours": 0.0
+    })
+    for a in att_rows:
+        d = agg[a.employee_id]
+        status = (a.status or "present").lower()
+        if status in ("present", "late"):
+            d["present"] += 1
+            if status == "late":
+                d["late"] += 1
+        else:
+            d["absent"] += 1
+        d["work_hours"] += float(a.work_hours or 0)
+        d["ot_hours"] += float(a.overtime_hours or 0)
+
+    attendance_summary: List[AttendanceEmployeeItem] = []
     total_payroll_expense = 0.0
+    total_present_global = 0
 
-    for pr in payroll_rows:
-        emp = emp_map.get(pr.employee_id)
-        net = float(pr.net_salary or 0)
-        total_payroll_expense += net
-        payroll_items.append(
-            PayrollItem(
-                id=pr.id,
-                employee_name=emp.name if emp else f"Karyawan #{pr.employee_id}",
-                position=emp.position if emp else None,
-                period_start=_fmt_date(pr.period_start),
-                period_end=_fmt_date(pr.period_end),
-                basic_salary=float(pr.basic_salary or 0),
-                allowance=float(pr.allowance or 0),
-                overtime_amount=float(pr.overtime_amount or 0),
-                total_deduction=float(pr.total_deduction or 0),
-                net_salary=net,
-                payment_status=pr.payment_status or "pending",
-            )
-        )
+    for emp_id, stats in agg.items():
+        emp = emp_map.get(emp_id)
+        daily = float(emp.daily_salary if emp else 0)
+        estimated = stats["present"] * daily
+        total_payroll_expense += estimated
+        total_present_global += stats["present"]
+        attendance_summary.append(AttendanceEmployeeItem(
+            employee_id=emp_id,
+            employee_name=emp.name if emp else f"Karyawan #{emp_id}",
+            position=emp.position if emp else None,
+            present_days=stats["present"],
+            absent_days=stats["absent"],
+            late_days=stats["late"],
+            total_work_hours=round(stats["work_hours"], 1),
+            total_overtime_hours=round(stats["ot_hours"], 1),
+            daily_salary=daily,
+            estimated_salary=estimated,
+        ))
+    attendance_summary.sort(key=lambda x: x.employee_name)
 
-    # ── 5. Penjualan Material ────────────────────────────────────────────────
+    # ── 5. Penjualan Material ─────────────────────────────────────────────────
     material_rows = (
         db.query(IncomeRecord)
         .filter(
@@ -331,46 +329,42 @@ def get_range_report(
 
     material_items: List[MaterialSaleItem] = []
     total_material_sales = 0.0
-
     for ir in material_rows:
         amt = float(ir.amount or 0)
         total_material_sales += amt
-        material_items.append(
-            MaterialSaleItem(
-                id=ir.id,
-                tanggal=_fmt_date(ir.income_date),
-                material_type=ir.material_type,
-                quantity=ir.quantity,
-                unit=ir.unit,
-                unit_price=ir.unit_price,
-                amount=amt,
-                customer_name=ir.customer_name,
-                payment_method=ir.payment_method,
-                description=ir.description,
-            )
-        )
+        material_items.append(MaterialSaleItem(
+            id=ir.id,
+            tanggal=_fmt_date(ir.income_date),
+            material_type=ir.material_type,
+            quantity=ir.quantity,
+            unit=ir.unit,
+            unit_price=ir.unit_price,
+            amount=amt,
+            customer_name=ir.customer_name,
+            payment_method=ir.payment_method,
+            description=ir.description,
+        ))
 
     # ── Summary ───────────────────────────────────────────────────────────────
-    total_expenses = total_fuel_expense + total_payroll_expense
-    net_balance = total_material_sales - total_expenses
-
-    summary = ReportSummary(
-        total_fuel_expense=round(total_fuel_expense, 2),
-        total_fuel_liters=round(total_fuel_liters_purchased, 2),
-        total_work_hours=round(total_work_hours, 2),
-        total_payroll_expense=round(total_payroll_expense, 2),
-        total_material_sales=round(total_material_sales, 2),
-        net_balance=round(net_balance, 2),
-    )
+    net_balance = total_material_sales - total_fuel_expense - total_payroll_expense
 
     return RangeReport(
         period_start=str(start_date),
         period_end=str(end_date),
-        summary=summary,
+        summary=ReportSummary(
+            total_fuel_expense=round(total_fuel_expense, 2),
+            total_fuel_liters=round(total_fuel_liters_purchased, 2),
+            total_work_hours=round(total_work_hours, 2),
+            total_payroll_expense=round(total_payroll_expense, 2),
+            total_material_sales=round(total_material_sales, 2),
+            net_balance=round(net_balance, 2),
+            total_present_days=total_present_global,
+            total_employees=len(attendance_summary),
+        ),
         fuel_purchases=fuel_purchases,
         fuel_by_equipment=fuel_by_equipment,
         work_logs_by_equipment=work_logs_by_equipment,
         work_logs_detail=work_logs_detail,
-        payroll=payroll_items,
+        attendance_summary=attendance_summary,
         material_sales=material_items,
     )
