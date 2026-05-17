@@ -357,6 +357,69 @@ const PriceFormModal = ({ editData, onClose, onSaved, meta }) => {
 };
 
 
+// ── Sale Detail Modal ──────────────────────────────────────────────────────────
+const SaleDetailModal = ({ sale, isGM, currentUser, onClose, onEdit, onDelete }) => {
+  const canEdit = isGM || sale.created_by === currentUser?.id;
+  const rows = [
+    { label: "Tanggal",         value: formatDate(sale.income_date) },
+    { label: "Customer",        value: sale.customer_name || "-" },
+    { label: "Plat Nomor",      value: sale.license_plate || "-" },
+    { label: "Jenis Kendaraan", value: sale.vehicle_type || "-" },
+    { label: "Material",        value: <MaterialBadge type={sale.material_type} /> },
+    { label: "Volume",          value: `${Number(sale.quantity).toLocaleString("id-ID")} ${sale.unit}` },
+    { label: "Harga / Satuan",  value: formatIDR(sale.unit_price) },
+    { label: "Total",           value: <span className="text-emerald-700 font-bold text-base">{formatIDR(sale.amount)}</span> },
+    { label: "Pembayaran",      value: <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${sale.payment_method === "cash" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"}`}>{sale.payment_method === "cash" ? "Cash" : "Transfer"}</span> },
+    ...(sale.notes ? [{ label: "Catatan", value: sale.notes }] : []),
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <ShoppingCart size={18} className="text-emerald-600" />
+            <h2 className="text-base font-semibold text-gray-800">Detail Penjualan</h2>
+          </div>
+          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-5 space-y-3">
+          {rows.map(({ label, value }) => (
+            <div key={label} className="flex items-start justify-between gap-4">
+              <span className="text-xs font-medium text-gray-400 uppercase tracking-wide w-32 shrink-0 pt-0.5">{label}</span>
+              <span className="text-sm text-gray-800 text-right">{value}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Actions */}
+        {canEdit && (
+          <div className="flex gap-3 px-6 pb-5 pt-2 border-t border-gray-50">
+            <button
+              onClick={onDelete}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 border border-red-200 text-red-600 hover:bg-red-50 rounded-xl text-sm font-semibold transition-colors"
+            >
+              <Trash2 size={15} /> Hapus
+            </button>
+            <button
+              onClick={onEdit}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors"
+            >
+              <Pencil size={15} /> Edit
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+
 // ── MAIN COMPONENT ─────────────────────────────────────────────────────────────
 export default function MaterialSalesPage() {
   const [activeTab, setActiveTab] = useState("sales"); // sales | prices
@@ -373,6 +436,7 @@ export default function MaterialSalesPage() {
   const [showSaleModal, setShowSaleModal] = useState(false);
   const [showPriceModal, setShowPriceModal] = useState(false);
   const [editData, setEditData] = useState(null);
+  const [viewSale, setViewSale] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
 
   useEffect(() => {
@@ -476,12 +540,16 @@ export default function MaterialSalesPage() {
                   <th className="px-4 py-3 text-left">Material</th>
                   <th className="px-4 py-3 text-right">Volume</th>
                   <th className="px-4 py-3 text-right">Total (Rp)</th>
-                  {(isGM || currentUser?.role === "field") && <th className="px-4 py-3 text-center">Aksi</th>}
+                  <th className="px-4 py-3 text-center w-8"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {sales.map(s => (
-                  <tr key={s.id} className="hover:bg-gray-50">
+                  <tr
+                    key={s.id}
+                    onClick={() => setViewSale(s)}
+                    className="hover:bg-emerald-50/60 cursor-pointer transition-colors"
+                  >
                     <td className="px-4 py-3 whitespace-nowrap">{formatDate(s.income_date)}</td>
                     <td className="px-4 py-3 font-medium">{s.customer_name}</td>
                     <td className="px-4 py-3 text-xs text-gray-600">
@@ -491,12 +559,9 @@ export default function MaterialSalesPage() {
                     <td className="px-4 py-3"><MaterialBadge type={s.material_type} meta={meta} /></td>
                     <td className="px-4 py-3 text-right font-medium">{s.quantity} {s.unit}</td>
                     <td className="px-4 py-3 text-right font-semibold text-emerald-700">{formatIDR(s.amount)}</td>
-                    {(isGM || s.created_by === currentUser?.id) && (
-                      <td className="px-4 py-3 text-center">
-                        <button onClick={() => { setEditData(s); setShowSaleModal(true); }} className="p-1 text-blue-500 hover:bg-blue-50 rounded"><Pencil size={15} /></button>
-                        <button onClick={() => setConfirmDelete(s)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={15} /></button>
-                      </td>
-                    )}
+                    <td className="px-4 py-3 text-center">
+                      <span className="text-gray-300 text-xs">›</span>
+                    </td>
                   </tr>
                 ))}
                 {sales.length === 0 && <tr><td colSpan={7} className="text-center py-10 text-gray-400">Belum ada catatan penjualan material.</td></tr>}
@@ -544,6 +609,25 @@ export default function MaterialSalesPage() {
 
       {showSaleModal && <SaleFormModal editData={editData} onClose={() => setShowSaleModal(false)} onSaved={() => { setShowSaleModal(false); fetchData(); }} meta={meta} customers={customers} equipment={equipment} />}
       {showPriceModal && <PriceFormModal editData={editData} onClose={() => setShowPriceModal(false)} onSaved={() => { setShowPriceModal(false); fetchData(); }} meta={meta} />}
+
+      {/* Sale Detail Modal */}
+      {viewSale && !showSaleModal && (
+        <SaleDetailModal
+          sale={viewSale}
+          isGM={isGM}
+          currentUser={currentUser}
+          onClose={() => setViewSale(null)}
+          onEdit={() => {
+            setEditData(viewSale);
+            setViewSale(null);
+            setShowSaleModal(true);
+          }}
+          onDelete={() => {
+            setConfirmDelete(viewSale);
+            setViewSale(null);
+          }}
+        />
+      )}
 
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
