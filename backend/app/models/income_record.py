@@ -22,6 +22,8 @@ class IncomeRecord(Base):
     unit = Column(String(20), nullable=True)  # m3, ton
     unit_price = Column(Float, nullable=True)
     payment_method = Column(String(20), nullable=True)  # cash, transfer
+    license_plate = Column(String(50), nullable=True)
+    vehicle_type = Column(String(50), nullable=True)  # Colt Diesel, Tronton
     notes = Column(Text, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

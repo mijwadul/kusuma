@@ -17,6 +17,8 @@ class IncomeRecordBase(BaseModel):
     unit: Optional[str] = None
     unit_price: Optional[float] = None
     payment_method: Optional[str] = None
+    license_plate: Optional[str] = None
+    vehicle_type: Optional[str] = None
     notes: Optional[str] = None
 
 
@@ -37,6 +39,8 @@ class IncomeRecordUpdate(BaseModel):
     unit: Optional[str] = None
     unit_price: Optional[float] = None
     payment_method: Optional[str] = None
+    license_plate: Optional[str] = None
+    vehicle_type: Optional[str] = None
     notes: Optional[str] = None
 
 

@@ -38,6 +38,8 @@ def _build_income_response(record: IncomeRecord, db: Session) -> IncomeRecordRes
         unit=record.unit,
         unit_price=record.unit_price,
         payment_method=record.payment_method,
+        license_plate=record.license_plate,
+        vehicle_type=record.vehicle_type,
         notes=record.notes,
         created_by=record.created_by,
         created_at=record.created_at,
@@ -45,7 +47,7 @@ def _build_income_response(record: IncomeRecord, db: Session) -> IncomeRecordRes
     )
 
 
-@router.get("/", response_model=List[IncomeRecordResponse])
+@router.get("", response_model=List[IncomeRecordResponse])
 def get_income_records(
     income_date: Optional[date] = Query(
         default=None, description="Filter by exact date"
@@ -81,7 +83,7 @@ def get_income_records(
 
 
 @router.post(
-    "/", response_model=IncomeRecordResponse, status_code=status.HTTP_201_CREATED
+    "", response_model=IncomeRecordResponse, status_code=status.HTTP_201_CREATED
 )
 def create_income_record(
     data: IncomeRecordCreate,
@@ -102,6 +104,8 @@ def create_income_record(
         unit=data.unit,
         unit_price=data.unit_price,
         payment_method=data.payment_method,
+        license_plate=data.license_plate,
+        vehicle_type=data.vehicle_type,
         notes=data.notes,
         created_by=current_user.id if current_user else None,
     )

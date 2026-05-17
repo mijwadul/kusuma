@@ -362,6 +362,16 @@ def _migrate_income_records_if_needed():
             """
                 )
             )
+    
+    existing = {col["name"] for col in inspector.get_columns("income_records")}
+    new_cols = {
+        "license_plate": "VARCHAR(50)",
+        "vehicle_type": "VARCHAR(50)"
+    }
+    with engine.begin() as conn:
+        for col, typ in new_cols.items():
+            if col not in existing:
+                conn.execute(text(f'ALTER TABLE income_records ADD COLUMN "{col}" {typ}'))
 
 
 

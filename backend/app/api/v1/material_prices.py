@@ -30,28 +30,34 @@ def _lookup_price(
     material_type: str,
     unit: str,
     customer_name: Optional[str] = None,
-) -> Optional[MaterialPrice]:
+):
     """
     Cari harga dengan prioritas:
-    1. Harga spesifik customer (customer_name match, unit match)
-    2. Harga default (customer_name IS NULL, unit match)
+    1. Harga spesifik customer (dari tabel customers -> materials_json)
+    2. Harga default (dari tabel material_prices)
     """
+    import json
+    from ...models.customer import Customer
+    
     # 1. Cari harga khusus customer
     if customer_name and customer_name.strip():
-        specific = (
-            db.query(MaterialPrice)
-            .filter(
-                MaterialPrice.material_type == material_type,
-                MaterialPrice.unit == unit,
-                MaterialPrice.customer_name == customer_name.strip(),
-                MaterialPrice.is_active == True,
-            )
-            .first()
-        )
-        if specific:
-            return specific
+        cust = db.query(Customer).filter(Customer.name == customer_name.strip()).first()
+        if cust and cust.materials_json:
+            try:
+                prefs = json.loads(cust.materials_json)
+                for p in prefs:
+                    if p.get("material_type") == material_type and p.get("unit") == unit:
+                        if p.get("unit_price"):
+                            return {
+                                "found": True,
+                                "price_per_unit": float(p["unit_price"]),
+                                "unit": unit,
+                                "is_custom": True,
+                            }
+            except Exception:
+                pass
 
-    # 2. Fallback ke harga default
+    # 2. Fallback ke harga default (di mana customer_name = None)
     default = (
         db.query(MaterialPrice)
         .filter(
@@ -62,7 +68,15 @@ def _lookup_price(
         )
         .first()
     )
-    return default
+    if default:
+        return {
+            "found": True,
+            "price_per_unit": float(default.price_per_unit),
+            "unit": default.unit,
+            "is_custom": False,
+        }
+    
+    return {"found": False}
 
 
 # ── Metadata endpoint ─────────────────────────────────────────────────────────
@@ -92,22 +106,22 @@ def lookup_price(
     Cari harga untuk kombinasi material + unit + customer.
     Digunakan untuk auto-fill harga di form penjualan.
     """
-    mp = _lookup_price(db, material_type, unit, customer_name)
-    if not mp:
+    result = _lookup_price(db, material_type, unit, customer_name)
+    if not result.get("found"):
         return MaterialPriceLookup(found=False)
-    is_custom = mp.customer_name is not None
+    
     return MaterialPriceLookup(
         found=True,
-        price_per_unit=mp.price_per_unit,
-        unit=mp.unit,
-        is_custom=is_custom,
-        material_price_id=mp.id,
+        price_per_unit=result["price_per_unit"],
+        unit=result["unit"],
+        is_custom=result["is_custom"],
+        material_price_id=0, # not needed
     )
 
 
 # ── CRUD ──────────────────────────────────────────────────────────────────────
 
-@router.get("/", response_model=List[MaterialPriceResponse])
+@router.get("", response_model=List[MaterialPriceResponse])
 def list_prices(
     material_type: Optional[str] = Query(default=None),
     customer_name: Optional[str] = Query(default=None),
@@ -133,7 +147,7 @@ def list_prices(
     ).all()
 
 
-@router.post("/", response_model=MaterialPriceResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=MaterialPriceResponse, status_code=status.HTTP_201_CREATED)
 def create_price(
     data: MaterialPriceCreate,
     db: Session = Depends(get_db),
@@ -143,26 +157,24 @@ def create_price(
     if not _is_gm(current_user):
         raise HTTPException(status_code=403, detail="Hanya GM yang dapat mengelola harga material")
 
-    # Cek duplikasi: kombinasi material + unit + customer harus unik
     existing = (
         db.query(MaterialPrice)
         .filter(
             MaterialPrice.material_type == data.material_type,
             MaterialPrice.unit == data.unit,
-            MaterialPrice.customer_name == data.customer_name,
+            MaterialPrice.customer_name == None,
         )
         .first()
     )
     if existing:
-        label = data.customer_name or "default"
         raise HTTPException(
             status_code=409,
-            detail=f"Harga untuk {data.material_type} / {data.unit} / customer '{label}' sudah ada. Gunakan edit.",
+            detail=f"Harga default untuk {data.material_type} / {data.unit} sudah ada. Gunakan edit.",
         )
 
     mp = MaterialPrice(
         material_type=data.material_type,
-        customer_name=data.customer_name,
+        customer_name=None,
         unit=data.unit,
         price_per_unit=data.price_per_unit,
         is_active=data.is_active,
@@ -191,6 +203,8 @@ def update_price(
         raise HTTPException(status_code=404, detail="Data harga tidak ditemukan")
 
     for field, value in data.model_dump(exclude_unset=True).items():
+        if field == "customer_name":
+            continue
         setattr(mp, field, value)
 
     db.commit()

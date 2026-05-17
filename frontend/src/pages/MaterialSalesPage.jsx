@@ -1,36 +1,10 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import {
-  Package,
-  Plus,
-  Pencil,
-  Trash2,
-  X,
-  Loader2,
-  Tag,
-  Users,
-  ChevronDown,
-  BadgeCheck,
-  Star,
+  Package, Plus, Pencil, Trash2, X, Loader2, Tag, Users,
+  ChevronDown, BadgeCheck, Star, ShoppingCart, Settings, Truck
 } from "lucide-react";
 import { API_URL } from "../api/auth";
-
-// ── Constants ─────────────────────────────────────────────────────────────────
-const MATERIAL_TYPES = ["Limestone (urugan)", "Dolomite", "Boulder", "Clay"];
-
-const MATERIAL_UNITS = {
-  "Limestone (urugan)": ["m3", "ritase"],
-  Dolomite: ["ton", "ritase"],
-  Boulder: ["ton"],
-  Clay: ["ton", "ritase"],
-};
-
-const MATERIAL_COLORS = {
-  "Limestone (urugan)": { bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-400" },
-  Dolomite: { bg: "bg-blue-50", text: "text-blue-700", dot: "bg-blue-400" },
-  Boulder: { bg: "bg-stone-50", text: "text-stone-700", dot: "bg-stone-400" },
-  Clay: { bg: "bg-orange-50", text: "text-orange-700", dot: "bg-orange-400" },
-};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const formatIDR = (v) =>
@@ -39,6 +13,19 @@ const formatIDR = (v) =>
     currency: "IDR",
     minimumFractionDigits: 0,
   });
+
+const formatDate = (d) => {
+  if (!d) return "-";
+  return new Date(d).toLocaleDateString("id-ID", {
+    day: "2-digit", month: "short", year: "numeric",
+  });
+};
+
+const todayStr = () => {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().split("T")[0];
+};
 
 const authFetch = async (url, options = {}) => {
   const token = localStorage.getItem("token");
@@ -58,212 +45,232 @@ const authFetch = async (url, options = {}) => {
   return res.json();
 };
 
-// ── Material Badge ─────────────────────────────────────────────────────────────
-const MaterialBadge = ({ type }) => {
-  const c = MATERIAL_COLORS[type] || { bg: "bg-gray-50", text: "text-gray-700", dot: "bg-gray-400" };
+const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300";
+
+// ── Components ─────────────────────────────────────────────────────────────────
+const MaterialBadge = ({ type, meta }) => {
+  // Simple color hashing based on name if meta colors not provided
+  let bg = "bg-emerald-50"; let text = "text-emerald-700"; let dot = "bg-emerald-400";
+  if (type === "Limestone (urugan)") { bg = "bg-amber-50"; text = "text-amber-700"; dot = "bg-amber-400"; }
+  if (type === "Dolomite") { bg = "bg-blue-50"; text = "text-blue-700"; dot = "bg-blue-400"; }
+  if (type === "Boulder") { bg = "bg-stone-50"; text = "text-stone-700"; dot = "bg-stone-400"; }
+  if (type === "Clay") { bg = "bg-orange-50"; text = "text-orange-700"; dot = "bg-orange-400"; }
+
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${c.bg} ${c.text}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${bg} ${text}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
       {type}
     </span>
   );
 };
 
-// ── Empty ──────────────────────────────────────────────────────────────────────
-const EmptyState = ({ onAdd }) => (
-  <div className="py-16 flex flex-col items-center text-gray-400">
-    <Tag size={40} className="mb-3 opacity-30" />
-    <p className="text-sm font-medium">Belum ada harga material</p>
-    <p className="text-xs mt-1 mb-4">Tambahkan harga untuk mulai mencatat penjualan</p>
-    <button
-      onClick={onAdd}
-      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors"
-    >
-      <Plus size={15} /> Tambah Harga
-    </button>
-  </div>
-);
-
-// ── Form Modal ─────────────────────────────────────────────────────────────────
-const PriceFormModal = ({ editData, onClose, onSaved, currentUser }) => {
-  const isGM =
-    currentUser?.is_admin ||
-    currentUser?.is_superuser ||
-    ["gm", "admin"].includes(currentUser?.role);
-
+// ── Modals ─────────────────────────────────────────────────────────────────────
+const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment }) => {
   const [form, setForm] = useState({
-    material_type: editData?.material_type || MATERIAL_TYPES[0],
+    income_date: editData?.income_date || todayStr(),
     customer_name: editData?.customer_name || "",
-    unit: editData?.unit || MATERIAL_UNITS[editData?.material_type || MATERIAL_TYPES[0]][0],
-    price_per_unit: editData?.price_per_unit ?? "",
-    is_active: editData?.is_active ?? true,
+    license_plate: editData?.license_plate || "",
+    vehicle_type: editData?.vehicle_type || "Colt Diesel",
+    material_type: editData?.material_type || meta?.material_types?.[0] || "",
+    unit: editData?.unit || (meta?.material_units?.[meta?.material_types?.[0]]?.[0]) || "ton",
+    quantity: editData?.quantity || "",
+    unit_price: editData?.unit_price || "",
+    amount: editData?.amount || "",
+    payment_method: editData?.payment_method || "transfer",
     notes: editData?.notes || "",
   });
   const [saving, setSaving] = useState(false);
+  const [priceHint, setPriceHint] = useState(null);
 
-  const availableUnits = MATERIAL_UNITS[form.material_type] || [];
+  // Auto calculate amount
+  useEffect(() => {
+    const q = parseFloat(form.quantity) || 0;
+    const p = parseFloat(form.unit_price) || 0;
+    if (q > 0 && p > 0) {
+      setForm(prev => ({ ...prev, amount: (q * p).toString() }));
+    }
+  }, [form.quantity, form.unit_price]);
 
-  const handleMaterialChange = (mat) => {
-    const units = MATERIAL_UNITS[mat] || [];
-    setForm((p) => ({
-      ...p,
-      material_type: mat,
-      unit: units[0] || "ton",
-    }));
-  };
+  // Auto lookup price
+  useEffect(() => {
+    const { material_type, unit, customer_name } = form;
+    if (!material_type || !unit) return;
+    
+    let cancelled = false;
+    const lookup = async () => {
+      try {
+        const params = new URLSearchParams({ material_type, unit });
+        if (customer_name.trim()) params.set("customer_name", customer_name.trim());
+        const data = await authFetch(`/api/v1/material-prices/lookup?${params}`);
+        if (cancelled) return;
+        
+        if (data?.found) {
+          setForm(prev => ({ ...prev, unit_price: String(data.price_per_unit) }));
+          setPriceHint({ is_custom: data.is_custom });
+        } else {
+          setPriceHint(null);
+        }
+      } catch {
+        if (!cancelled) setPriceHint(null);
+      }
+    };
+    
+    const timer = setTimeout(lookup, 400);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [form.material_type, form.unit, form.customer_name]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isGM) return toast.error("Hanya GM yang bisa mengatur harga");
     setSaving(true);
     try {
-      const body = {
-        ...form,
-        customer_name: form.customer_name.trim() || null,
-        price_per_unit: parseFloat(form.price_per_unit),
+      const payload = {
+        income_date: form.income_date,
+        income_type: "material_sale",
+        description: `Penjualan ${form.material_type} - ${form.customer_name}`,
+        amount: parseFloat(form.amount) || 0,
+        customer_name: form.customer_name,
+        license_plate: form.license_plate,
+        vehicle_type: form.vehicle_type,
+        material_type: form.material_type,
+        quantity: parseFloat(form.quantity) || 0,
+        unit: form.unit,
+        unit_price: parseFloat(form.unit_price) || 0,
+        payment_method: form.payment_method,
+        notes: form.notes
       };
+
       if (editData) {
-        await authFetch(`${API_URL}/material-prices/${editData.id}`, {
-          method: "PUT",
-          body: JSON.stringify(body),
-        });
-        toast.success("Harga berhasil diupdate");
+        await authFetch(`/api/v1/income-records/${editData.id}`, { method: "PUT", body: JSON.stringify(payload) });
       } else {
-        await authFetch(`${API_URL}/material-prices`, {
-          method: "POST",
-          body: JSON.stringify(body),
-        });
-        toast.success("Harga berhasil ditambahkan");
+        await authFetch(`/api/v1/income-records`, { method: "POST", body: JSON.stringify(payload) });
       }
+      toast.success("Penjualan berhasil dicatat");
       onSaved();
     } catch (err) {
-      let msg = err.message;
-      try { msg = JSON.parse(msg)?.detail || msg; } catch {}
-      toast.error(`Gagal: ${msg}`);
+      toast.error(err.message);
     } finally {
       setSaving(false);
     }
   };
 
-  const input = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300";
-
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-800">
-            {editData ? "Edit Harga Material" : "Tambah Harga Material"}
-          </h2>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
-            <X size={18} />
-          </button>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+          <h2 className="text-lg font-semibold">{editData ? "Edit Penjualan" : "Catat Penjualan"}</h2>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-          {/* Material */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Jenis Material <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <select
-                value={form.material_type}
-                onChange={(e) => handleMaterialChange(e.target.value)}
-                className={input + " appearance-none pr-8"}
-              >
-                {MATERIAL_TYPES.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            </div>
-          </div>
-
-          {/* Customer */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Customer
-              <span className="text-xs text-gray-400 font-normal ml-2">(kosongkan = harga default semua customer)</span>
-            </label>
-            <input
-              type="text"
-              value={form.customer_name}
-              onChange={(e) => setForm((p) => ({ ...p, customer_name: e.target.value }))}
-              placeholder="Contoh: PT ABC, UD Maju Jaya — atau kosongkan"
-              className={input}
-            />
-          </div>
-
-          {/* Unit + Harga */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Satuan <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <select
-                  value={form.unit}
-                  onChange={(e) => setForm((p) => ({ ...p, unit: e.target.value }))}
-                  className={input + " appearance-none pr-8"}
-                >
-                  {availableUnits.map((u) => (
-                    <option key={u} value={u}>{u}</option>
-                  ))}
-                </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Tanggal</label>
+              <input type="date" required value={form.income_date} onChange={e => setForm(p => ({...p, income_date: e.target.value}))} className={inputCls} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Harga / Satuan <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                required
-                min={0}
-                step={1000}
-                value={form.price_per_unit}
-                onChange={(e) => setForm((p) => ({ ...p, price_per_unit: e.target.value }))}
-                placeholder="0"
-                className={input}
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Pembeli / Customer</label>
+              <input 
+                type="text" 
+                required 
+                list="customers-list"
+                value={form.customer_name} 
+                onChange={e => setForm(p => ({...p, customer_name: e.target.value}))} 
+                placeholder="Pilih atau ketik baru..."
+                className={inputCls} 
               />
+              <datalist id="customers-list">
+                {customers.map(c => <option key={c.id} value={c.name} />)}
+              </datalist>
             </div>
           </div>
 
-          {/* Status */}
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="is_active"
-              checked={form.is_active}
-              onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))}
-              className="w-4 h-4 rounded text-emerald-600"
-            />
-            <label htmlFor="is_active" className="text-sm text-gray-700">Aktif</label>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Plat Nomor</label>
+              <input 
+                type="text" 
+                list="equipment-list"
+                value={form.license_plate} 
+                onChange={e => setForm(p => ({...p, license_plate: e.target.value}))} 
+                placeholder="Nopol Truk..."
+                className={inputCls} 
+              />
+              <datalist id="equipment-list">
+                {equipment.map(e => <option key={e.id} value={e.license_plate || e.name}>{e.name}</option>)}
+              </datalist>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Jenis Kendaraan</label>
+              <select value={form.vehicle_type} onChange={e => setForm(p => ({...p, vehicle_type: e.target.value}))} className={inputCls}>
+                <option value="Colt Diesel">Colt Diesel</option>
+                <option value="Tronton">Tronton</option>
+                <option value="Lainnya">Lainnya</option>
+              </select>
+            </div>
           </div>
 
-          {/* Notes */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Catatan</label>
-            <textarea
-              rows={2}
-              value={form.notes}
-              onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
-              placeholder="Opsional…"
-              className={input + " resize-none"}
-            />
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={saving || !isGM}
-              className="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 disabled:opacity-60 flex items-center justify-center gap-2"
+          <div className="pt-2 border-t">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Jenis Material</label>
+            <select 
+              value={form.material_type} 
+              onChange={e => {
+                const mat = e.target.value;
+                setForm(p => ({
+                  ...p, material_type: mat, 
+                  unit: meta?.material_units?.[mat]?.[0] || "ton", 
+                  unit_price: "" 
+                }));
+                setPriceHint(null);
+              }} 
+              className={inputCls}
             >
-              {saving && <Loader2 size={15} className="animate-spin" />}
-              {editData ? "Simpan Perubahan" : "Tambah Harga"}
+              {meta?.material_types?.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Kuantitas</label>
+              <input type="number" step="0.01" required value={form.quantity} onChange={e => setForm(p => ({...p, quantity: e.target.value}))} className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Satuan</label>
+              <select value={form.unit} onChange={e => setForm(p => ({...p, unit: e.target.value, unit_price: ""}))} className={inputCls}>
+                {(meta?.material_units?.[form.material_type] || meta?.all_units || []).map(u => <option key={u} value={u}>{u}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
+                Harga/Satuan
+                {priceHint && (
+                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${priceHint.is_custom ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                    {priceHint.is_custom ? "Harga Customer" : "Harga Default"}
+                  </span>
+                )}
+              </label>
+              <input type="number" required value={form.unit_price} onChange={e => setForm(p => ({...p, unit_price: e.target.value}))} className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Total Harga</label>
+              <input type="number" required value={form.amount} onChange={e => setForm(p => ({...p, amount: e.target.value}))} className={`${inputCls} bg-gray-50`} />
+              {form.amount && <p className="text-xs text-gray-500 mt-1">{formatIDR(form.amount)}</p>}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Metode Pembayaran</label>
+            <select value={form.payment_method} onChange={e => setForm(p => ({...p, payment_method: e.target.value}))} className={inputCls}>
+              <option value="transfer">Transfer</option>
+              <option value="cash">Cash</option>
+            </select>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 border rounded-xl text-sm font-medium">Batal</button>
+            <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold disabled:opacity-60">
+              {saving ? <Loader2 size={18} className="animate-spin mx-auto" /> : "Simpan Penjualan"}
             </button>
           </div>
         </form>
@@ -272,211 +279,259 @@ const PriceFormModal = ({ editData, onClose, onSaved, currentUser }) => {
   );
 };
 
+
+const PriceFormModal = ({ editData, onClose, onSaved, meta }) => {
+  const [form, setForm] = useState({
+    material_type: editData?.material_type || meta?.material_types?.[0] || "",
+    unit: editData?.unit || meta?.material_units?.[meta?.material_types?.[0]]?.[0] || "ton",
+    price_per_unit: editData?.price_per_unit ?? "",
+    is_active: editData?.is_active ?? true,
+    notes: editData?.notes || "",
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const body = {
+        ...form,
+        customer_name: null, // Always Default
+        price_per_unit: parseFloat(form.price_per_unit),
+      };
+      if (editData) {
+        await authFetch(`/api/v1/material-prices/${editData.id}`, { method: "PUT", body: JSON.stringify(body) });
+      } else {
+        await authFetch(`/api/v1/material-prices`, { method: "POST", body: JSON.stringify(body) });
+      }
+      toast.success("Harga berhasil disimpan");
+      onSaved();
+    } catch (err) {
+      toast.error("Gagal menyimpan harga");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 className="text-lg font-semibold">{editData ? "Edit Harga" : "Tambah Harga"}</h2>
+          <button onClick={onClose} className="p-2"><X size={18} /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+          <div>
+            <label className="block text-sm mb-1.5">Material</label>
+            <select value={form.material_type} onChange={(e) => {
+              const m = e.target.value;
+              setForm(p => ({...p, material_type: m, unit: meta?.material_units?.[m]?.[0] || "ton"}));
+            }} className={inputCls}>
+              {meta?.material_types?.map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm mb-1.5">Satuan</label>
+              <select value={form.unit} onChange={(e) => setForm(p => ({ ...p, unit: e.target.value }))} className={inputCls}>
+                {(meta?.material_units?.[form.material_type] || meta?.all_units || []).map((u) => <option key={u} value={u}>{u}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm mb-1.5">Harga / Satuan</label>
+              <input type="number" required min={0} value={form.price_per_unit} onChange={(e) => setForm(p => ({ ...p, price_per_unit: e.target.value }))} className={inputCls} />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <input type="checkbox" id="is_active" checked={form.is_active} onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))} className="w-4 h-4 rounded text-emerald-600" />
+            <label htmlFor="is_active" className="text-sm">Aktif</label>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 py-2 border rounded-xl text-sm">Batal</button>
+            <button type="submit" disabled={saving} className="flex-1 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold flex justify-center">{saving ? <Loader2 className="animate-spin" size={20}/> : "Simpan Harga"}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+
 // ── MAIN COMPONENT ─────────────────────────────────────────────────────────────
 export default function MaterialSalesPage() {
-  const [prices, setPrices] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [filterMaterial, setFilterMaterial] = useState("all");
-  const [showModal, setShowModal] = useState(false);
-  const [editData, setEditData] = useState(null);
+  const [activeTab, setActiveTab] = useState("sales"); // sales | prices
   const [currentUser, setCurrentUser] = useState(null);
+  
+  const [sales, setSales] = useState([]);
+  const [prices, setPrices] = useState([]);
+  const [meta, setMeta] = useState(null);
+  
+  const [customers, setCustomers] = useState([]);
+  const [equipment, setEquipment] = useState([]);
+  
+  const [loading, setLoading] = useState(false);
+  const [showSaleModal, setShowSaleModal] = useState(false);
+  const [showPriceModal, setShowPriceModal] = useState(false);
+  const [editData, setEditData] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
 
   useEffect(() => {
     const u = localStorage.getItem("user");
     if (u) try { setCurrentUser(JSON.parse(u)); } catch {}
+    
+    // Fetch lookups
+    Promise.all([
+      authFetch("/api/v1/projects-data/meta").catch(() => null),
+      authFetch("/api/v1/projects-data/customers").catch(() => []),
+      authFetch("/api/v1/dashboard/equipment").catch(() => [])
+    ]).then(([m, c, e]) => {
+      if (m) setMeta(m);
+      if (c) setCustomers(c);
+      if (e) setEquipment(e);
+    });
   }, []);
 
-  const isGM =
-    currentUser?.is_admin ||
-    currentUser?.is_superuser ||
-    ["gm", "admin"].includes(currentUser?.role);
+  const isGM = currentUser?.is_admin || currentUser?.is_superuser || ["gm", "admin"].includes(currentUser?.role);
 
-  const fetchPrices = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await authFetch(`${API_URL}/material-prices`);
-      setPrices(Array.isArray(data) ? data : []);
+      if (activeTab === "sales") {
+        const data = await authFetch(`/api/v1/income-records?income_type=material_sale`);
+        setSales(Array.isArray(data) ? data : []);
+      } else if (activeTab === "prices") {
+        const data = await authFetch(`/api/v1/material-prices`);
+        setPrices(Array.isArray(data) ? data : []);
+      }
     } catch {
-      toast.error("Gagal memuat daftar harga material");
+      toast.error("Gagal memuat data");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeTab]);
 
-  useEffect(() => { fetchPrices(); }, [fetchPrices]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleDelete = async (id) => {
+  const handleDelete = async () => {
     try {
-      await authFetch(`${API_URL}/material-prices/${id}`, { method: "DELETE" });
-      toast.success("Harga berhasil dihapus");
-      fetchPrices();
+      if (activeTab === "sales") {
+        await authFetch(`/api/v1/income-records/${confirmDelete.id}`, { method: "DELETE" });
+      } else {
+        await authFetch(`/api/v1/material-prices/${confirmDelete.id}`, { method: "DELETE" });
+      }
+      toast.success("Berhasil dihapus");
+      fetchData();
     } catch {
-      toast.error("Gagal menghapus harga");
+      toast.error("Gagal menghapus");
     }
     setConfirmDelete(null);
   };
 
-  const openAdd = () => { setEditData(null); setShowModal(true); };
-  const openEdit = (p) => { setEditData(p); setShowModal(true); };
-  const closeModal = () => { setShowModal(false); setEditData(null); };
-  const onSaved = () => { closeModal(); fetchPrices(); };
-
-  const filtered = filterMaterial === "all"
-    ? prices
-    : prices.filter((p) => p.material_type === filterMaterial);
-
-  // Group by material for summary cards
-  const summary = MATERIAL_TYPES.map((mat) => {
-    const entries = prices.filter((p) => p.material_type === mat && p.is_active);
-    const customCount = entries.filter((e) => e.customer_name).length;
-    const hasDefault = entries.some((e) => !e.customer_name);
-    return { mat, total: entries.length, customCount, hasDefault };
-  });
-
   return (
-    <div className="space-y-6">
-      {/* ── Header ─────────────────────────────────────────────────── */}
+    <div className="space-y-6 max-w-6xl mx-auto pb-10">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Penjualan Material Tambang</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Kelola harga per material per customer — GM only
-          </p>
+          <h1 className="text-2xl font-bold text-gray-800">Penjualan Material</h1>
+          <p className="text-sm text-gray-500 mt-1">Catat transaksi material & kelola harga</p>
         </div>
-        {isGM && (
-          <button
-            onClick={openAdd}
-            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
-          >
-            <Plus size={16} /> Tambah Harga
-          </button>
-        )}
-      </div>
-
-      {/* ── Summary Cards ───────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {summary.map(({ mat, total, customCount, hasDefault }) => {
-          const c = MATERIAL_COLORS[mat];
-          return (
-            <div
-              key={mat}
-              onClick={() => setFilterMaterial(filterMaterial === mat ? "all" : mat)}
-              className={`cursor-pointer rounded-2xl p-4 border-2 transition-all ${
-                filterMaterial === mat
-                  ? "border-emerald-400 shadow-md " + c.bg
-                  : "border-transparent bg-white shadow-sm hover:shadow-md"
-              }`}
+        <div className="flex gap-2">
+          {isGM && (
+            <button
+              onClick={() => setActiveTab(t => t === "sales" ? "prices" : "sales")}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2 ${activeTab === "prices" ? "bg-indigo-100 text-indigo-700" : "bg-white border text-gray-600 hover:bg-gray-50"}`}
             >
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${c.dot}`} />
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide truncate">{mat}</p>
-              </div>
-              <p className="text-2xl font-bold text-gray-800">{total}</p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {hasDefault ? "✓ ada default" : "– belum ada default"} · {customCount} customer khusus
-              </p>
-            </div>
-          );
-        })}
+              <Settings size={16} /> Atur Harga (GM)
+            </button>
+          )}
+          {activeTab === "sales" && (
+            <button
+              onClick={() => { setEditData(null); setShowSaleModal(true); }}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
+            >
+              <Plus size={16} /> Catat Penjualan
+            </button>
+          )}
+          {activeTab === "prices" && (
+            <button
+              onClick={() => { setEditData(null); setShowPriceModal(true); }}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
+            >
+              <Plus size={16} /> Tambah Harga
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* ── Filter tabs ──────────────────────────────────────────────── */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit flex-wrap">
-        {["all", ...MATERIAL_TYPES].map((m) => (
-          <button
-            key={m}
-            onClick={() => setFilterMaterial(m)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              filterMaterial === m
-                ? "bg-white text-gray-800 shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            {m === "all" ? "Semua" : m}
-          </button>
-        ))}
-      </div>
-
-      {/* ── Price Table ──────────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px]">
         {loading ? (
-          <div className="flex items-center justify-center gap-2 py-16 text-gray-400">
-            <Loader2 size={20} className="animate-spin" /> Memuat…
-          </div>
-        ) : filtered.length === 0 ? (
-          <EmptyState onAdd={openAdd} />
-        ) : (
+          <div className="flex items-center justify-center py-20 text-gray-400"><Loader2 size={24} className="animate-spin" /></div>
+        ) : activeTab === "sales" ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-100">
+              <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Material</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Customer</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Satuan</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Harga / Satuan</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Catatan</th>
-                  {isGM && <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Aksi</th>}
+                  <th className="px-4 py-3 text-left">Tanggal</th>
+                  <th className="px-4 py-3 text-left">Customer</th>
+                  <th className="px-4 py-3 text-left">Kendaraan</th>
+                  <th className="px-4 py-3 text-left">Material</th>
+                  <th className="px-4 py-3 text-right">Volume</th>
+                  <th className="px-4 py-3 text-right">Total (Rp)</th>
+                  {(isGM || currentUser?.role === "field") && <th className="px-4 py-3 text-center">Aksi</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {filtered.map((p) => (
-                  <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                {sales.map(s => (
+                  <tr key={s.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 whitespace-nowrap">{formatDate(s.income_date)}</td>
+                    <td className="px-4 py-3 font-medium">{s.customer_name}</td>
+                    <td className="px-4 py-3 text-xs text-gray-600">
+                      <div className="flex items-center gap-1.5"><Truck size={12}/> {s.license_plate || "-"}</div>
+                      <div className="mt-0.5 text-gray-400">{s.vehicle_type || "-"}</div>
+                    </td>
+                    <td className="px-4 py-3"><MaterialBadge type={s.material_type} meta={meta} /></td>
+                    <td className="px-4 py-3 text-right font-medium">{s.quantity} {s.unit}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-emerald-700">{formatIDR(s.amount)}</td>
+                    {(isGM || s.created_by === currentUser?.id) && (
+                      <td className="px-4 py-3 text-center">
+                        <button onClick={() => { setEditData(s); setShowSaleModal(true); }} className="p-1 text-blue-500 hover:bg-blue-50 rounded"><Pencil size={15} /></button>
+                        <button onClick={() => setConfirmDelete(s)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={15} /></button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+                {sales.length === 0 && <tr><td colSpan={7} className="text-center py-10 text-gray-400">Belum ada catatan penjualan material.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-indigo-50 border-b">
+                <tr>
+                  <th className="px-4 py-3 text-left">Material</th>
+                  <th className="px-4 py-3 text-left">Tipe Harga</th>
+                  <th className="px-4 py-3 text-left">Satuan</th>
+                  <th className="px-4 py-3 text-right">Harga</th>
+                  <th className="px-4 py-3 text-center">Status</th>
+                  {isGM && <th className="px-4 py-3 text-center">Aksi</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {prices.map(p => (
+                  <tr key={p.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3"><MaterialBadge type={p.material_type} meta={meta} /></td>
                     <td className="px-4 py-3">
-                      <MaterialBadge type={p.material_type} />
+                      <span className="text-emerald-600 text-xs font-bold bg-emerald-50 px-2 py-1 rounded">Harga Default</span>
                     </td>
-                    <td className="px-4 py-3">
-                      {p.customer_name ? (
-                        <span className="flex items-center gap-1.5 text-gray-700 font-medium">
-                          <Users size={13} className="text-blue-400" />
-                          {p.customer_name}
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1.5 text-emerald-600 text-xs font-semibold">
-                          <Star size={12} className="fill-emerald-400 text-emerald-400" />
-                          Harga Default
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
-                        {p.unit}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right font-semibold text-gray-800 tabular-nums">
-                      {formatIDR(p.price_per_unit)}
-                    </td>
+                    <td className="px-4 py-3 text-gray-600">{p.unit}</td>
+                    <td className="px-4 py-3 text-right font-bold text-gray-800">{formatIDR(p.price_per_unit)}</td>
                     <td className="px-4 py-3 text-center">
-                      {p.is_active ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 rounded-full text-xs font-medium">
-                          <BadgeCheck size={11} /> Aktif
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs">Nonaktif</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-gray-400 text-xs max-w-xs truncate">
-                      {p.notes || "-"}
+                      {p.is_active ? <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">Aktif</span> : <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs">Nonaktif</span>}
                     </td>
                     {isGM && (
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-center gap-1">
-                          <button
-                            onClick={() => openEdit(p)}
-                            className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Edit"
-                          >
-                            <Pencil size={14} />
-                          </button>
-                          <button
-                            onClick={() => setConfirmDelete(p)}
-                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Hapus"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
+                      <td className="px-4 py-3 text-center">
+                        <button onClick={() => { setEditData(p); setShowPriceModal(true); }} className="p-1 text-blue-500 hover:bg-blue-50 rounded"><Pencil size={15} /></button>
+                        <button onClick={() => setConfirmDelete(p)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={15} /></button>
                       </td>
                     )}
                   </tr>
@@ -487,52 +542,18 @@ export default function MaterialSalesPage() {
         )}
       </div>
 
-      {/* ── Info box ─────────────────────────────────────────────────── */}
-      <div className="bg-blue-50 border border-blue-100 rounded-xl px-5 py-4 text-sm text-blue-700">
-        <p className="font-semibold mb-1">ℹ️ Cara kerja harga:</p>
-        <ul className="list-disc list-inside space-y-0.5 text-blue-600">
-          <li><strong>Harga Default</strong> — berlaku untuk semua customer yang tidak punya harga khusus</li>
-          <li><strong>Harga Customer</strong> — dipakai otomatis saat nama customer dipilih di form penjualan</li>
-          <li>Satu material bisa punya beberapa satuan (m3, ton, ritase) masing-masing dengan harga berbeda</li>
-        </ul>
-      </div>
-
-      {/* ── Modals ───────────────────────────────────────────────────── */}
-      {showModal && (
-        <PriceFormModal
-          editData={editData}
-          onClose={closeModal}
-          onSaved={onSaved}
-          currentUser={currentUser}
-        />
-      )}
+      {showSaleModal && <SaleFormModal editData={editData} onClose={() => setShowSaleModal(false)} onSaved={() => { setShowSaleModal(false); fetchData(); }} meta={meta} customers={customers} equipment={equipment} />}
+      {showPriceModal && <PriceFormModal editData={editData} onClose={() => setShowPriceModal(false)} onSaved={() => { setShowPriceModal(false); fetchData(); }} meta={meta} />}
 
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 text-center">
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Trash2 size={22} className="text-red-600" />
-            </div>
-            <h3 className="font-semibold text-gray-800 mb-1">Hapus Harga?</h3>
-            <p className="text-sm text-gray-500 mb-1">
-              <strong>{confirmDelete.material_type}</strong> / {confirmDelete.unit}
-            </p>
-            <p className="text-xs text-gray-400 mb-5">
-              {confirmDelete.customer_name || "Harga Default"}
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmDelete(null)}
-                className="flex-1 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50"
-              >
-                Batal
-              </button>
-              <button
-                onClick={() => handleDelete(confirmDelete.id)}
-                className="flex-1 py-2 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700"
-              >
-                Hapus
-              </button>
+          <div className="bg-white rounded-2xl p-6 text-center max-w-sm">
+            <Trash2 size={30} className="text-red-500 mx-auto mb-3" />
+            <h3 className="font-bold text-lg mb-2">Hapus Data?</h3>
+            <p className="text-sm text-gray-500 mb-6">Tindakan ini tidak dapat dibatalkan.</p>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmDelete(null)} className="flex-1 py-2 border rounded-xl">Batal</button>
+              <button onClick={handleDelete} className="flex-1 py-2 bg-red-600 text-white rounded-xl font-bold">Hapus</button>
             </div>
           </div>
         </div>

@@ -128,13 +128,19 @@ const Sidebar = ({ children }) => {
         show: isField,
       },
       { path: "/fuel", icon: Fuel, label: "Logistik BBM", show: isField },
+      {
+        path: "/material-sales",
+        icon: ShoppingCart,
+        label: "Penjualan Material",
+        show: isField,
+      },
     ].filter((sub) => sub.show);
 
     if (equipmentSubmenu.length > 0) {
       items.push({
         id: "equipment",
         icon: Factory,
-        label: "Equipment & Operasional",
+        label: "Operasional & Penjualan",
         submenu: equipmentSubmenu,
       });
     }
@@ -191,12 +197,6 @@ const Sidebar = ({ children }) => {
           path: "/income",
           icon: Wallet,
           label: "Pemasukan & Pendapatan",
-          show: true,
-        },
-        {
-          path: "/material-sales",
-          icon: ShoppingCart,
-          label: "Penjualan Material Tambang",
           show: true,
         },
         {
