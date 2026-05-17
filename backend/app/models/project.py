@@ -7,15 +7,15 @@ class Project(Base):
     __tablename__ = "projects"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    client_name = Column(String(200), nullable=True)      # Nama klien / pemesan proyek
-    description = Column(Text, nullable=True)             # Deskripsi proyek
-    location = Column(String)
+    name = Column(String(255), nullable=False)
+    client_name = Column(String(200), nullable=True)
+    description = Column(Text, nullable=True)
+    location = Column(String(255))
     start_date = Column(DateTime)
     end_date = Column(DateTime)
     budget = Column(Float)
-    progress = Column(Float, default=0.0)  # percentage
-    status = Column(String, default="ongoing")  # ongoing, completed, paused
+    progress = Column(Float, default=0.0)
+    status = Column(String(30), default="ongoing")
     notes = Column(Text, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

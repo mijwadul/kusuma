@@ -15,7 +15,7 @@ class Expense(Base):
     description = Column(Text, nullable=False)
     amount = Column(Float, nullable=False)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
-    receipt_url = Column(String, nullable=True)
+    receipt_url = Column(String(500), nullable=True)
     notes = Column(Text, nullable=True)
     approval_status = Column(String(20), nullable=False, default="pending") # "pending", "approved"
     approved_by = Column(Integer, ForeignKey("users.id"), nullable=True)

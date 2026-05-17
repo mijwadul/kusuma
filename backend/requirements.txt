@@ -10,7 +10,7 @@ uvicorn[standard]          # includes websockets, watchfiles, httptools
 # ─── Database ─────────────────────────────────────────────────
 sqlalchemy
 alembic                    # database migrations
-psycopg2-binary            # PostgreSQL driver (production)
+pymysql                    # MySQL driver (production)
 
 # ─── Validation & Settings ────────────────────────────────────
 pydantic

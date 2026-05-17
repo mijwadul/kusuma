@@ -9,10 +9,10 @@ class FuelLog(Base):
     equipment_id = Column(Integer, ForeignKey("equipment.id"), nullable=False)
     hour_meter = Column(Float, nullable=True)
     liters_filled = Column(Float, nullable=False)  # Jumlah liter diisi
-    location = Column(String, nullable=True)  # Lokasi/proyek
-    photo_url = Column(String, nullable=True)  # Foto nota (opsional)
-    recorded_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # User yang mencatat
-    notes = Column(String, nullable=True)  # Catatan tambahan
+    location = Column(String(255), nullable=True)
+    photo_url = Column(String(500), nullable=True)
+    recorded_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    notes = Column(String(500), nullable=True)
     refuel_date = Column(DateTime(timezone=True), nullable=False)  # Tanggal/jam pengisian BBM
     operating_hours = Column(Float, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())  # Waktu pencatatan di sistem

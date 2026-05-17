@@ -12,24 +12,20 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
-    password_hash: Mapped[str] = mapped_column(String, nullable=False)
+    email: Mapped[str] = mapped_column(String(200), unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 
     # Role: gm (General Manager), finance, admin (Admin/HR), field (Field Staff)
-    role: Mapped[str] = mapped_column(String, default="field")
+    role: Mapped[str] = mapped_column(String(30), default="field")
 
-    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)  # GM level
-    is_superuser: Mapped[bool] = mapped_column(
-        Boolean, default=False
-    )  # Backward compatibility
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    password_change_required: Mapped[bool] = mapped_column(
-        Boolean, default=False, nullable=False
-    )
+    password_change_required: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
-    full_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    phone: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    employee_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    full_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    employee_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
     last_login: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True

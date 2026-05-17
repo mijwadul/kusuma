@@ -5,12 +5,14 @@ from .config import settings
 
 SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL
 
-# connect_args hanya diperlukan untuk SQLite
-connect_args = {}
+engine_kwargs: dict = {}
 if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
+    engine_kwargs["connect_args"] = {"check_same_thread": False}
+elif SQLALCHEMY_DATABASE_URL.startswith("mysql"):
+    engine_kwargs["pool_pre_ping"] = True
+    engine_kwargs["pool_recycle"] = 3600
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args)
+engine = create_engine(SQLALCHEMY_DATABASE_URL, **engine_kwargs)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

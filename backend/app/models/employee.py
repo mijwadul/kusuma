@@ -21,55 +21,42 @@ class Employee(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     # Personal Data
-    employee_code = Column(String, unique=True, nullable=True)  # Kode karyawan
-    name = Column(String, nullable=False)
-    email = Column(String, unique=True, nullable=False)
-    phone = Column(String)
-    nik = Column(String, unique=True, nullable=True)  # Nomor KTP
+    employee_code = Column(String(50), unique=True, nullable=True)
+    name = Column(String(200), nullable=False)
+    email = Column(String(200), unique=True, nullable=False)
+    phone = Column(String(50))
+    nik = Column(String(50), unique=True, nullable=True)
     address = Column(Text)
     date_of_birth = Column(Date)
-    place_of_birth = Column(String)
-    gender = Column(String)  # male, female
-    marital_status = Column(String)  # single, married, divorced, widowed
+    place_of_birth = Column(String(100))
+    gender = Column(String(20))
+    marital_status = Column(String(30))
 
-    # Employment Data
-    position = Column(String)  # Jabatan
-    department = Column(String)  # Departemen
-    employment_type = Column(
-        String, default="permanent"
-    )  # permanent, contract, freelance
+    position = Column(String(100))
+    department = Column(String(100))
+    employment_type = Column(String(30), default="permanent")
     join_date = Column(Date)
     resign_date = Column(Date, nullable=True)
 
-    # Payroll Data (Financial - sensitive)
-    daily_salary = Column(Float, default=0)  # Gaji per hari
-    hourly_overtime_rate = Column(Float, default=0)  # Rate lembur per jam
+    daily_salary = Column(Float, default=0)
+    hourly_overtime_rate = Column(Float, default=0)
 
-    # Loan/Deduction Data
-    loan_balance = Column(Float, default=0)  # Sisa pinjaman yang harus dipotong
-    loan_deduction_per_period = Column(
-        Float, default=0
-    )  # Potongan per periode (hari/minggu/bulan)
-    debt_to_company = Column(
-        Float, default=0
-    )  # Hutang karyawan ke perusahaan (kecelakaan, dll)
+    loan_balance = Column(Float, default=0)
+    loan_deduction_per_period = Column(Float, default=0)
+    debt_to_company = Column(Float, default=0)
 
-    # Attendance & Performance
-    work_days_per_month = Column(Integer, default=25)  # Hari kerja default
+    work_days_per_month = Column(Integer, default=25)
 
-    # Status
-    status = Column(String, default="active")  # active, inactive, terminated, on_leave
+    status = Column(String(30), default="active")
     is_active = Column(Boolean, default=True)
 
-    # Bank Account
-    bank_name = Column(String)
-    bank_account_number = Column(String)
-    bank_account_name = Column(String)
+    bank_name = Column(String(100))
+    bank_account_number = Column(String(50))
+    bank_account_name = Column(String(200))
 
-    # Emergency Contact
-    emergency_contact_name = Column(String)
-    emergency_contact_phone = Column(String)
-    emergency_contact_relation = Column(String)
+    emergency_contact_name = Column(String(200))
+    emergency_contact_phone = Column(String(50))
+    emergency_contact_relation = Column(String(50))
 
     # Linked User Account
     user_id = Column(

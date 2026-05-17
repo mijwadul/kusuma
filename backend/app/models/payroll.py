@@ -45,10 +45,10 @@ class PayrollRecord(Base):
     net_salary = Column(Float, default=0)            # Gaji bersih (take home)
     
     # Payment Status
-    payment_status = Column(String, default="pending")  # pending, approved, paid, cancelled
-    payment_date = Column(Date, nullable=True)          # Tanggal pembayaran
-    payment_method = Column(String)                      # transfer, cash
-    payment_reference = Column(String)                   # Nomor referensi pembayaran
+    payment_status = Column(String(30), default="pending")  # pending, approved, paid, cancelled
+    payment_date = Column(Date, nullable=True)
+    payment_method = Column(String(30))                      # transfer, cash
+    payment_reference = Column(String(100))                   # Nomor referensi pembayaran
     
     # Approval (GM approval untuk payroll)
     approved_by = Column(Integer, nullable=True)       # User ID yang approve
@@ -80,7 +80,7 @@ class Attendance(Base):
     check_out = Column(DateTime, nullable=True)
     
     # Status
-    status = Column(String, default="present")  # present, absent, late, early_leave, sick, leave
+    status = Column(String(30), default="present")  # present, absent, late, early_leave, sick, leave
     
     # Location (for geotagging)
     check_in_latitude = Column(Float)
@@ -99,8 +99,8 @@ class Attendance(Base):
     notes = Column(Text)
     
     # Photo evidence
-    check_in_photo = Column(String)  # URL/path to photo
-    check_out_photo = Column(String)
+    check_in_photo = Column(String(500))  # URL/path to photo
+    check_out_photo = Column(String(500))
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -117,8 +117,8 @@ class BonusDeduction(Base):
     employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False)
     
     # Type
-    type = Column(String, nullable=False)  # bonus, deduction
-    category = Column(String)  # performance, attendance, loan, accident, other
+    type = Column(String(30), nullable=False)  # bonus, deduction
+    category = Column(String(50))  # performance, attendance, loan, accident, other
     
     # Amount
     amount = Column(Float, nullable=False)
@@ -131,7 +131,7 @@ class BonusDeduction(Base):
     
     # Status
     is_recurring = Column(Boolean, default=False)  # Apakah berulang setiap periode
-    recurring_period = Column(String)  # daily, weekly, monthly
+    recurring_period = Column(String(30))  # daily, weekly, monthly
     
     # For loan tracking
     remaining_balance = Column(Float, nullable=True)  # Sisa saldo (untuk pinjaman)
