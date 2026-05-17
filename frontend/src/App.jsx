@@ -22,6 +22,7 @@ import RentalRatesPage from "./pages/RentalRatesPage";
 import PayrollPage from "./pages/PayrollPage";
 import ExpensePage from "./pages/ExpensePage";
 import DailyReportPage from "./pages/DailyReportPage";
+import ReportsPage from "./pages/ReportsPage";
 import Sidebar from "./components/Sidebar";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -62,6 +63,7 @@ function App() {
           <Route path="/payroll" element={<PayrollPage />} />
           <Route path="/expenses" element={<ExpensePage />} />
           <Route path="/daily-report" element={<DailyReportPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
         </Route>
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>

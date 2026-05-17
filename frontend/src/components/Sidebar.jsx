@@ -25,6 +25,7 @@ import {
   FileText,
   Receipt,
   BarChart3,
+  FileBarChart2,
 } from "lucide-react";
 
 const Sidebar = ({ children }) => {
@@ -209,6 +210,12 @@ const Sidebar = ({ children }) => {
           icon: BarChart3,
           label: "Laporan Keuangan",
           show: isGM,
+        },
+        {
+          path: "/reports",
+          icon: FileBarChart2,
+          label: "Laporan Operasional",
+          show: isFinance,
         },
       ];
       items.push({

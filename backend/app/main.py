@@ -14,6 +14,7 @@ from .api.v1.expenses import router as expenses_router
 from .api.v1.fuel import router as fuel_router
 from .api.v1.income_records import router as income_records_router
 from .api.v1.work_logs import router as work_logs_router
+from .api.v1.reports import router as reports_router
 from .core.auth import get_password_hash
 from .core.config import settings
 from .core.database import SessionLocal, engine
@@ -383,6 +384,7 @@ app.include_router(expenses_router, prefix="/api/v1/expenses", tags=["expenses"]
 app.include_router(
     income_records_router, prefix="/api/v1/income-records", tags=["income-records"]
 )
+app.include_router(reports_router, prefix="/api/v1/reports", tags=["reports"])
 
 
 @app.get("/")
