@@ -168,6 +168,7 @@ export default function ReportsPage() {
           table { width: 100%; border-collapse: collapse; font-size: 11px; }
           th, td { border: 1px solid #d1d5db; padding: 4px 8px; }
           th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+          .kop-table-print, .kop-table-print tr, .kop-table-print td { border: none !important; padding: 0 !important; background: none !important; }
         }
         @media screen {
           .print-section-title { display: none; }
@@ -258,12 +259,49 @@ export default function ReportsPage() {
         {report && !loading && (
           <div id="report-printable" ref={reportRef}>
             {/* Print header */}
-            <div className="hidden print:block mb-6 text-center border-b pb-4">
-              <h1 className="text-xl font-bold">PT. Kusuma Samudera Berkah</h1>
-              <h2 className="text-base font-semibold mt-1">Laporan Operasional</h2>
-              <p className="text-sm text-gray-500">
-                Periode: {formatDate(report.period_start)} s/d {formatDate(report.period_end)}
-              </p>
+            <div className="hidden print:block mb-6">
+              <table style={{ width: "100%", borderCollapse: "collapse", border: "none" }} className="kop-table-print">
+                <tbody>
+                  <tr style={{ border: "none" }}>
+                    <td style={{ width: "85px", padding: 0, border: "none", verticalAlign: "middle" }}>
+                      <img
+                        src="/logo.png"
+                        alt="Logo PT. Kusuma Samudera Berkah"
+                        style={{
+                          width: "80px",
+                          height: "80px",
+                          objectFit: "contain",
+                          display: "block",
+                        }}
+                      />
+                    </td>
+                    <td style={{ paddingLeft: "16px", border: "none", verticalAlign: "middle", textAlign: "left" }}>
+                      <div style={{ fontSize: "16pt", fontWeight: "bold", color: "#1a3c6e", letterSpacing: "0.5px", lineHeight: "1.2" }}>
+                        PT. Kusuma Samudera Berkah
+                      </div>
+                      <div style={{ fontSize: "9pt", color: "#4a6fa5", marginTop: "2px", fontStyle: "italic" }}>
+                        Pertambangan &amp; Konstruksi
+                      </div>
+                      <div style={{ fontSize: "8pt", color: "#555", marginTop: "6px", lineHeight: "1.4" }}>
+                        Jl. [Alamat Perusahaan], [Kota], [Provinsi]<br />
+                        Telp: [Nomor Telepon] | Email: info@kusumasamuderaberkah.co.id
+                      </div>
+                    </td>
+                    <td style={{ width: "220px", border: "none", verticalAlign: "middle", textAlign: "right" }}>
+                      <div style={{ fontSize: "12pt", fontWeight: "bold", color: "#1a3c6e", textTransform: "uppercase", letterSpacing: "1px" }}>
+                        Laporan Operasional
+                      </div>
+                      <div style={{ fontSize: "8pt", color: "#555", marginTop: "4px" }}>
+                        Periode: {formatDate(report.period_start)} s/d {formatDate(report.period_end)}
+                      </div>
+                      <div style={{ fontSize: "7.5pt", color: "#777", marginTop: "4px" }}>
+                        Dicetak: {new Date().toLocaleDateString("id-ID")}
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div style={{ borderBottom: "3px solid #1a3c6e", marginTop: "10px" }}></div>
             </div>
 
             {/* Period badge */}
