@@ -44,8 +44,22 @@ import { API_URL } from "../api/auth";
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const toLocalDateInput = (value) => {
   const date = value ? new Date(value) : new Date();
-  const tzOffset = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() - tzOffset).toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// Format datetime lokal sebagai string YYYY-MM-DDTHH:mm:ss (tanpa konversi UTC)
+const toLocalDateTimeString = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 };
 
 const formatIDR = (v) =>
@@ -57,11 +71,13 @@ const formatIDR = (v) =>
 
 const formatDate = (d) => {
   if (!d) return "-";
-  return new Date(d).toLocaleDateString("id-ID", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  const str = String(d);
+  const parts = str.split('T')[0].split('-');
+  if (parts.length < 3) return str;
+  const [y, m, dayVal] = parts;
+  const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+  const mIndex = parseInt(m, 10) - 1;
+  return `${dayVal} ${months[mIndex] || m} ${y}`;
 };
 
 // ─── Mini stat card ───────────────────────────────────────────────────────────
@@ -265,7 +281,7 @@ export default function DashboardPage() {
     try {
       const now = new Date();
       const todayStr = toLocalDateInput(now);
-      const isoTime = now.toISOString();
+      const localTimeStr = toLocalDateTimeString();
 
       let url, method, body;
       if (action === 'check_in') {
@@ -274,12 +290,12 @@ export default function DashboardPage() {
         body = JSON.stringify({
           employee_id: employeeId,
           date: todayStr,
-          check_in: isoTime
+          check_in: localTimeStr
         });
       } else if (action === 'check_out') {
         url = `${API_URL}/employees/attendance/${attendanceId}`;
         method = 'PUT';
-        body = JSON.stringify({ check_out: isoTime });
+        body = JSON.stringify({ check_out: localTimeStr });
       } else if (action === 'delete') {
         url = `${API_URL}/employees/attendance/${attendanceId}`;
         method = 'DELETE';

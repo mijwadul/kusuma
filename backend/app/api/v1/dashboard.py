@@ -118,7 +118,7 @@ def get_equipment(db: Session = Depends(get_db)):
 
 @router.get("/employees")
 def get_employees(db: Session = Depends(get_db)):
-    employees = db.query(Employee).all()
+    employees = db.query(Employee).filter(Employee.is_active == True).all()
     return [EmployeeSchema.model_validate(emp) for emp in employees]
 
 

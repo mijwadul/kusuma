@@ -5,15 +5,37 @@ import AlertModal from '../components/AlertModal';
 
 const toLocalDateInput = (value) => {
   const date = value ? new Date(value) : new Date();
-  const tzOffset = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() - tzOffset).toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 const toLocalDateTimeInput = (value) => {
   if (!value) return '';
+  if (typeof value === 'string') {
+    return value.slice(0, 16);
+  }
   const date = new Date(value);
-  const tzOffset = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+const formatDateTimeDisplay = (value) => {
+  if (!value) return '-';
+  const isoStr = String(value);
+  const parts = isoStr.split('T');
+  if (parts.length < 2) return isoStr;
+  const datePart = parts[0];
+  const timePart = parts[1].slice(0, 5);
+  const dateSubparts = datePart.split('-');
+  if (dateSubparts.length < 3) return isoStr;
+  const [y, m, d] = dateSubparts;
+  return `${d}/${m}/${y} ${timePart}`;
 };
 
 const AttendancePage = () => {
@@ -151,8 +173,7 @@ const AttendancePage = () => {
 
     const combineDateTime = (dateStr, timeStr) => {
       if (!timeStr) return null;
-      const d = new Date(`${dateStr}T${timeStr}:00`);
-      return d.toISOString();
+      return `${dateStr}T${timeStr}:00`;
     };
 
     const payload = {
@@ -195,8 +216,8 @@ const AttendancePage = () => {
 
   const handleEditClick = (row) => {
     setEditingId(row.id);
-    const checkInTime = row.check_in ? new Date(row.check_in).toTimeString().slice(0, 5) : '';
-    const checkOutTime = row.check_out ? new Date(row.check_out).toTimeString().slice(0, 5) : '';
+    const checkInTime = row.check_in ? (row.check_in.includes('T') ? row.check_in.split('T')[1].slice(0, 5) : row.check_in.slice(0, 5)) : '';
+    const checkOutTime = row.check_out ? (row.check_out.includes('T') ? row.check_out.split('T')[1].slice(0, 5) : row.check_out.slice(0, 5)) : '';
 
     setFormData({
       employee_id: String(row.employee_id),
@@ -513,10 +534,10 @@ const AttendancePage = () => {
                     </td>
                     <td className="px-4 py-3 text-sm whitespace-nowrap">{row.status || '-'}</td>
                     <td className="px-4 py-3 text-sm whitespace-nowrap">
-                      {row.check_in ? new Date(row.check_in).toLocaleString('id-ID') : '-'}
+                      {row.check_in ? formatDateTimeDisplay(row.check_in) : '-'}
                     </td>
                     <td className="px-4 py-3 text-sm whitespace-nowrap">
-                      {row.check_out ? new Date(row.check_out).toLocaleString('id-ID') : '-'}
+                      {row.check_out ? formatDateTimeDisplay(row.check_out) : '-'}
                     </td>
                     <td className="px-4 py-3 text-sm whitespace-nowrap">{row.work_hours != null ? Number(row.work_hours).toFixed(2) : '-'}</td>
                     <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{row.notes || '-'}</td>
