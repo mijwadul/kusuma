@@ -532,15 +532,15 @@ export default function MaterialSalesPage() {
         ) : activeTab === "sales" ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b">
+              <thead className="bg-gray-50 border-b whitespace-nowrap">
                 <tr>
-                  <th className="px-4 py-3 text-left">Tanggal</th>
-                  <th className="px-4 py-3 text-left">Customer</th>
-                  <th className="px-4 py-3 text-left">Kendaraan</th>
-                  <th className="px-4 py-3 text-left">Material</th>
-                  <th className="px-4 py-3 text-right">Volume</th>
-                  <th className="px-4 py-3 text-right">Total (Rp)</th>
-                  <th className="px-4 py-3 text-center w-8"></th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap">Tanggal</th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap">Customer</th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap">Kendaraan</th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap">Material</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap">Volume</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap">Total (Rp)</th>
+                  <th className="px-4 py-3 text-center w-8 whitespace-nowrap"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -551,15 +551,15 @@ export default function MaterialSalesPage() {
                     className="hover:bg-emerald-50/60 cursor-pointer transition-colors"
                   >
                     <td className="px-4 py-3 whitespace-nowrap">{formatDate(s.income_date)}</td>
-                    <td className="px-4 py-3 font-medium">{s.customer_name}</td>
-                    <td className="px-4 py-3 text-xs text-gray-600">
+                    <td className="px-4 py-3 font-medium whitespace-nowrap">{s.customer_name}</td>
+                    <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
                       <div className="flex items-center gap-1.5"><Truck size={12}/> {s.license_plate || "-"}</div>
                       <div className="mt-0.5 text-gray-400">{s.vehicle_type || "-"}</div>
                     </td>
-                    <td className="px-4 py-3"><MaterialBadge type={s.material_type} meta={meta} /></td>
-                    <td className="px-4 py-3 text-right font-medium">{s.quantity} {s.unit}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-emerald-700">{formatIDR(s.amount)}</td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 whitespace-nowrap"><MaterialBadge type={s.material_type} meta={meta} /></td>
+                    <td className="px-4 py-3 text-right font-medium whitespace-nowrap">{s.quantity} {s.unit}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-emerald-700 whitespace-nowrap">{formatIDR(s.amount)}</td>
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
                       <span className="text-gray-300 text-xs">›</span>
                     </td>
                   </tr>
@@ -571,30 +571,30 @@ export default function MaterialSalesPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-indigo-50 border-b">
+              <thead className="bg-indigo-50 border-b whitespace-nowrap">
                 <tr>
-                  <th className="px-4 py-3 text-left">Material</th>
-                  <th className="px-4 py-3 text-left">Tipe Harga</th>
-                  <th className="px-4 py-3 text-left">Satuan</th>
-                  <th className="px-4 py-3 text-right">Harga</th>
-                  <th className="px-4 py-3 text-center">Status</th>
-                  {isGM && <th className="px-4 py-3 text-center">Aksi</th>}
+                  <th className="px-4 py-3 text-left whitespace-nowrap">Material</th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap">Tipe Harga</th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap">Satuan</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap">Harga</th>
+                  <th className="px-4 py-3 text-center whitespace-nowrap">Status</th>
+                  {isGM && <th className="px-4 py-3 text-center whitespace-nowrap">Aksi</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {prices.map(p => (
                   <tr key={p.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3"><MaterialBadge type={p.material_type} meta={meta} /></td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 whitespace-nowrap"><MaterialBadge type={p.material_type} meta={meta} /></td>
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <span className="text-emerald-600 text-xs font-bold bg-emerald-50 px-2 py-1 rounded">Harga Default</span>
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{p.unit}</td>
-                    <td className="px-4 py-3 text-right font-bold text-gray-800">{formatIDR(p.price_per_unit)}</td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{p.unit}</td>
+                    <td className="px-4 py-3 text-right font-bold text-gray-800 whitespace-nowrap">{formatIDR(p.price_per_unit)}</td>
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
                       {p.is_active ? <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">Aktif</span> : <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs">Nonaktif</span>}
                     </td>
                     {isGM && (
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
                         <button onClick={() => { setEditData(p); setShowPriceModal(true); }} className="p-1 text-blue-500 hover:bg-blue-50 rounded"><Pencil size={15} /></button>
                         <button onClick={() => setConfirmDelete(p)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={15} /></button>
                       </td>

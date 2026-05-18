@@ -776,7 +776,7 @@ const WorkLogsPage = () => {
               <button
                 type="button"
                 onClick={handleCancelEdit}
-                className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-6 py-3 whitespace-nowrap border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Batal
               </button>
@@ -787,7 +787,7 @@ const WorkLogsPage = () => {
 
       {/* History Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 whitespace-nowrap border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
             <Calendar className="h-5 w-5 text-gray-600" />
             <span>Riwayat Jam Kerja</span>
@@ -795,36 +795,36 @@ const WorkLogsPage = () => {
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50 whitespace-nowrap">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   Tanggal
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   Unit
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   Metode
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   HM
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   Total Jam
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   Diskon
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   Biaya Sewa
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   Operator
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   Proyek
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   Aksi
                 </th>
               </tr>
@@ -842,7 +842,7 @@ const WorkLogsPage = () => {
               ) : (
                 workLogs.map((log) => (
                   <tr key={log.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm">
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">
                       {log.work_date
                         ? new Date(log.work_date).toLocaleDateString("id-ID", {
                             day: "2-digit",
@@ -851,13 +851,13 @@ const WorkLogsPage = () => {
                           })
                         : "-"}
                     </td>
-                    <td className="px-4 py-3 text-sm font-medium">
+                    <td className="px-4 py-3 text-sm font-medium whitespace-nowrap">
                       {log.equipment_name}
                       <span className="text-xs text-gray-500 block">
                         {log.equipment_type}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">
                       <span
                         className={`px-2 py-1 text-xs font-semibold rounded-full ${
                           log.input_method === "HM"
@@ -868,33 +868,33 @@ const WorkLogsPage = () => {
                         {log.input_method === "HM" ? "HM" : "Manual"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm font-mono">
+                    <td className="px-4 py-3 text-sm font-mono whitespace-nowrap">
                       {log.input_method === "HM" && log.hm_start && log.hm_end
                         ? `${log.hm_start} - ${log.hm_end}`
                         : "-"}
                     </td>
-                    <td className="px-4 py-3 text-sm font-semibold text-blue-600">
+                    <td className="px-4 py-3 text-sm font-semibold text-blue-600 whitespace-nowrap">
                       {log.total_hours} H
                     </td>
-                    <td className="px-4 py-3 text-sm text-amber-700 font-medium">
+                    <td className="px-4 py-3 text-sm text-amber-700 font-medium whitespace-nowrap">
                       {Number(log.rental_discount_hours || 0).toLocaleString(
                         "id-ID",
                       )}{" "}
                       Jam
                     </td>
-                    <td className="px-4 py-3 text-sm font-semibold text-amber-700">
+                    <td className="px-4 py-3 text-sm font-semibold text-amber-700 whitespace-nowrap">
                       Rp{" "}
                       {Number(log.rental_cost_total || 0).toLocaleString(
                         "id-ID",
                       )}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
                       {log.operator_name || "-"}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
                       {log.project_name || "-"}
                     </td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">
                       <div className="flex items-center space-x-2">
                         <button
                           onClick={() => handleEdit(log)}

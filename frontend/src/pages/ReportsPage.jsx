@@ -93,7 +93,7 @@ const TotalRow = ({ cols, label, value }) => (
     >
       {label}
     </td>
-    <td className="px-4 py-3 text-right font-bold text-gray-900 border-t border-gray-200">
+    <td className="px-4 py-3 text-right font-bold text-gray-900 border-t border-gray-200 whitespace-nowrap">
       {value}
     </td>
   </tr>

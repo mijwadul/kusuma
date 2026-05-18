@@ -524,24 +524,24 @@ const IncomePage = () => {
             {/* Tab: Semua */}
             {activeTab === "all" && (
               <table className="min-w-full text-sm divide-y divide-gray-100">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50 whitespace-nowrap">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                       Tanggal
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                       Tipe
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                       Deskripsi
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                       Jumlah
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                       Metode
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                       Aksi
                     </th>
                   </tr>
@@ -555,17 +555,17 @@ const IncomePage = () => {
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                         {formatDate(r.income_date)}
                       </td>
-                      <td className="px-4 py-3">{typeBadge(r.income_type)}</td>
-                      <td className="px-4 py-3 text-gray-700 max-w-xs truncate">
+                      <td className="px-4 py-3 whitespace-nowrap">{typeBadge(r.income_type)}</td>
+                      <td className="px-4 py-3 text-gray-700 max-w-xs truncate whitespace-nowrap">
                         {r.description || "-"}
                       </td>
                       <td className="px-4 py-3 text-right font-semibold text-gray-800 tabular-nums whitespace-nowrap">
                         {formatIDR(r.amount)}
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
                         {paymentBadge(r.payment_method)}
                       </td>
-                      <td className="px-4 py-3">{actionButtons(r)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{actionButtons(r)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -577,7 +577,7 @@ const IncomePage = () => {
                     >
                       Total ({records.length} transaksi)
                     </td>
-                    <td className="px-4 py-2 text-right text-sm font-bold text-emerald-700 tabular-nums">
+                    <td className="px-4 py-2 text-right text-sm font-bold text-emerald-700 tabular-nums whitespace-nowrap">
                       {formatIDR(summary.total)}
                     </td>
                     <td colSpan={2} />
@@ -589,24 +589,24 @@ const IncomePage = () => {
             {/* Tab: Pembayaran Proyek */}
             {activeTab === "project_payment" && (
               <table className="min-w-full text-sm divide-y divide-gray-100">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50 whitespace-nowrap">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                       Tanggal
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                       Proyek
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                       Termin
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                       Jumlah
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                       Metode
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                       Aksi
                     </th>
                   </tr>
@@ -620,17 +620,17 @@ const IncomePage = () => {
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                         {formatDate(r.income_date)}
                       </td>
-                      <td className="px-4 py-3 text-gray-700 font-medium">
+                      <td className="px-4 py-3 text-gray-700 font-medium whitespace-nowrap">
                         {r.project_name ?? r.description ?? "-"}
                       </td>
-                      <td className="px-4 py-3">{termBadge(r.payment_term)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{termBadge(r.payment_term)}</td>
                       <td className="px-4 py-3 text-right font-semibold text-gray-800 tabular-nums whitespace-nowrap">
                         {formatIDR(r.amount)}
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
                         {paymentBadge(r.payment_method)}
                       </td>
-                      <td className="px-4 py-3">{actionButtons(r)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{actionButtons(r)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -642,7 +642,7 @@ const IncomePage = () => {
                     >
                       Total ({records.length} pembayaran)
                     </td>
-                    <td className="px-4 py-2 text-right text-sm font-bold text-blue-700 tabular-nums">
+                    <td className="px-4 py-2 text-right text-sm font-bold text-blue-700 tabular-nums whitespace-nowrap">
                       {formatIDR(summary.project)}
                     </td>
                     <td colSpan={2} />
@@ -654,24 +654,24 @@ const IncomePage = () => {
             {/* Tab: Penjualan Material */}
             {activeTab === "material_sale" && (
               <table className="min-w-full text-sm divide-y divide-gray-100">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50 whitespace-nowrap">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                       Tanggal
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                       Customer
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                       Material
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                       Qty
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                       Total
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
                       Aksi
                     </th>
                   </tr>
@@ -685,10 +685,10 @@ const IncomePage = () => {
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                         {formatDate(r.income_date)}
                       </td>
-                      <td className="px-4 py-3 text-gray-700 font-medium">
+                      <td className="px-4 py-3 text-gray-700 font-medium whitespace-nowrap">
                         {r.customer_name ?? "-"}
                       </td>
-                      <td className="px-4 py-3 text-gray-600">
+                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                         {r.material_type ?? "-"}
                       </td>
                       <td className="px-4 py-3 text-right text-gray-600 tabular-nums whitespace-nowrap">
@@ -699,7 +699,7 @@ const IncomePage = () => {
                       <td className="px-4 py-3 text-right font-semibold text-gray-800 tabular-nums whitespace-nowrap">
                         {formatIDR(r.amount)}
                       </td>
-                      <td className="px-4 py-3">{actionButtons(r)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{actionButtons(r)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -711,7 +711,7 @@ const IncomePage = () => {
                     >
                       Total ({records.length} penjualan)
                     </td>
-                    <td className="px-4 py-2 text-right text-sm font-bold text-emerald-700 tabular-nums">
+                    <td className="px-4 py-2 text-right text-sm font-bold text-emerald-700 tabular-nums whitespace-nowrap">
                       {formatIDR(summary.material)}
                     </td>
                     <td />
@@ -769,7 +769,7 @@ const IncomePage = () => {
             )}
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
+            <form onSubmit={handleSubmit} className="px-6 py-4 whitespace-nowrap space-y-4">
               {/* ── Form: Pembayaran Proyek ── */}
               {modalTab === "project_payment" && (
                 <>

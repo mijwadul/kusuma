@@ -805,23 +805,23 @@ const EmployeesPage = () => {
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 whitespace-nowrap">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Karyawan</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jabatan</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Departemen</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase ">Karyawan</th>
+                  <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase ">Jabatan</th>
+                  <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase ">Departemen</th>
+                  <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase ">Status</th>
                   {canAccessFinancial && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gaji/Hari</th>
+                    <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase ">Gaji/Hari</th>
                   )}
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pinjaman</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase ">Pinjaman</th>
+                  <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase ">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filteredEmployees.map((employee) => (
                   <tr key={employee.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold mr-3">
                           {employee.name?.charAt(0).toUpperCase()}
@@ -838,9 +838,9 @@ const EmployeesPage = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{employee.position || '-'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{employee.department || '-'}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 ">{employee.position || '-'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 ">{employee.department || '-'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         employee.status === 'active' 
                           ? 'bg-green-100 text-green-800' 
@@ -850,13 +850,13 @@ const EmployeesPage = () => {
                       </span>
                     </td>
                     {canAccessFinancial && (
-                      <td className="px-6 py-4 text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 ">
                         {employee.daily_salary 
                           ? `Rp ${parseFloat(employee.daily_salary).toLocaleString('id-ID')}` 
                           : '-'}
                       </td>
                     )}
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       {employee.has_loan ? (
                         <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
                           Ada Pinjaman
@@ -865,7 +865,7 @@ const EmployeesPage = () => {
                         <span className="text-gray-400 text-sm">-</span>
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex space-x-2">
                         {canManageEmployees && (
                           <button
@@ -1037,37 +1037,37 @@ const EmployeesPage = () => {
           {/* Payroll Records Table */}
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 whitespace-nowrap">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Periode</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Karyawan</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hari Kerja</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gaji Pokok</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Potongan</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gaji Bersih</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Periode</th>
+                  <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Karyawan</th>
+                  <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Hari Kerja</th>
+                  <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Gaji Pokok</th>
+                  <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Potongan</th>
+                  <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Gaji Bersih</th>
+                  <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {payrollRecords.map((record) => (
                   <tr key={record.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {record.period_start} - {record.period_end}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{record.employee_name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.employee_name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {record.present_days}/{record.work_days} hari
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       Rp {parseFloat(record.basic_salary).toLocaleString('id-ID')}
                     </td>
-                    <td className="px-6 py-4 text-sm text-red-600">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600">
                       Rp {parseFloat(record.total_deduction).toLocaleString('id-ID')}
                     </td>
-                    <td className="px-6 py-4 text-sm font-semibold text-green-600">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">
                       Rp {parseFloat(record.net_salary).toLocaleString('id-ID')}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         record.payment_status === 'approved' 
                           ? 'bg-green-100 text-green-800'
@@ -1132,28 +1132,28 @@ const EmployeesPage = () => {
           {/* Loans Table */}
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 whitespace-nowrap">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Karyawan</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal Pinjam</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nominal</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sisa Saldo</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Potongan/Periode</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Karyawan</th>
+                  <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Tanggal Pinjam</th>
+                  <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Nominal</th>
+                  <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Sisa Saldo</th>
+                  <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Potongan/Periode</th>
+                  <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {loans.map((loan) => (
                   <tr key={loan.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {employees.find(e => e.id === loan.employee_id)?.name || `ID ${loan.employee_id}`}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{loan.loan_date}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">Rp {parseFloat(loan.nominal).toLocaleString('id-ID')}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">Rp {parseFloat(loan.remaining_balance).toLocaleString('id-ID')}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{loan.deduction_per_period ? `Rp ${parseFloat(loan.deduction_per_period).toLocaleString('id-ID')}` : '-'}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{loan.loan_date}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp {parseFloat(loan.nominal).toLocaleString('id-ID')}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp {parseFloat(loan.remaining_balance).toLocaleString('id-ID')}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{loan.deduction_per_period ? `Rp ${parseFloat(loan.deduction_per_period).toLocaleString('id-ID')}` : '-'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         loan.is_active 
                           ? 'bg-green-100 text-green-800' 
@@ -1162,7 +1162,7 @@ const EmployeesPage = () => {
                         {loan.is_active ? 'Aktif' : 'Selesai'}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex space-x-2">
                         <button
                           onClick={() => openLoanForm(selectedEmployeeForLoan, loan)}

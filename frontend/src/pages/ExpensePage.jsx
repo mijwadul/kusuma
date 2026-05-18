@@ -630,11 +630,11 @@ const ExpensePage = () => {
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+            <thead className="bg-gray-50 text-gray-500 text-xs uppercase whitespace-nowrap">
               <tr>
-                <th className="px-4 py-3 text-left w-10">#</th>
+                <th className="px-4 py-3 text-left w-10 whitespace-nowrap">#</th>
                 <th
-                  className="px-4 py-3 text-left cursor-pointer hover:bg-gray-100 select-none"
+                  className="px-4 py-3 text-left cursor-pointer hover:bg-gray-100 select-none whitespace-nowrap"
                   onClick={() => handleSort('expense_date')}
                 >
                   <span className="flex items-center">
@@ -643,7 +643,7 @@ const ExpensePage = () => {
                   </span>
                 </th>
                 <th
-                  className="px-4 py-3 text-left cursor-pointer hover:bg-gray-100 select-none"
+                  className="px-4 py-3 text-left cursor-pointer hover:bg-gray-100 select-none whitespace-nowrap"
                   onClick={() => handleSort('category')}
                 >
                   <span className="flex items-center">
@@ -651,11 +651,11 @@ const ExpensePage = () => {
                     <SortIcon field="category" sortField={sortField} sortDir={sortDir} />
                   </span>
                 </th>
-                <th className="px-4 py-3 text-center">Status</th>
-                <th className="px-4 py-3 text-center">Pembayaran</th>
-                <th className="px-4 py-3 text-left">Deskripsi</th>
+                <th className="px-4 py-3 text-center whitespace-nowrap">Status</th>
+                <th className="px-4 py-3 text-center whitespace-nowrap">Pembayaran</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap">Deskripsi</th>
                 <th
-                  className="px-4 py-3 text-right cursor-pointer hover:bg-gray-100 select-none"
+                  className="px-4 py-3 text-right cursor-pointer hover:bg-gray-100 select-none whitespace-nowrap"
                   onClick={() => handleSort('amount')}
                 >
                   <span className="flex items-center justify-end">
@@ -663,7 +663,7 @@ const ExpensePage = () => {
                     <SortIcon field="amount" sortField={sortField} sortDir={sortDir} />
                   </span>
                 </th>
-                <th className="px-4 py-3 text-center">Aksi</th>
+                <th className="px-4 py-3 text-center whitespace-nowrap">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -672,7 +672,7 @@ const ExpensePage = () => {
                 Array.from({ length: 6 }).map((_, i) => (
                   <tr key={i}>
                     {Array.from({ length: 6 }).map((__, j) => (
-                      <td key={j} className="px-4 py-3">
+                      <td key={j} className="px-4 py-3 whitespace-nowrap">
                         <div className="h-4 bg-gray-100 rounded animate-pulse" />
                       </td>
                     ))}
@@ -691,16 +691,16 @@ const ExpensePage = () => {
               ) : (
                 paginated.map((exp, idx) => (
                   <tr key={exp.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-gray-400">
+                    <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
                       {(currentPage - 1) * PAGE_SIZE + idx + 1}
                     </td>
                     <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
                       {toLocalDate(exp.expense_date)}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <CategoryBadge value={exp.category} />
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
                       {exp.approval_status === "approved" ? (
                         <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
                           Approved
@@ -711,7 +711,7 @@ const ExpensePage = () => {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
                       {exp.payment_status === "paid" ? (
                         <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                           Lunas
@@ -722,7 +722,7 @@ const ExpensePage = () => {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-gray-700">
+                    <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
                       <p className="max-w-xs truncate" title={exp.description}>
                         {exp.description}
                       </p>
@@ -735,7 +735,7 @@ const ExpensePage = () => {
                     <td className="px-4 py-3 text-right font-semibold text-gray-800 whitespace-nowrap">
                       {formatIDR(exp.amount)}
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-2">
                         {canDelete && exp.approval_status !== "approved" && (
                           <button
@@ -785,7 +785,7 @@ const ExpensePage = () => {
                   <td colSpan={4} className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase">
                     Total halaman ini
                   </td>
-                  <td className="px-4 py-3 text-right font-bold text-gray-800">
+                  <td className="px-4 py-3 text-right font-bold text-gray-800 whitespace-nowrap">
                     {formatIDR(paginated.reduce((s, e) => s + Number(e.amount), 0))}
                   </td>
                   <td />

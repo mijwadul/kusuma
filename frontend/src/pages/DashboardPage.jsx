@@ -995,16 +995,16 @@ export default function DashboardPage() {
           <table className="min-w-full text-sm divide-y divide-gray-100">
             <thead>
               <tr className="bg-gray-50 text-left">
-                <th className="px-4 py-2 font-medium text-gray-600 text-xs uppercase">
+                <th className="px-4 py-2 font-medium text-gray-600 text-xs uppercase whitespace-nowrap">
                   Alat
                 </th>
-                <th className="px-4 py-2 font-medium text-gray-600 text-xs uppercase">
+                <th className="px-4 py-2 font-medium text-gray-600 text-xs uppercase whitespace-nowrap">
                   Tipe
                 </th>
-                <th className="px-4 py-2 font-medium text-gray-600 text-xs uppercase text-right">
+                <th className="px-4 py-2 font-medium text-gray-600 text-xs uppercase text-right whitespace-nowrap">
                   Total BBM (L)
                 </th>
-                <th className="px-4 py-2 font-medium text-gray-600 text-xs uppercase text-right">
+                <th className="px-4 py-2 font-medium text-gray-600 text-xs uppercase text-right whitespace-nowrap">
                   Kali Isi
                 </th>
               </tr>
@@ -1025,16 +1025,16 @@ export default function DashboardPage() {
                     key={row.equipment_id}
                     className="hover:bg-gray-50 transition-colors"
                   >
-                    <td className="px-4 py-2 font-medium text-gray-900">
+                    <td className="px-4 py-2 font-medium text-gray-900 whitespace-nowrap">
                       {row.equipment_name}
                     </td>
-                    <td className="px-4 py-2 text-gray-500">
+                    <td className="px-4 py-2 text-gray-500 whitespace-nowrap">
                       {row.equipment_type}
                     </td>
-                    <td className="px-4 py-2 text-right font-semibold text-amber-700 tabular-nums">
+                    <td className="px-4 py-2 text-right font-semibold text-amber-700 tabular-nums whitespace-nowrap">
                       {row.total_liters.toFixed(1)}
                     </td>
-                    <td className="px-4 py-2 text-right text-gray-600 tabular-nums">
+                    <td className="px-4 py-2 text-right text-gray-600 tabular-nums whitespace-nowrap">
                       {row.refuel_count}
                     </td>
                   </tr>
@@ -1055,13 +1055,13 @@ export default function DashboardPage() {
             <table className="min-w-full text-sm divide-y divide-gray-100">
               <thead>
                 <tr className="bg-gray-50">
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                     Nama
                   </th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                     Tipe
                   </th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                     Status
                   </th>
                 </tr>
@@ -1069,11 +1069,11 @@ export default function DashboardPage() {
               <tbody className="divide-y divide-gray-50">
                 {equipment.slice(0, 8).map((eq) => (
                   <tr key={eq.id} className="hover:bg-gray-50">
-                    <td className="px-3 py-2 font-medium text-gray-800">
+                    <td className="px-3 py-2 font-medium text-gray-800 whitespace-nowrap">
                       {eq.name}
                     </td>
-                    <td className="px-3 py-2 text-gray-500">{eq.type}</td>
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{eq.type}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">
                       <span
                         className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
                           eq.status === "active"
@@ -1116,13 +1116,13 @@ export default function DashboardPage() {
             <table className="min-w-full text-sm divide-y divide-gray-100">
               <thead>
                 <tr className="bg-gray-50">
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                     Nama
                   </th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                     Jabatan
                   </th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                     Status
                   </th>
                 </tr>
@@ -1130,13 +1130,13 @@ export default function DashboardPage() {
               <tbody className="divide-y divide-gray-50">
                 {employees.slice(0, 8).map((emp) => (
                   <tr key={emp.id} className="hover:bg-gray-50">
-                    <td className="px-3 py-2 font-medium text-gray-800">
+                    <td className="px-3 py-2 font-medium text-gray-800 whitespace-nowrap">
                       {emp.name}
                     </td>
-                    <td className="px-3 py-2 text-gray-500 text-xs">
+                    <td className="px-3 py-2 text-gray-500 text-xs whitespace-nowrap">
                       {emp.position}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-2 whitespace-nowrap">
                       <span
                         className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
                           emp.status === "active"

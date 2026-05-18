@@ -587,7 +587,7 @@ const FuelPage = () => {
               <button
                 type="button"
                 onClick={handleCancelEdit}
-                className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-6 py-3 whitespace-nowrap border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Batal
               </button>
@@ -598,7 +598,7 @@ const FuelPage = () => {
 
       {/* History Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 whitespace-nowrap border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
             <Calendar className="h-5 w-5 text-gray-600" />
             <span>Riwayat Pengisian (30 hari terakhir)</span>
@@ -606,24 +606,24 @@ const FuelPage = () => {
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50 whitespace-nowrap">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   Tanggal
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   Unit
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   Liter
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   Lokasi
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   Catatan
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   Aksi
                 </th>
               </tr>
@@ -641,7 +641,7 @@ const FuelPage = () => {
               ) : (
                 fuelLogs.map((log) => (
                   <tr key={log.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm">
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">
                       {log.refuel_date
                         ? new Date(log.refuel_date).toLocaleString("id-ID", {
                             day: "2-digit",
@@ -652,22 +652,22 @@ const FuelPage = () => {
                           })
                         : "-"}
                     </td>
-                    <td className="px-4 py-3 text-sm font-medium">
+                    <td className="px-4 py-3 text-sm font-medium whitespace-nowrap">
                       {log.equipment_name}
                       <span className="text-xs text-gray-500 block">
                         {log.equipment_type}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm font-medium text-amber-600">
+                    <td className="px-4 py-3 text-sm font-medium text-amber-600 whitespace-nowrap">
                       {log.liters_filled} L
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
                       {log.location || "-"}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
+                    <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
                       {log.notes || "-"}
                     </td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">
                       <div className="flex items-center space-x-2">
                         <button
                           onClick={() => handleEdit(log)}

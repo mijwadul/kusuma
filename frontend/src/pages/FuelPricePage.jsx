@@ -436,14 +436,14 @@ const FuelPricePage = () => {
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                   <tr>
-                    <th className="px-4 py-3 text-left">Tanggal</th>
-                    <th className="px-4 py-3 text-right">Liter</th>
-                    <th className="px-4 py-3 text-right">Harga/Liter</th>
-                    <th className="px-4 py-3 text-right">Total Harga</th>
-                    <th className="px-4 py-3 text-center">Status</th>
-                    <th className="px-4 py-3 text-center">Aksi</th>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">Tanggal</th>
+                    <th className="px-4 py-3 text-right whitespace-nowrap">Liter</th>
+                    <th className="px-4 py-3 text-right whitespace-nowrap">Harga/Liter</th>
+                    <th className="px-4 py-3 text-right whitespace-nowrap">Total Harga</th>
+                    <th className="px-4 py-3 text-center whitespace-nowrap">Status</th>
+                    <th className="px-4 py-3 text-center whitespace-nowrap">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -453,21 +453,21 @@ const FuelPricePage = () => {
                       className="hover:bg-gray-50 cursor-pointer"
                       onClick={() => openDetail(purchase)}
                     >
-                      <td className="px-4 py-3 text-sm text-gray-900">
+                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
                         {purchase.effective_date
                           ? new Date(purchase.effective_date).toLocaleDateString('id-ID')
                           : new Date(purchase.created_at).toLocaleDateString('id-ID')}
                       </td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900 text-right">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900 text-right whitespace-nowrap">
                         {purchase.liters?.toLocaleString('id-ID') || '-'} L
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-500 text-right">
+                      <td className="px-4 py-3 text-sm text-gray-500 text-right whitespace-nowrap">
                         Rp {purchase.price_per_liter.toLocaleString('id-ID')}
                       </td>
-                      <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right">
+                      <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right whitespace-nowrap">
                         Rp {purchase.total_price?.toLocaleString('id-ID') || '-'}
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
                         {purchase.approval_status === 'approved' ? (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             Approved
@@ -482,7 +482,7 @@ const FuelPricePage = () => {
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-4 py-3 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         {purchase.approval_status === 'pending' && isGM && (
                           <div className="flex items-center justify-center gap-2">
                             <button

@@ -485,16 +485,16 @@ const AttendancePage = () => {
 
         <div className="overflow-x-auto">
           <table className="min-w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50 whitespace-nowrap">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Karyawan</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Check-in</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Check-out</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jam Kerja</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Catatan</th>
-                {isGMOrSuperuser && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>}
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Tanggal</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Karyawan</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Check-in</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Check-out</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Jam Kerja</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Catatan</th>
+                {isGMOrSuperuser && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Aksi</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -507,21 +507,21 @@ const AttendancePage = () => {
               ) : (
                 attendance.map((row) => (
                   <tr key={row.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm">{row.date || '-'}</td>
-                    <td className="px-4 py-3 text-sm font-medium">
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">{row.date || '-'}</td>
+                    <td className="px-4 py-3 text-sm font-medium whitespace-nowrap">
                       {employeeMap.get(row.employee_id)?.name || `ID ${row.employee_id}`}
                     </td>
-                    <td className="px-4 py-3 text-sm">{row.status || '-'}</td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">{row.status || '-'}</td>
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">
                       {row.check_in ? new Date(row.check_in).toLocaleString('id-ID') : '-'}
                     </td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">
                       {row.check_out ? new Date(row.check_out).toLocaleString('id-ID') : '-'}
                     </td>
-                    <td className="px-4 py-3 text-sm">{row.work_hours != null ? Number(row.work_hours).toFixed(2) : '-'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{row.notes || '-'}</td>
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">{row.work_hours != null ? Number(row.work_hours).toFixed(2) : '-'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{row.notes || '-'}</td>
                     {isGMOrSuperuser && (
-                      <td className="px-4 py-3 text-sm">
+                      <td className="px-4 py-3 text-sm whitespace-nowrap">
                         <div className="flex items-center space-x-3">
                           <button onClick={() => handleEditClick(row)} className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
                           <button onClick={() => handleDelete(row.id)} className="text-red-600 hover:text-red-800 font-medium">Hapus</button>

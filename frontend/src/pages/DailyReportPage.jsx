@@ -167,7 +167,7 @@ const SectionHeader = ({ icon: Icon, title, total, iconColor }) => (
 const SimpleTable = ({ headers, rows, emptyMsg = "Tidak ada data" }) => (
   <div className="overflow-x-auto rounded-lg border border-gray-100">
     <table className="w-full text-xs">
-      <thead className="bg-gray-50">
+      <thead className="bg-gray-50 whitespace-nowrap">
         <tr>
           {headers.map((h, i) => (
             <th

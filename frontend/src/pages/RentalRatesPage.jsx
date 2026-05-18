@@ -207,26 +207,26 @@ const RentalRatesPage = () => {
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
         <table className="min-w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 whitespace-nowrap">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Equipment</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status Kepemilikan</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tarif/Jam (Rp)</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Deposit (Rp)</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vendor</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+              <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Nama Equipment</th>
+              <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Status Kepemilikan</th>
+              <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Tarif/Jam (Rp)</th>
+              <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Deposit (Rp)</th>
+              <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Vendor</th>
+              <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {filteredEquipment.map((item) => (
               <tr key={item.id}>
-                <td className="px-6 py-4">
+                <td className="px-6 py-4 whitespace-nowrap">
                   <div>
                     <p className="text-sm font-medium text-gray-900">{item.name}</p>
                     <p className="text-xs text-gray-500">{item.type}</p>
                   </div>
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-6 py-4 whitespace-nowrap">
                   {editingId === item.id ? (
                     <select
                       value={editData.ownership_status}
@@ -246,7 +246,7 @@ const RentalRatesPage = () => {
                     </span>
                   )}
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-6 py-4 whitespace-nowrap">
                   {editingId === item.id ? (
                     <input
                       type="number"
@@ -263,7 +263,7 @@ const RentalRatesPage = () => {
                     </p>
                   )}
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-6 py-4 whitespace-nowrap">
                   {editingId === item.id ? (
                     <input
                       type="number"
@@ -280,7 +280,7 @@ const RentalRatesPage = () => {
                     </p>
                   )}
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-6 py-4 whitespace-nowrap">
                   {editingId === item.id ? (
                     <div className="flex items-center space-x-1">
                       <Building2 className="h-4 w-4 text-gray-400" />
@@ -298,7 +298,7 @@ const RentalRatesPage = () => {
                     </p>
                   )}
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-6 py-4 whitespace-nowrap">
                   {editingId === item.id ? (
                     <div className="flex space-x-2">
                       <button

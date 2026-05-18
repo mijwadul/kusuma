@@ -273,24 +273,24 @@ export default function ProjectsPage() {
         ) : activeTab === "projects" ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b">
+              <thead className="bg-gray-50 border-b whitespace-nowrap">
                 <tr>
-                  <th className="px-4 py-3 text-left">Nama Proyek & Klien</th>
-                  <th className="px-4 py-3 text-left">Lokasi</th>
-                  <th className="px-4 py-3 text-left">Target Material</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  {isGM && <th className="px-4 py-3 text-center">Aksi</th>}
+                  <th className="px-4 py-3 text-left whitespace-nowrap">Nama Proyek & Klien</th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap">Lokasi</th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap">Target Material</th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap">Status</th>
+                  {isGM && <th className="px-4 py-3 text-center whitespace-nowrap">Aksi</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {projects.map(p => (
                   <tr key={p.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <p className="font-semibold text-gray-800">{p.name}</p>
                       <p className="text-xs text-gray-500">{p.client_name || "-"}</p>
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{p.location || "-"}</td>
-                    <td className="px-4 py-3 text-xs text-gray-600">
+                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{p.location || "-"}</td>
+                    <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
                       {p.material_items.length === 0 ? "-" : (
                         <ul className="list-disc pl-4">
                           {p.material_items.map(m => (
@@ -299,7 +299,7 @@ export default function ProjectsPage() {
                         </ul>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${
                         p.status === 'completed' ? 'bg-green-100 text-green-700' :
                         p.status === 'paused' ? 'bg-yellow-100 text-yellow-700' :
@@ -309,7 +309,7 @@ export default function ProjectsPage() {
                       </span>
                     </td>
                     {isGM && (
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
                         <button onClick={() => openProjModal(p)} className="p-1 text-blue-500 hover:bg-blue-50 rounded"><Pencil size={15} /></button>
                         <button onClick={() => setConfirmDelete(p)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={15} /></button>
                       </td>
@@ -325,27 +325,27 @@ export default function ProjectsPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b">
+              <thead className="bg-gray-50 border-b whitespace-nowrap">
                 <tr>
-                  <th className="px-4 py-3 text-left">Nama / Perusahaan</th>
-                  <th className="px-4 py-3 text-left">Kontak</th>
-                  <th className="px-4 py-3 text-left">Preferensi Material</th>
-                  <th className="px-4 py-3 text-left">Total Pembelian</th>
-                  {isGM && <th className="px-4 py-3 text-center">Aksi</th>}
+                  <th className="px-4 py-3 text-left whitespace-nowrap">Nama / Perusahaan</th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap">Kontak</th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap">Preferensi Material</th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap">Total Pembelian</th>
+                  {isGM && <th className="px-4 py-3 text-center whitespace-nowrap">Aksi</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {customers.map(c => (
                   <tr key={c.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <p className="font-semibold text-gray-800">{c.name}</p>
                       <p className="text-xs text-gray-500">{c.company || "-"}</p>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-600">
+                    <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
                       <p>{c.phone || "-"}</p>
                       <p>{c.contact_person || "-"}</p>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-600">
+                    <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
                       {c.material_preferences.length === 0 ? "-" : (
                         <div className="flex flex-col gap-1">
                           {c.material_preferences.map((m, i) => (
@@ -356,11 +356,11 @@ export default function ProjectsPage() {
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-3 font-medium text-emerald-700">
+                    <td className="px-4 py-3 font-medium text-emerald-700 whitespace-nowrap">
                       {formatIDR(c.total_purchases)} <span className="text-gray-400 font-normal text-xs">({c.purchase_count}x)</span>
                     </td>
                     {isGM && (
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
                         <button onClick={() => openCustModal(c)} className="p-1 text-blue-500 hover:bg-blue-50 rounded"><Pencil size={15} /></button>
                         <button onClick={() => setConfirmDelete(c)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={15} /></button>
                       </td>
@@ -380,7 +380,7 @@ export default function ProjectsPage() {
       {showProjModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b flex justify-between items-center sticky top-0 bg-white z-10">
+            <div className="px-6 py-4 whitespace-nowrap border-b flex justify-between items-center sticky top-0 bg-white z-10">
               <h2 className="text-lg font-semibold">{editData ? "Edit Proyek" : "Tambah Proyek"}</h2>
               <button onClick={() => setShowProjModal(false)} className="p-1 hover:bg-gray-100 rounded"><X size={18} /></button>
             </div>
@@ -457,7 +457,7 @@ export default function ProjectsPage() {
       {showCustModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b flex justify-between items-center sticky top-0 bg-white z-10">
+            <div className="px-6 py-4 whitespace-nowrap border-b flex justify-between items-center sticky top-0 bg-white z-10">
               <h2 className="text-lg font-semibold">{editData ? "Edit Pelanggan" : "Tambah Pelanggan"}</h2>
               <button onClick={() => setShowCustModal(false)} className="p-1 hover:bg-gray-100 rounded"><X size={18} /></button>
             </div>
