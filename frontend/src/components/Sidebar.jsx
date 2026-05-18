@@ -384,7 +384,7 @@ const Sidebar = ({ children }) => {
         )}
 
         {/* Mobile Content */}
-        <div className="pt-16 px-3 py-4 min-w-0 overflow-x-hidden">{children}</div>
+        <div className="pt-16 px-3 py-4 min-w-0 overflow-x-auto">{children}</div>
       </div>
     );
   }
@@ -546,7 +546,7 @@ const Sidebar = ({ children }) => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 h-screen overflow-y-auto p-6 min-w-0 overflow-x-hidden">{children}</div>
+      <div className="flex-1 h-screen overflow-y-auto p-6 min-w-0 overflow-x-auto">{children}</div>
     </div>
   );
 };
