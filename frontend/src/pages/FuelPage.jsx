@@ -131,7 +131,7 @@ const FuelPage = () => {
     e.preventDefault();
     const eqIdNum = Number.parseInt(String(formData.equipment_id), 10);
     if (!formData.equipment_id || Number.isNaN(eqIdNum)) {
-      alert("Pilih unit alat terlebih dahulu");
+      toast.error("Pilih unit alat terlebih dahulu");
       return;
     }
 
@@ -140,7 +140,7 @@ const FuelPage = () => {
     );
 
     if (Number.isNaN(parsedLitersFilled)) {
-      alert("Jumlah liter harus berupa angka valid");
+      toast.error("Jumlah liter harus berupa angka valid");
       return;
     }
 
@@ -191,11 +191,11 @@ const FuelPage = () => {
         );
       } else {
         const error = await response.json();
-        alert("Gagal: " + (error.detail || "Unknown error"));
+        toast.error("Gagal: " + (error.detail || "Unknown error"));
       }
     } catch (error) {
       console.error("Error submitting fuel log:", error);
-      alert("Gagal menyimpan catatan BBM");
+      toast.error("Gagal menyimpan catatan BBM");
     }
   };
 
@@ -261,11 +261,11 @@ const FuelPage = () => {
         setDeleteLogId(null);
       } else {
         const error = await response.json();
-        alert("Gagal menghapus: " + (error.detail || "Unknown error"));
+        toast.error("Gagal menghapus: " + (error.detail || "Unknown error"));
       }
     } catch (error) {
       console.error("Error deleting fuel log:", error);
-      alert("Gagal menghapus catatan");
+      toast.error("Gagal menghapus catatan");
     }
   };
 

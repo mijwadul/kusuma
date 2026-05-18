@@ -314,6 +314,44 @@ const DeleteConfirmModal = ({ expense, onCancel, onConfirm, deleting }) => (
   </div>
 );
 
+// ─── Pay Confirm Modal ───────────────────────────────────────────────────────
+
+const PayConfirmModal = ({ expense, onCancel, onConfirm, paying }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="p-2 bg-emerald-100 rounded-full">
+          <CheckCircle size={20} className="text-emerald-600" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-800">Tandai Dibayar?</h3>
+      </div>
+      <p className="text-sm text-gray-600 mb-1">
+        Tandai pengeluaran <span className="font-medium">{expense?.description}</span> sebagai telah dibayar?
+      </p>
+      <p className="text-sm text-emerald-600 font-semibold mb-5">
+        {formatIDR(expense?.amount)}
+      </p>
+      <div className="flex gap-3 justify-end">
+        <button
+          onClick={onCancel}
+          disabled={paying}
+          className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        >
+          Batal
+        </button>
+        <button
+          onClick={onConfirm}
+          disabled={paying}
+          className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2"
+        >
+          {paying && <RefreshCw size={14} className="animate-spin" />}
+          Ya, Bayar
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 const ExpensePage = () => {
@@ -344,6 +382,10 @@ const ExpensePage = () => {
   // Delete
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Pay
+  const [payTarget, setPayTarget] = useState(null);
+  const [paying, setPaying] = useState(false);
 
   // ── fetch current user ───────────────────────────────────────────────────
   useEffect(() => {
@@ -483,19 +525,27 @@ const ExpensePage = () => {
     }
   };
 
-  const handlePay = async (exp) => {
-    if (!confirm('Tandai pengeluaran ini sebagai telah dibayar?')) return;
+  const handlePay = (exp) => {
+    setPayTarget(exp);
+  };
+
+  const confirmPay = async () => {
+    if (!payTarget) return;
+    setPaying(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/expenses/${exp.id}/pay`, {
+      const res = await fetch(`${API_URL}/expenses/${payTarget.id}/pay`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Gagal memproses pembayaran');
       toast.success('Pengeluaran ditandai sebagai LUNAS.');
+      setPayTarget(null);
       fetchExpenses();
     } catch (err) {
       toast.error(err.message);
+    } finally {
+      setPaying(false);
     }
   };
 
@@ -853,6 +903,14 @@ const ExpensePage = () => {
           onCancel={cancelDelete}
           onConfirm={confirmDelete}
           deleting={deleting}
+        />
+      )}
+      {payTarget && (
+        <PayConfirmModal
+          expense={payTarget}
+          onCancel={() => setPayTarget(null)}
+          onConfirm={confirmPay}
+          paying={paying}
         />
       )}
     </div>

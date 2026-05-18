@@ -14,6 +14,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { API_URL } from "../api/auth";
+import AlertModal from "../components/AlertModal";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const formatIDR = (v) =>
@@ -130,6 +131,7 @@ const IncomePage = () => {
   const [modalTab, setModalTab] = useState("project_payment");
   const [editId, setEditId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
 
   // Forms
   const [projectForm, setProjectForm] = useState(defaultProjectForm());
@@ -339,21 +341,22 @@ const IncomePage = () => {
   };
 
   // ── Delete ──
-  const handleDelete = async (id) => {
-    if (
-      !window.confirm(
-        "Hapus data pemasukan ini? Tindakan tidak dapat dibatalkan.",
-      )
-    )
-      return;
+  const triggerDelete = (id) => {
+    setDeleteModal({ isOpen: true, id });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteModal.id) return;
     try {
-      await authFetchHelper(`${API_URL}/income-records/${id}`, {
+      await authFetchHelper(`${API_URL}/income-records/${deleteModal.id}`, {
         method: "DELETE",
       });
       toast.success("Data berhasil dihapus");
       fetchRecords();
     } catch {
       toast.error("Gagal menghapus data");
+    } finally {
+      setDeleteModal({ isOpen: false, id: null });
     }
   };
 
@@ -398,7 +401,7 @@ const IncomePage = () => {
         <Pencil className="w-4 h-4" />
       </button>
       <button
-        onClick={() => handleDelete(r.id)}
+        onClick={() => triggerDelete(r.id)}
         className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
         title="Hapus"
       >
@@ -1160,6 +1163,18 @@ const IncomePage = () => {
             </form>
           </div>
         </div>
+      )}
+      {deleteModal.isOpen && (
+        <AlertModal
+          isOpen={deleteModal.isOpen}
+          onClose={() => setDeleteModal({ isOpen: false, id: null })}
+          onConfirm={confirmDelete}
+          title="Hapus Data Pemasukan?"
+          message="Apakah Anda yakin ingin menghapus data pemasukan ini? Tindakan ini tidak dapat dibatalkan."
+          confirmText="Hapus"
+          cancelText="Batal"
+          confirmColor="bg-red-600 hover:bg-red-700"
+        />
       )}
     </div>
   );

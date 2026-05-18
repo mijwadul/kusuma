@@ -143,6 +143,7 @@ export default function DashboardPage() {
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [deleteAttendanceModal, setDeleteAttendanceModal] = useState({ isOpen: false, employeeId: null, attendanceId: null });
   const [fuelActionModal, setFuelActionModal] = useState({ isOpen: false, id: null, action: null });
+  const [payrollApproveModal, setPayrollApproveModal] = useState({ isOpen: false, id: null });
   const [financeSummary, setFinanceSummary] = useState(null);
 
   // Yesterday report states for GM
@@ -326,18 +327,20 @@ export default function DashboardPage() {
 
   // ── approve payroll ──
   const handleApprove = async (payrollId) => {
-    if (!window.confirm("Approve slip gaji ini?")) return;
     setApprovingId(payrollId);
     try {
-      await fetch(`${API_URL}/employees/payroll/${payrollId}/approve`, {
+      const res = await fetch(`${API_URL}/employees/payroll/${payrollId}/approve`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${getToken()}` },
       });
+      if (!res.ok) throw new Error("Gagal approve payroll");
+      toast.success("Slip gaji berhasil disetujui!");
       await fetchAll();
-    } catch {
-      alert("Gagal approve payroll");
+    } catch (e) {
+      toast.error(e.message || "Gagal approve payroll");
     } finally {
       setApprovingId(null);
+      setPayrollApproveModal({ isOpen: false, id: null });
     }
   };
 
@@ -974,7 +977,7 @@ export default function DashboardPage() {
                             {formatIDR(rec.net_salary)}
                           </span>
                           <button
-                            onClick={() => handleApprove(rec.id)}
+                            onClick={() => setPayrollApproveModal({ isOpen: true, id: rec.id })}
                             disabled={approvingId === rec.id}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-60"
                           >
@@ -1514,6 +1517,17 @@ export default function DashboardPage() {
         confirmText={fuelActionModal.action === 'approved' ? "Approve" : "Tolak"}
         cancelText="Batal"
         confirmColor={fuelActionModal.action === 'approved' ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}
+      />
+
+      <AlertModal
+        isOpen={payrollApproveModal.isOpen}
+        onClose={() => setPayrollApproveModal({ isOpen: false, id: null })}
+        onConfirm={() => handleApprove(payrollApproveModal.id)}
+        title="Approve Slip Gaji"
+        message="Apakah Anda yakin ingin menyetujui slip gaji karyawan ini?"
+        confirmText="Approve"
+        cancelText="Batal"
+        confirmColor="bg-green-600 hover:bg-green-700"
       />
     </div>
   );
