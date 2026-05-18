@@ -55,6 +55,14 @@ body {
   border-radius: inherit;
 }
 
+/* Force table cells to not squeeze vertically on mobile, enabling horizontal scroll */
+@media (max-width: 768px) {
+  .overflow-x-auto table th,
+  .overflow-x-auto table td {
+    white-space: nowrap;
+  }
+}
+
 /* Prevent text overflow in mobile */
 @media (max-width: 640px) {
   .mobile-text-sm {
