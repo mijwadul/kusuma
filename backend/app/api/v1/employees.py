@@ -298,14 +298,20 @@ def create_employee(
             detail="Only Admin/HR can create employees",
         )
 
-    # Check email uniqueness
-    existing = db.query(Employee).filter(Employee.email == employee.email).first()
+    # Check email uniqueness (only among active employees)
+    existing = db.query(Employee).filter(
+        Employee.email == employee.email,
+        Employee.is_active == True
+    ).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # Check NIK uniqueness if provided
+    # Check NIK uniqueness if provided (only among active employees)
     if employee.nik:
-        existing_nik = db.query(Employee).filter(Employee.nik == employee.nik).first()
+        existing_nik = db.query(Employee).filter(
+            Employee.nik == employee.nik,
+            Employee.is_active == True
+        ).first()
         if existing_nik:
             raise HTTPException(status_code=400, detail="NIK already registered")
 
@@ -373,7 +379,7 @@ def delete_employee(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Delete employee (soft delete by setting inactive).
+    Delete employee (soft delete by setting inactive, and anonymize name/email to prevent duplicates).
     - Only GM can delete employees
     """
     if (
@@ -389,9 +395,12 @@ def delete_employee(
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
 
-    # Soft delete - set inactive
+    # Soft delete - set inactive and anonymize to prevent name/email conflicts with new records
     employee.is_active = False
     employee.status = "terminated"
+    employee.email = f"deleted_{employee_id}_{employee.email}"
+    if employee.nik:
+        employee.nik = f"deleted_{employee_id}_{employee.nik}"
     db.commit()
 
     return {"message": "Employee deleted successfully"}
@@ -775,6 +784,7 @@ def get_attendance(
         )
         employee_id_filter = employee.id if employee else -1
         query = query.join(Employee, Attendance.employee_id == Employee.id).filter(
+            Employee.is_active == True,  # only show attendance for active employees
             or_(
                 Attendance.employee_id == employee_id_filter,
                 Employee.department.ilike("operation%")
