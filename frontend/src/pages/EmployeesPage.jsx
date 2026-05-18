@@ -137,7 +137,7 @@ const EmployeesPage = () => {
         fetchPayrollRecords();
         fetchEmployees();
       } else if (activeTab === TABS.LOANS && canAccessFinancial) {
-        fetchLoans(selectedEmployeeForLoan?.id);
+        fetchLoans(selectedEmployeeForLoan?.id || null);
         fetchEmployees();
       }
     }
@@ -1193,7 +1193,9 @@ const EmployeesPage = () => {
             </div>
             {loans.length === 0 && (
               <div className="text-center py-8 text-gray-500">
-                {selectedEmployeeForLoan ? 'Tidak ada data pinjaman untuk karyawan ini' : 'Pilih karyawan untuk melihat riwayat pinjaman'}
+                {selectedEmployeeForLoan 
+                  ? 'Tidak ada data pinjaman untuk karyawan ini' 
+                  : 'Tidak ada data pinjaman'}
               </div>
             )}
           </div>
