@@ -107,3 +107,84 @@ body {
     font-size: 0.75rem !important; /* text-xs equivalent */
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CUSTOM COHESIVE DESIGN PALETTE (OPTION A - OCEAN NAVY & SEA TEAL)
+   Defining these directly in index.css ensures they are always compiled and
+   fully active, avoiding any Vite/Tailwind theme caching issues.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.bg-brand-dark {
+  background-color: #0f172a !important;
+}
+.bg-brand-darker {
+  background-color: #0b1329 !important;
+}
+.bg-brand-light {
+  background-color: #f8fafc !important;
+}
+.bg-brand-card {
+  background-color: #ffffff !important;
+}
+.bg-accent {
+  background-color: #0d9488 !important;
+}
+.text-accent {
+  color: #0d9488 !important;
+}
+.border-accent {
+  border-color: #0d9488 !important;
+}
+.hover\:bg-accent-hover:hover {
+  background-color: #0f766e !important;
+}
+.hover\:text-accent:hover {
+  color: #0d9488 !important;
+}
+.focus\:ring-accent-focus:focus {
+  --tw-ring-color: #2dd4bf !important;
+}
+.focus\:ring-accent:focus {
+  --tw-ring-color: #0d9488 !important;
+}
+
+/* Coordinated status badge classes for professional state tracking */
+.bg-status-success-bg {
+  background-color: #e6f4ea !important;
+}
+.text-status-success-text {
+  color: #137333 !important;
+}
+.border-status-success-border {
+  border-color: #ceead6 !important;
+}
+
+.bg-status-pending-bg {
+  background-color: #fef3c7 !important;
+}
+.text-status-pending-text {
+  color: #d97706 !important;
+}
+.border-status-pending-border {
+  border-color: #fde68a !important;
+}
+
+.bg-status-danger-bg {
+  background-color: #fce8e6 !important;
+}
+.text-status-danger-text {
+  color: #c5221f !important;
+}
+.border-status-danger-border {
+  border-color: #fad2cf !important;
+}
+
+.bg-status-info-bg {
+  background-color: #e8f0fe !important;
+}
+.text-status-info-text {
+  color: #1a73e8 !important;
+}
+.border-status-info-border {
+  border-color: #d2e3fc !important;
+}

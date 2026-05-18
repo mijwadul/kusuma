@@ -70,8 +70,8 @@ const CategoryBadge = ({ value }) => {
 const SortIcon = ({ field, sortField, sortDir }) => {
   if (sortField !== field) return <ChevronsUpDown size={14} className="text-gray-400 ml-1" />;
   return sortDir === 'asc'
-    ? <ChevronUp size={14} className="text-blue-500 ml-1" />
-    : <ChevronDown size={14} className="text-blue-500 ml-1" />;
+    ? <ChevronUp size={14} className="text-accent ml-1" />
+    : <ChevronDown size={14} className="text-accent ml-1" />;
 };
 
 // ─── Modal ───────────────────────────────────────────────────────────────────
@@ -157,7 +157,7 @@ const ExpenseModal = ({ expense, projects, onClose, onSaved }) => {
               value={form.expense_date}
               onChange={handleChange}
               required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </div>
 
@@ -171,7 +171,7 @@ const ExpenseModal = ({ expense, projects, onClose, onSaved }) => {
               value={form.category}
               onChange={handleChange}
               required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             >
               {CATEGORIES.map((c) => (
                 <option key={c.value} value={c.value}>{c.label}</option>
@@ -191,7 +191,7 @@ const ExpenseModal = ({ expense, projects, onClose, onSaved }) => {
               required
               rows={2}
               placeholder="Keterangan pengeluaran..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent resize-none"
             />
           </div>
 
@@ -209,7 +209,7 @@ const ExpenseModal = ({ expense, projects, onClose, onSaved }) => {
               min={1}
               step="any"
               placeholder="0"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               onWheel={(e) => e.target.blur()}
             />
             {form.amount && Number(form.amount) > 0 && (
@@ -226,7 +226,7 @@ const ExpenseModal = ({ expense, projects, onClose, onSaved }) => {
               name="project_id"
               value={form.project_id}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             >
               <option value="">-- Tanpa Project --</option>
               {projects.map((p) => (
@@ -246,7 +246,7 @@ const ExpenseModal = ({ expense, projects, onClose, onSaved }) => {
               onChange={handleChange}
               rows={2}
               placeholder="Catatan tambahan..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent resize-none"
             />
           </div>
 
@@ -263,7 +263,7 @@ const ExpenseModal = ({ expense, projects, onClose, onSaved }) => {
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="px-5 py-2 text-sm bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-accent-focus"
             >
               {saving && <RefreshCw size={14} className="animate-spin" />}
               {isEdit ? 'Simpan Perubahan' : 'Tambah'}
@@ -512,7 +512,7 @@ const ExpensePage = () => {
         </div>
         <button
           onClick={openAdd}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-accent-focus"
         >
           <Plus size={16} />
           Tambah Pengeluaran
@@ -528,7 +528,7 @@ const ExpensePage = () => {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -537,7 +537,7 @@ const ExpensePage = () => {
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -545,7 +545,7 @@ const ExpensePage = () => {
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             >
               <option value="">Semua Kategori</option>
               {CATEGORIES.map((c) => (
@@ -563,7 +563,7 @@ const ExpensePage = () => {
             </button>
             <button
               onClick={fetchExpenses}
-              className="flex-1 flex items-center justify-center gap-1.5 border border-blue-300 text-blue-600 px-3 py-2 rounded-lg text-sm hover:bg-blue-50 transition-colors"
+              className="flex-1 flex items-center justify-center gap-1.5 border border-accent text-accent px-3 py-2 rounded-lg text-sm hover:bg-teal-50/50 transition-colors"
             >
               <Search size={14} />
               Cari
@@ -590,8 +590,8 @@ const ExpensePage = () => {
 
         {/* Transaksi */}
         <div className="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4 fluid-metric-container">
-          <div className="p-3 bg-blue-100 rounded-xl flex-shrink-0">
-            <BarChart2 size={22} className="text-blue-600" />
+          <div className="p-3 bg-teal-100 rounded-xl flex-shrink-0">
+            <BarChart2 size={22} className="text-accent" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs text-gray-500 mb-0.5">Jumlah Transaksi</p>
@@ -703,22 +703,22 @@ const ExpensePage = () => {
                     </td>
                     <td className="px-4 py-3 text-center whitespace-nowrap">
                       {exp.approval_status === "approved" ? (
-                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                        <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-status-success-bg text-status-success-text border border-status-success-border">
                           Approved
                         </span>
                       ) : (
-                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                        <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-status-pending-bg text-status-pending-text border border-status-pending-border">
                           Pending
                         </span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center whitespace-nowrap">
                       {exp.payment_status === "paid" ? (
-                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                        <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-status-info-bg text-status-info-text border border-status-info-border">
                           Lunas
                         </span>
                       ) : (
-                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                        <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-status-danger-bg text-status-danger-text border border-status-danger-border">
                           Unpaid
                         </span>
                       )}
@@ -751,7 +751,7 @@ const ExpensePage = () => {
                           <button
                             onClick={() => handlePay(exp)}
                             title="Tandai Dibayar"
-                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-1.5 text-gray-400 hover:text-accent hover:bg-teal-50 rounded-lg transition-colors"
                           >
                             <DollarSign size={15} />
                           </button>
@@ -759,7 +759,7 @@ const ExpensePage = () => {
                         <button
                           onClick={() => openEdit(exp)}
                           title="Edit"
-                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-1.5 text-gray-400 hover:text-accent hover:bg-teal-50 rounded-lg transition-colors"
                         >
                           <Edit2 size={15} />
                         </button>
@@ -818,7 +818,7 @@ const ExpensePage = () => {
                     onClick={() => setCurrentPage(page)}
                     className={`w-9 h-8 rounded-lg border text-sm font-medium transition-colors ${
                       page === currentPage
-                        ? 'bg-blue-600 text-white border-blue-600'
+                        ? 'bg-accent text-white border-accent'
                         : 'border-gray-300 hover:bg-gray-50'
                     }`}
                   >

@@ -139,9 +139,7 @@ export default function LoginPage() {
 
             <div
 
-              className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 shadow-lg"
-
-              style={{ backgroundColor: '#2D5016' }}
+              className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 shadow-lg bg-[#0F172A]"
 
             >
 
@@ -217,13 +215,11 @@ export default function LoginPage() {
 
                     onChange={handleInputChange}
 
-                    className="w-full pl-10 pr-4 py-3 rounded-lg border-2 focus:outline-none focus:ring-2 focus:border-transparent transition-all bg-white/80 placeholder-gray-500"
+                    className="w-full pl-10 pr-4 py-3 rounded-lg border-2 focus:outline-none focus:ring-2 focus:border-transparent transition-all bg-white/80 placeholder-gray-500 focus:ring-[#0D9488]"
 
                     style={{
 
                       borderColor: errors.email ? '#EF4444' : '#E8DCC8',
-
-                      '--tw-ring-color': '#A0522D'
 
                     }}
 
@@ -273,13 +269,11 @@ export default function LoginPage() {
 
                     onChange={handleInputChange}
 
-                    className="w-full pl-10 pr-10 py-3 rounded-lg border-2 focus:outline-none focus:ring-2 focus:border-transparent transition-all bg-white/80 placeholder-gray-500"
+                    className="w-full pl-10 pr-10 py-3 rounded-lg border-2 focus:outline-none focus:ring-2 focus:border-transparent transition-all bg-white/80 placeholder-gray-500 focus:ring-[#0D9488]"
 
                     style={{
 
                       borderColor: errors.password ? '#EF4444' : '#E8DCC8',
-
-                      '--tw-ring-color': '#A0522D'
 
                     }}
 
@@ -327,13 +321,11 @@ export default function LoginPage() {
 
                     onChange={handleInputChange}
 
-                    className="w-4 h-4 rounded focus:ring-2 cursor-pointer"
+                    className="w-4 h-4 rounded focus:ring-2 cursor-pointer focus:ring-[#0D9488]"
 
                     style={{
 
-                      accentColor: '#2D5016',
-
-                      '--tw-ring-color': '#A0522D'
+                      accentColor: '#0D9488',
 
                     }}
 
@@ -355,9 +347,7 @@ export default function LoginPage() {
 
                 disabled={isLoading}
 
-                className="w-full text-white font-bold py-3 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
-
-                style={{ backgroundColor: '#2D5016' }}
+                className="w-full text-white font-bold py-3 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center bg-[#0D9488] hover:bg-[#0F766E]"
 
               >
 
@@ -387,7 +377,7 @@ export default function LoginPage() {
 
           {/* Footer Info */}
 
-          <p className="text-center text-sm mt-8" style={{ color: '#2D5016' }}>
+          <p className="text-center text-sm mt-8 text-white/90 drop-shadow-md">
 
             © 2026 PT. Kusuma Samudera Group. Semua hak dilindungi.
 

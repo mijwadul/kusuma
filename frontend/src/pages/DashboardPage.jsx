@@ -525,7 +525,7 @@ export default function DashboardPage() {
             <div className="flex-1 w-full">
               <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Karyawan</label>
               <select 
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0D9488]"
                 value={selectedFieldEmployee}
                 onChange={(e) => setSelectedFieldEmployee(e.target.value)}
               >
@@ -548,7 +548,7 @@ export default function DashboardPage() {
                       <button 
                         onClick={() => handleAttendanceAction(selectedId, 'check_in')}
                         disabled={attendanceLoading}
-                        className="w-full sm:w-auto px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-70"
+                        className="w-full sm:w-auto px-6 py-2 bg-[#0D9488] hover:bg-[#0F766E] text-white font-medium rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-70"
                       >
                         {attendanceLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                         Check In
@@ -899,12 +899,12 @@ export default function DashboardPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-blue-600" />
+              <FileText className="w-5 h-5 text-[#0D9488]" />
               Payroll Overview
             </h2>
             <button
               onClick={() => navigate("/payroll")}
-              className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium"
+              className="text-sm text-[#0D9488] hover:text-[#0F766E] flex items-center gap-1 font-medium"
             >
               Lihat Semua <ChevronRight className="w-4 h-4" />
             </button>
@@ -1192,7 +1192,7 @@ export default function DashboardPage() {
                         label: "Payroll",
                         path: "/payroll",
                         color:
-                          "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200",
+                          "bg-teal-50 text-teal-700 hover:bg-teal-100 border-teal-200",
                       },
                       {
                         label: "Laporan Lengkap",

@@ -264,13 +264,13 @@ const Sidebar = ({ children }) => {
   // Mobile hamburger menu
   if (isMobile) {
     return (
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen bg-brand-light">
         {/* Mobile Header */}
-        <div className="bg-green-800 text-white p-4 flex items-center justify-between shadow-md fixed top-0 left-0 right-0 z-50">
+        <div className="bg-brand-dark text-white p-4 flex items-center justify-between shadow-md fixed top-0 left-0 right-0 z-50">
           <h1 className="text-base font-bold truncate mr-2">PT. Kusuma Samudera</h1>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 hover:bg-green-700 rounded-lg transition-colors"
+            className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
           >
             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -283,7 +283,7 @@ const Sidebar = ({ children }) => {
             onClick={() => setMobileMenuOpen(false)}
           >
             <div
-              className="absolute top-16 left-0 right-0 bg-green-800 text-white shadow-lg max-h-[calc(100vh-4rem)] overflow-y-auto"
+              className="absolute top-16 left-0 right-0 bg-brand-dark text-white shadow-lg max-h-[calc(100vh-4rem)] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <nav className="p-4 space-y-1">
@@ -303,8 +303,8 @@ const Sidebar = ({ children }) => {
                           }
                           className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
                             hasActiveChild
-                              ? "bg-green-600 text-white"
-                              : "hover:bg-green-700 text-green-100"
+                              ? "bg-accent text-white"
+                              : "hover:bg-slate-800 text-slate-300"
                           }`}
                         >
                           <div className="flex items-center space-x-3">
@@ -331,10 +331,10 @@ const Sidebar = ({ children }) => {
                                     isSubActive
                                       ? isFuelSub
                                         ? "bg-amber-600 text-white"
-                                        : "bg-green-500 text-white"
+                                        : "bg-accent text-white"
                                       : isFuelSub
                                         ? "hover:bg-amber-700 text-amber-100"
-                                        : "hover:bg-green-700 text-green-200"
+                                        : "hover:bg-slate-800 text-slate-300"
                                   }`}
                                 >
                                   <sub.icon
@@ -362,8 +362,8 @@ const Sidebar = ({ children }) => {
                       onClick={() => setMobileMenuOpen(false)}
                       className={`flex items-center space-x-3 p-3 rounded-lg transition-colors ${
                         isItemActive
-                          ? "bg-green-600 text-white"
-                          : "hover:bg-green-700 text-green-100"
+                          ? "bg-accent text-white"
+                          : "hover:bg-slate-800 text-slate-300"
                       }`}
                     >
                       <item.icon size={20} />
@@ -391,15 +391,15 @@ const Sidebar = ({ children }) => {
 
   // Desktop Sidebar
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-100">
+    <div className="flex h-screen overflow-hidden bg-brand-light">
       {/* Sidebar */}
       <div
-        className={`h-screen bg-green-800 text-white transition-all duration-300 ease-in-out flex flex-col ${
+        className={`h-screen bg-brand-dark text-white transition-all duration-300 ease-in-out flex flex-col ${
           isOpen ? "w-64" : "w-20"
         }`}
       >
         {/* Header */}
-        <div className="p-4 flex items-center justify-between border-b border-green-700">
+        <div className="p-4 flex items-center justify-between border-b border-slate-800">
           {isOpen ? (
             <h1 className="text-lg font-bold">PT. Kusuma Samudera</h1>
           ) : (
@@ -407,7 +407,7 @@ const Sidebar = ({ children }) => {
           )}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="p-1 hover:bg-green-700 rounded-lg transition-colors"
+            className="p-1 hover:bg-slate-800 rounded-lg transition-colors"
           >
             {isOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
           </button>
@@ -435,8 +435,8 @@ const Sidebar = ({ children }) => {
                         }
                         className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
                           hasActiveChild
-                            ? "bg-green-600 text-white"
-                            : "hover:bg-green-700 text-green-100"
+                            ? "bg-accent text-white"
+                            : "hover:bg-slate-800 text-slate-300"
                         }`}
                       >
                         <div className="flex items-center space-x-3">
@@ -462,10 +462,10 @@ const Sidebar = ({ children }) => {
                                   isSubActive
                                     ? isFuelSub
                                       ? "bg-amber-600 text-white"
-                                      : "bg-green-500 text-white"
+                                      : "bg-accent text-white"
                                     : isFuelSub
                                       ? "hover:bg-amber-700 text-amber-100"
-                                      : "hover:bg-green-700 text-green-200"
+                                      : "hover:bg-slate-800 text-slate-300"
                                 }`}
                                 title={sub.label}
                               >
@@ -495,15 +495,15 @@ const Sidebar = ({ children }) => {
                         }
                         className={`w-full flex items-center justify-center p-3 rounded-lg transition-colors ${
                           hasActiveChild
-                            ? "bg-green-600 text-white"
-                            : "hover:bg-green-700 text-green-100"
+                            ? "bg-accent text-white"
+                            : "hover:bg-slate-800 text-slate-300"
                         }`}
                         title={item.label}
                       >
                         <item.icon size={20} />
                       </button>
                       {/* Tooltip */}
-                      <div className="absolute left-full top-0 ml-2 bg-green-900 text-white px-2 py-1 rounded text-sm whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                      <div className="absolute left-full top-0 ml-2 bg-brand-darker text-white px-2 py-1 rounded text-sm whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                         {item.label}
                       </div>
                     </div>
@@ -518,8 +518,8 @@ const Sidebar = ({ children }) => {
                 to={item.path}
                 className={`flex items-center space-x-3 p-3 rounded-lg transition-colors ${
                   isItemActive
-                    ? "bg-green-600 text-white"
-                    : "hover:bg-green-700 text-green-100"
+                    ? "bg-accent text-white"
+                    : "hover:bg-slate-800 text-slate-300"
                 } ${!isOpen && "justify-center"}`}
                 title={!isOpen ? item.label : ""}
               >
@@ -531,7 +531,7 @@ const Sidebar = ({ children }) => {
         </nav>
 
         {/* Footer - Logout */}
-        <div className="p-4 border-t border-green-700">
+        <div className="p-4 border-t border-slate-800">
           <button
             onClick={handleLogout}
             className={`flex items-center space-x-3 p-3 rounded-lg hover:bg-red-600 text-red-100 transition-colors w-full ${
