@@ -72,3 +72,38 @@ body {
     display: none;
   }
 }
+
+/* Fluid Metric Scaling via Container Queries */
+.fluid-metric-container {
+  container-type: inline-size;
+}
+
+.fluid-metric-value {
+  white-space: nowrap !important;
+}
+
+@container (max-width: 320px) {
+  .fluid-metric-value {
+    font-size: 1.25rem !important; /* text-xl equivalent */
+  }
+}
+@container (max-width: 260px) {
+  .fluid-metric-value {
+    font-size: 1.125rem !important; /* text-lg equivalent */
+  }
+}
+@container (max-width: 220px) {
+  .fluid-metric-value {
+    font-size: 1rem !important; /* text-base equivalent */
+  }
+}
+@container (max-width: 180px) {
+  .fluid-metric-value {
+    font-size: 0.875rem !important; /* text-sm equivalent */
+  }
+}
+@container (max-width: 140px) {
+  .fluid-metric-value {
+    font-size: 0.75rem !important; /* text-xs equivalent */
+  }
+}

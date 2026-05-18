@@ -84,19 +84,29 @@ const formatDate = (d) => {
 const StatCard = ({ icon: Icon, label, value, sub, color, onClick, badge }) => (
   <div
     onClick={onClick}
-    className={`bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-start gap-4
-      ${onClick ? "cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all" : ""}`}
+    className={`bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex items-start gap-4 fluid-metric-container
+      transition-all duration-300 ease-out hover:shadow-md hover:border-slate-200/80
+      ${onClick ? "cursor-pointer hover:-translate-y-1" : ""}`}
   >
-    <div className={`p-3 rounded-xl ${color}`}>
-      <Icon className="w-6 h-6 text-white" />
+    <div className={`p-3.5 rounded-2xl shadow-xs text-white bg-gradient-to-tr ${
+      color.includes("bg-red-") ? "from-red-500 to-rose-600 shadow-red-200/50" :
+      color.includes("bg-green-") ? "from-green-500 to-emerald-600 shadow-emerald-200/50" :
+      color.includes("bg-emerald-") ? "from-emerald-500 to-teal-600 shadow-teal-200/50" :
+      color.includes("bg-blue-") ? "from-blue-500 to-indigo-600 shadow-blue-200/50" :
+      color.includes("bg-amber-") ? "from-amber-500 to-yellow-600 shadow-amber-200/50" :
+      color.includes("bg-orange-") ? "from-orange-500 to-red-600 shadow-orange-200/50" :
+      color.includes("bg-purple-") ? "from-purple-500 to-violet-600 shadow-purple-200/50" :
+      "from-slate-500 to-slate-600"
+    } flex-shrink-0`}>
+      <Icon className="w-5 h-5 text-white" />
     </div>
     <div className="flex-1 min-w-0">
-      <p className="text-sm text-gray-500 font-medium truncate">{label}</p>
-      <p className="text-2xl font-bold text-gray-800 mt-0.5">{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">{label}</p>
+      <p className="text-lg sm:text-xl md:text-2xl font-extrabold text-slate-800 tracking-tight mt-1.5 tabular-nums fluid-metric-value">{value}</p>
+      {sub && <p className="text-xs text-slate-400 font-medium mt-1 truncate">{sub}</p>}
     </div>
     {badge && (
-      <span className="shrink-0 bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">
+      <span className="shrink-0 bg-red-500/10 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full border border-red-500/20 animate-pulse">
         {badge}
       </span>
     )}
@@ -134,6 +144,38 @@ export default function DashboardPage() {
   const [deleteAttendanceModal, setDeleteAttendanceModal] = useState({ isOpen: false, employeeId: null, attendanceId: null });
   const [fuelActionModal, setFuelActionModal] = useState({ isOpen: false, id: null, action: null });
   const [financeSummary, setFinanceSummary] = useState(null);
+
+  // Yesterday report states for GM
+  const [yesterdayReport, setYesterdayReport] = useState(null);
+  const [loadingYesterday, setLoadingYesterday] = useState(false);
+
+  // Greeting and Role Helpers
+  const getGreeting = () => {
+    const hours = new Date().getHours();
+    if (hours >= 5 && hours < 11) return "Selamat Pagi";
+    if (hours >= 11 && hours < 15) return "Selamat Siang";
+    if (hours >= 15 && hours < 18) return "Selamat Sore";
+    return "Selamat Malam";
+  };
+
+  const getRoleLabelAndIcon = (roleName) => {
+    switch (roleName?.toLowerCase()) {
+      case "gm":
+        return { label: "General Manager", badge: "bg-amber-100 text-amber-800 border-amber-200" };
+      case "direktur":
+        return { label: "Direktur Utama", badge: "bg-yellow-100 text-yellow-800 border-yellow-200" };
+      case "finance":
+        return { label: "Finance & Accounting", badge: "bg-emerald-100 text-emerald-800 border-emerald-200" };
+      case "field":
+        return { label: "Operational Field Staff", badge: "bg-blue-100 text-blue-800 border-blue-200" };
+      case "checker":
+        return { label: "Checker Lapangan", badge: "bg-cyan-100 text-cyan-800 border-cyan-200" };
+      case "admin":
+        return { label: "System Administrator", badge: "bg-purple-100 text-purple-800 border-purple-200" };
+      default:
+        return { label: roleName ? roleName.toUpperCase() : "User", badge: "bg-slate-100 text-slate-800 border-slate-200" };
+    }
+  };
 
   const getToken = () => localStorage.getItem("token");
 
@@ -203,6 +245,47 @@ export default function DashboardPage() {
       setLoadingDaily(false);
     }
   }, [authFetch, dailyReportDate]);
+  const fetchYesterdayReport = useCallback(async () => {
+    const role = currentUser?.role ?? "";
+    const isGM =
+      role === "gm" ||
+      role === "direktur" ||
+      currentUser?.is_admin ||
+      currentUser?.is_superuser;
+    if (!isGM || !dailyReportDate) return;
+    setLoadingYesterday(true);
+    try {
+      const getYesterdayDateString = (dateStr) => {
+        if (!dateStr) return "";
+        const parts = dateStr.split("-");
+        if (parts.length !== 3) return "";
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1; // 0-indexed month
+        const day = parseInt(parts[2], 10);
+        const dateObj = new Date(year, month, day);
+        dateObj.setDate(dateObj.getDate() - 1);
+        
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(dateObj.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      };
+      
+      const yesterdayStr = getYesterdayDateString(dailyReportDate);
+      if (!yesterdayStr) throw new Error("Invalid date");
+      
+      const dr = await authFetch(`${API_URL}/dashboard/daily-report?report_date=${yesterdayStr}`);
+      setYesterdayReport(dr);
+    } catch (e) {
+      console.error("Failed to fetch yesterday daily report:", e);
+    } finally {
+      setLoadingYesterday(false);
+    }
+  }, [authFetch, currentUser, dailyReportDate]);
+
+  useEffect(() => {
+    fetchYesterdayReport();
+  }, [fetchYesterdayReport]);
 
   useEffect(() => {
     fetchDailyReport();
@@ -368,26 +451,71 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* ── Page Header ───────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            PT. Kusuma Samudera Berkah – Ringkasan Operasional
-          </p>
+      {/* ── Page Header & Welcome Banner ──────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 md:p-8 shadow-lg border border-slate-800/50 text-white transition-all duration-300">
+        {/* Background light blobs for premium glow */}
+        <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+        <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4 md:gap-6">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center font-bold text-2xl shadow-lg border border-blue-400/30 text-white transform hover:rotate-6 transition-transform">
+              {currentUser?.full_name ? currentUser.full_name.charAt(0).toUpperCase() : "?"}
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs uppercase tracking-widest text-indigo-300 font-semibold">BINA-ERP SYSTEM</span>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  v1.2 Active
+                </span>
+              </div>
+              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight mt-1">
+                {getGreeting()}, <span className="bg-gradient-to-r from-blue-200 via-indigo-100 to-white bg-clip-text text-transparent">{currentUser?.full_name || "User"}</span>! 👋
+              </h1>
+              <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${getRoleLabelAndIcon(role).badge}`}>
+                  {getRoleLabelAndIcon(role).label}
+                </span>
+                <span className="text-xs text-indigo-300/80 font-normal">({currentUser?.email || "-"})</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex flex-col items-end gap-2 shrink-0 bg-slate-950/40 p-4 rounded-2xl border border-slate-800/40 backdrop-blur-sm self-start md:self-center">
+            <div className="text-right">
+              <p className="text-xs text-indigo-300/80 uppercase tracking-widest font-semibold">Hari & Tanggal</p>
+              <p className="text-sm font-bold text-slate-100 mt-0.5">
+                {new Date().toLocaleDateString("id-ID", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 animate-pulse">
+                • Live Connected
+              </span>
+              <button
+                onClick={() => {
+                  fetchAll();
+                  fetchYesterdayReport();
+                  toast.success("Data berhasil diperbarui!");
+                }}
+                className="p-1.5 rounded-lg bg-slate-800/60 hover:bg-slate-700/80 text-indigo-300 hover:text-white transition-all hover:scale-105 border border-slate-700/40"
+                title="Refresh data"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
         </div>
-        <button
-          onClick={fetchAll}
-          className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
-          title="Refresh data"
-        >
-          <RefreshCw className="w-4 h-4" />
-        </button>
       </div>
 
       {/* ── Field Staff Attendance ───────────────────────────────────────── */}
       {role === "field" && (
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all duration-300">
           <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2 mb-4">
             <ClipboardCheck className="w-5 h-5 text-blue-600" />
             Absensi Pekerja Lapangan (Operation)
@@ -500,9 +628,186 @@ export default function DashboardPage() {
             />
           </div>
 
+          {/* GM Yesterday's Operational & Sales Overview */}
+          {isGM && (
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mt-6 transition-all duration-300 hover:shadow-md">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-5 bg-gradient-to-r from-indigo-50/50 via-slate-50 to-indigo-50/20 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-2xl bg-indigo-600 text-white shadow-sm shadow-indigo-100">
+                    <BarChart2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-800">
+                      Ringkasan Operasional & Penjualan Hari Kemarin
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Kinerja keuangan dan aktivitas logistik tanggal {formatDate(yesterdayReport?.date)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100/80">
+                    Aktivitas Kemarin
+                  </span>
+                </div>
+              </div>
+
+              {loadingYesterday ? (
+                <div className="p-12 flex flex-col items-center justify-center gap-3">
+                  <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+                  <p className="text-sm text-slate-400 animate-pulse">Memuat laporan kemarin...</p>
+                </div>
+              ) : !yesterdayReport ? (
+                <div className="p-10 text-center text-slate-400 text-sm">
+                  Gagal memuat data laporan hari kemarin atau data belum tersedia.
+                </div>
+              ) : (
+                <div className="p-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* 1. Detail Operasional (Expenses) */}
+                    <div className="bg-slate-50/70 rounded-2xl p-5 border border-slate-100/50 flex flex-col justify-between space-y-4">
+                      <div className="space-y-4">
+                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                          <TrendingDown className="w-4 h-4 text-red-500" />
+                          Operasional & Pengeluaran
+                        </h4>
+                        
+                        <div className="space-y-3">
+                          {/* BBM */}
+                          <div className="flex items-center justify-between gap-2 p-3 bg-white rounded-xl shadow-2xs border border-slate-100/80 hover:border-slate-200 transition-colors">
+                            <div>
+                              <p className="text-xs text-slate-500 font-bold">BBM Solar Lapangan</p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">
+                                {(yesterdayReport.expenses?.fuel?.total_liters ?? 0).toLocaleString('id-ID')} Liter Solar
+                              </p>
+                            </div>
+                            <span className="text-sm font-bold text-red-600 tabular-nums">
+                              {formatIDR(yesterdayReport.expenses?.fuel?.total ?? 0)}
+                            </span>
+                          </div>
+
+                          {/* Gaji */}
+                          <div className="flex items-center justify-between gap-2 p-3 bg-white rounded-xl shadow-2xs border border-slate-100/80 hover:border-slate-200 transition-colors">
+                            <div>
+                              <p className="text-xs text-slate-500 font-bold">Gaji Karyawan (Paid)</p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">
+                                {yesterdayReport.expenses?.payroll?.count ?? 0} slip terbayar
+                              </p>
+                            </div>
+                            <span className="text-sm font-bold text-red-600 tabular-nums">
+                              {formatIDR(yesterdayReport.expenses?.payroll?.total ?? 0)}
+                            </span>
+                          </div>
+
+                          {/* Operasional Lainnya */}
+                          <div className="flex items-center justify-between gap-2 p-3 bg-white rounded-xl shadow-2xs border border-slate-100/80 hover:border-slate-200 transition-colors">
+                            <div>
+                              <p className="text-xs text-slate-500 font-bold">Biaya Lain-lain (Approved)</p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">
+                                Koordinasi & administrasi
+                              </p>
+                            </div>
+                            <span className="text-sm font-bold text-red-600 tabular-nums">
+                              {formatIDR(yesterdayReport.expenses?.others?.total ?? 0)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-200/50 flex justify-between items-center text-xs font-bold text-slate-600 mt-2">
+                        <span>Total Pengeluaran</span>
+                        <span className="text-sm font-extrabold text-red-600 tabular-nums">
+                          {formatIDR(yesterdayReport.summary?.total_expense ?? 0)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 2. Detail Penjualan & Proyek (Income) */}
+                    <div className="bg-slate-50/70 rounded-2xl p-5 border border-slate-100/50 flex flex-col justify-between space-y-4">
+                      <div className="space-y-4">
+                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                          <TrendingUp className="w-4 h-4 text-emerald-500" />
+                          Penjualan & Pemasukan
+                        </h4>
+
+                        <div className="space-y-3">
+                          {/* Penjualan Material */}
+                          <div className="flex items-center justify-between gap-2 p-3 bg-white rounded-xl shadow-2xs border border-slate-100/80 hover:border-slate-200 transition-colors">
+                            <div>
+                              <p className="text-xs text-slate-500 font-bold">Penjualan Material</p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">
+                                {yesterdayReport.income?.material_sales?.count ?? 0} transaksi penjualan
+                              </p>
+                            </div>
+                            <span className="text-sm font-bold text-emerald-600 tabular-nums">
+                              {formatIDR(yesterdayReport.income?.material_sales?.total ?? 0)}
+                            </span>
+                          </div>
+
+                          {/* Pembayaran Proyek */}
+                          <div className="flex items-center justify-between gap-2 p-3 bg-white rounded-xl shadow-2xs border border-slate-100/80 hover:border-slate-200 transition-colors">
+                            <div>
+                              <p className="text-xs text-slate-500 font-bold">Pemasukan Proyek</p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">
+                                Termin pembayaran proyek
+                              </p>
+                            </div>
+                            <span className="text-sm font-bold text-emerald-600 tabular-nums">
+                              {formatIDR(yesterdayReport.income?.project_payments?.total ?? 0)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-200/50 flex justify-between items-center text-xs font-bold text-slate-600 mt-2">
+                        <span>Total Pemasukan</span>
+                        <span className="text-sm font-extrabold text-emerald-600 tabular-nums">
+                          {formatIDR(yesterdayReport.summary?.total_income ?? 0)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 3. Ringkasan & Net Profitability */}
+                    <div className="bg-slate-900 rounded-2xl p-5 border border-slate-800 text-white flex flex-col justify-between shadow-lg shadow-slate-950/20 fluid-metric-container">
+                      <div className="space-y-4">
+                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-800 pb-2">
+                          <Wallet className="w-4 h-4 text-indigo-400" />
+                          Net Profitability
+                        </h4>
+                        
+                        <div className="pt-2">
+                          <p className="text-xs text-slate-400 font-medium">Selisih Bersih Kemarin</p>
+                          <p className={`text-lg sm:text-xl md:text-2xl font-extrabold tracking-tight mt-1.5 tabular-nums fluid-metric-value ${
+                            (yesterdayReport.summary?.net ?? 0) >= 0 ? "text-emerald-400" : "text-amber-400"
+                          }`}>
+                            {formatIDR(yesterdayReport.summary?.net ?? 0)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-6">
+                        {(yesterdayReport.summary?.net ?? 0) >= 0 ? (
+                          <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3.5 py-2.5 rounded-xl w-full justify-center text-xs font-bold shadow-xs animate-pulse">
+                            <TrendingUp className="w-4 h-4 shrink-0" />
+                            Surplus Keuangan Kemarin
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3.5 py-2.5 rounded-xl w-full justify-center text-xs font-bold shadow-xs animate-pulse">
+                            <TrendingDown className="w-4 h-4 shrink-0" />
+                            Defisit Operasional Kemarin
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Pending Fuel Purchases List */}
           {(isGM || role === 'finance') && (
-            <div className="bg-white rounded-2xl border border-amber-200 shadow-sm overflow-hidden mt-4">
+            <div className="bg-white rounded-3xl border border-amber-200/60 shadow-sm overflow-hidden mt-6 transition-all duration-300 hover:shadow-md">
               <div className="flex items-center gap-2 px-5 py-3 bg-amber-50 border-b border-amber-200">
                 <AlertTriangle className="w-4 h-4 text-amber-600" />
                 <span className="text-sm font-semibold text-amber-800">

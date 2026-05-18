@@ -86,7 +86,7 @@ const SummaryCard = ({ icon: Icon, label, value, color }) => (
     </div>
     <div className="flex-1 min-w-0">
       <p className="text-sm text-gray-500 font-medium truncate">{label}</p>
-      <p className="text-xl font-bold text-gray-800 mt-0.5">{value}</p>
+      <p className="text-base sm:text-lg md:text-xl font-bold text-gray-800 mt-0.5 break-words">{value}</p>
     </div>
   </div>
 );

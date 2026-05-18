@@ -103,13 +103,13 @@ const SummaryCardSkeleton = () => (
 const SummaryCard = ({ title, amount, sub, icon: Icon, color, loading }) => {
   if (loading) return <SummaryCardSkeleton />;
   return (
-    <div className={`rounded-xl shadow-sm p-6 text-white ${color}`}>
+    <div className={`rounded-xl shadow-sm p-6 text-white ${color} min-w-0 fluid-metric-container`}>
       <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-medium opacity-90">{title}</span>
-        <Icon size={22} className="opacity-80" />
+        <span className="text-sm font-medium opacity-90 truncate">{title}</span>
+        <Icon size={22} className="opacity-80 flex-shrink-0" />
       </div>
-      <p className="text-2xl font-bold">{formatIDR(amount)}</p>
-      {sub && <p className="text-xs mt-1.5 opacity-80">{sub}</p>}
+      <p className="text-lg sm:text-xl md:text-2xl font-bold fluid-metric-value">{formatIDR(amount)}</p>
+      {sub && <p className="text-xs mt-1.5 opacity-85 truncate">{sub}</p>}
     </div>
   );
 };
@@ -122,21 +122,21 @@ const NetCard = ({ net, loading }) => {
   const Icon = positive ? TrendingUp : TrendingDown;
   return (
     <div
-      className={`rounded-xl shadow-sm p-6 ${positive ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"}`}
+      className={`rounded-xl shadow-sm p-6 min-w-0 fluid-metric-container ${positive ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"}`}
     >
       <div className="flex items-center justify-between mb-3">
         <span
-          className={`text-sm font-medium ${positive ? "text-emerald-700" : "text-red-700"}`}
+          className={`text-sm font-medium truncate ${positive ? "text-emerald-700" : "text-red-700"}`}
         >
           Net Balance
         </span>
         <Icon
           size={22}
-          className={positive ? "text-emerald-500" : "text-red-500"}
+          className={`flex-shrink-0 ${positive ? "text-emerald-500" : "text-red-500"}`}
         />
       </div>
       <p
-        className={`text-2xl font-bold ${positive ? "text-emerald-700" : "text-red-700"}`}
+        className={`text-lg sm:text-xl md:text-2xl font-bold fluid-metric-value ${positive ? "text-emerald-700" : "text-red-700"}`}
       >
         {positive ? "+" : ""}
         {formatIDR(net)}

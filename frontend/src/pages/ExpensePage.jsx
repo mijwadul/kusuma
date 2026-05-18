@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Plus, X, Edit2, Trash2, Filter, RefreshCw,
   ChevronUp, ChevronDown, ChevronsUpDown,
-  Receipt, BarChart2, Calendar, AlertCircle, Search, CheckCircle
+  Receipt, BarChart2, Calendar, AlertCircle, Search, CheckCircle,
+  DollarSign
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { API_URL } from '../api/auth';
@@ -206,7 +207,7 @@ const ExpenseModal = ({ expense, projects, onClose, onSaved }) => {
               onChange={handleChange}
               required
               min={1}
-              step={1000}
+              step="any"
               placeholder="0"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               onWheel={(e) => e.target.blur()}
@@ -574,39 +575,39 @@ const ExpensePage = () => {
       {/* ── Summary Cards ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Total */}
-        <div className="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4">
+        <div className="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4 fluid-metric-container">
           <div className="p-3 bg-red-100 rounded-xl flex-shrink-0">
             <Receipt size={22} className="text-red-600" />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="text-xs text-gray-500 mb-0.5">Total Periode</p>
-            <p className="text-xl font-bold text-gray-800">{formatIDR(totalAmount)}</p>
-            <p className="text-xs text-gray-400">
+            <p className="text-base sm:text-lg md:text-xl font-bold text-gray-800 fluid-metric-value">{formatIDR(totalAmount)}</p>
+            <p className="text-xs text-gray-400 truncate">
               {toLocalDate(startDate)} – {toLocalDate(endDate)}
             </p>
           </div>
         </div>
 
         {/* Transaksi */}
-        <div className="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4">
+        <div className="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4 fluid-metric-container">
           <div className="p-3 bg-blue-100 rounded-xl flex-shrink-0">
             <BarChart2 size={22} className="text-blue-600" />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="text-xs text-gray-500 mb-0.5">Jumlah Transaksi</p>
-            <p className="text-xl font-bold text-gray-800">{txCount}</p>
+            <p className="text-base sm:text-lg md:text-xl font-bold text-gray-800 fluid-metric-value">{txCount}</p>
             <p className="text-xs text-gray-400">transaksi tercatat</p>
           </div>
         </div>
 
         {/* Rata-rata/hari */}
-        <div className="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4">
+        <div className="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4 fluid-metric-container">
           <div className="p-3 bg-amber-100 rounded-xl flex-shrink-0">
             <Calendar size={22} className="text-amber-600" />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="text-xs text-gray-500 mb-0.5">Rata-rata / Hari</p>
-            <p className="text-xl font-bold text-gray-800">{formatIDR(avgPerDay)}</p>
+            <p className="text-base sm:text-lg md:text-xl font-bold text-gray-800 fluid-metric-value">{formatIDR(avgPerDay)}</p>
             <p className="text-xs text-gray-400">dalam {days} hari</p>
           </div>
         </div>

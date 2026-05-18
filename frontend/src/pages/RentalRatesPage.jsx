@@ -143,40 +143,40 @@ const RentalRatesPage = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-blue-100 rounded-lg">
+        <div className="bg-white rounded-lg shadow-sm p-6 min-w-0 fluid-metric-container">
+          <div className="flex items-center justify-between mb-4 gap-2">
+            <div className="p-3 bg-blue-100 rounded-lg flex-shrink-0">
               <Truck className="h-6 w-6 text-blue-600" />
             </div>
-            <span className="text-2xl font-bold text-gray-900">
+            <span className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 fluid-metric-value text-right">
               {equipment.filter(e => e.ownership_status === 'rental').length}
             </span>
           </div>
-          <p className="text-sm text-gray-600">Equipment Rental</p>
+          <p className="text-xs sm:text-sm text-gray-600 truncate">Equipment Rental</p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-green-100 rounded-lg">
+        <div className="bg-white rounded-lg shadow-sm p-6 min-w-0 fluid-metric-container">
+          <div className="flex items-center justify-between mb-4 gap-2">
+            <div className="p-3 bg-green-100 rounded-lg flex-shrink-0">
               <DollarSign className="h-6 w-6 text-green-600" />
             </div>
-            <span className="text-2xl font-bold text-gray-900">
+            <span className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 fluid-metric-value text-right">
               Rp {totalRentalRate.toLocaleString('id-ID')}
             </span>
           </div>
-          <p className="text-sm text-gray-600">Total Tarif/Jam</p>
+          <p className="text-xs sm:text-sm text-gray-600 truncate">Total Tarif/Jam</p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-amber-100 rounded-lg">
+        <div className="bg-white rounded-lg shadow-sm p-6 min-w-0 fluid-metric-container">
+          <div className="flex items-center justify-between mb-4 gap-2">
+            <div className="p-3 bg-amber-100 rounded-lg flex-shrink-0">
               <Wallet className="h-6 w-6 text-amber-600" />
             </div>
-            <span className="text-2xl font-bold text-gray-900">
+            <span className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 fluid-metric-value text-right">
               Rp {totalDeposit.toLocaleString('id-ID')}
             </span>
           </div>
-          <p className="text-sm text-gray-600">Total Deposit Ditahan</p>
+          <p className="text-xs sm:text-sm text-gray-600 truncate">Total Deposit Ditahan</p>
         </div>
       </div>
 

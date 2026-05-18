@@ -295,41 +295,41 @@ const AttendancePage = () => {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow-sm p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
+        <div className="bg-white rounded-lg shadow-sm p-5 min-w-0 fluid-metric-container">
+          <div className="flex items-center justify-between mb-3 gap-2">
+            <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
               <UserCheck className="h-5 w-5 text-blue-600" />
             </div>
-            <span className="text-2xl font-bold text-gray-900">{stats.hadirHariIni}</span>
+            <span className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 fluid-metric-value">{stats.hadirHariIni}</span>
           </div>
-          <p className="text-sm text-gray-600">Hadir Hari Ini</p>
+          <p className="text-xs sm:text-sm text-gray-600 truncate">Hadir Hari Ini</p>
         </div>
-        <div className="bg-white rounded-lg shadow-sm p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 bg-yellow-100 rounded-lg">
+        <div className="bg-white rounded-lg shadow-sm p-5 min-w-0 fluid-metric-container">
+          <div className="flex items-center justify-between mb-3 gap-2">
+            <div className="p-2 bg-yellow-100 rounded-lg flex-shrink-0">
               <Clock className="h-5 w-5 text-yellow-600" />
             </div>
-            <span className="text-2xl font-bold text-gray-900">{stats.terlambat}</span>
+            <span className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 fluid-metric-value">{stats.terlambat}</span>
           </div>
-          <p className="text-sm text-gray-600">Status Terlambat</p>
+          <p className="text-xs sm:text-sm text-gray-600 truncate">Status Terlambat</p>
         </div>
-        <div className="bg-white rounded-lg shadow-sm p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 bg-green-100 rounded-lg">
+        <div className="bg-white rounded-lg shadow-sm p-5 min-w-0 fluid-metric-container">
+          <div className="flex items-center justify-between mb-3 gap-2">
+            <div className="p-2 bg-green-100 rounded-lg flex-shrink-0">
               <Users className="h-5 w-5 text-green-600" />
             </div>
-            <span className="text-2xl font-bold text-gray-900">{stats.totalKaryawan}</span>
+            <span className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 fluid-metric-value">{stats.totalKaryawan}</span>
           </div>
-          <p className="text-sm text-gray-600">Total Karyawan</p>
+          <p className="text-xs sm:text-sm text-gray-600 truncate">Total Karyawan</p>
         </div>
-        <div className="bg-white rounded-lg shadow-sm p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 bg-purple-100 rounded-lg">
+        <div className="bg-white rounded-lg shadow-sm p-5 min-w-0 fluid-metric-container">
+          <div className="flex items-center justify-between mb-3 gap-2">
+            <div className="p-2 bg-purple-100 rounded-lg flex-shrink-0">
               <Calendar className="h-5 w-5 text-purple-600" />
             </div>
-            <span className="text-2xl font-bold text-gray-900">{stats.izinSakitBulanIni}</span>
+            <span className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 fluid-metric-value">{stats.izinSakitBulanIni}</span>
           </div>
-          <p className="text-sm text-gray-600">Izin/Sakit Bulan Ini</p>
+          <p className="text-xs sm:text-sm text-gray-600 truncate">Izin/Sakit Bulan Ini</p>
         </div>
       </div>
 

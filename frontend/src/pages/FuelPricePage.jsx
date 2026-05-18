@@ -270,31 +270,31 @@ const FuelPricePage = () => {
       {/* Stock Summary */}
       {stockInfo && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-amber-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Total Dibeli (Approved)</p>
-                <p className="text-2xl font-bold text-gray-900">{stockInfo.total_purchased.toLocaleString('id-ID')} L</p>
+          <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-amber-500 min-w-0 fluid-metric-container">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-500 mb-1 truncate">Total Dibeli (Approved)</p>
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 fluid-metric-value">{stockInfo.total_purchased.toLocaleString('id-ID')} L</p>
               </div>
-              <Package className="h-10 w-10 text-amber-200" />
+              <Package className="h-10 w-10 text-amber-200 flex-shrink-0" />
             </div>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-red-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Total Pemakaian</p>
-                <p className="text-2xl font-bold text-gray-900">{stockInfo.total_consumed.toLocaleString('id-ID')} L</p>
+          <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-red-500 min-w-0 fluid-metric-container">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-500 mb-1 truncate">Total Pemakaian</p>
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 fluid-metric-value">{stockInfo.total_consumed.toLocaleString('id-ID')} L</p>
               </div>
-              <Fuel className="h-10 w-10 text-red-200" />
+              <Fuel className="h-10 w-10 text-red-200 flex-shrink-0" />
             </div>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Sisa Stok BBM</p>
-                <p className="text-3xl font-bold text-green-600">{stockInfo.current_stock.toLocaleString('id-ID')} L</p>
+          <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500 min-w-0 fluid-metric-container">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-500 mb-1 truncate">Sisa Stok BBM</p>
+                <p className="text-xl sm:text-2xl md:text-3xl font-bold text-green-600 fluid-metric-value">{stockInfo.current_stock.toLocaleString('id-ID')} L</p>
               </div>
-              <CheckCircle className="h-10 w-10 text-green-200" />
+              <CheckCircle className="h-10 w-10 text-green-200 flex-shrink-0" />
             </div>
           </div>
         </div>

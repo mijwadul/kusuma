@@ -407,27 +407,27 @@ const WorkLogsPage = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-blue-500">
-          <p className="text-sm text-gray-600">Total Jam Kerja</p>
-          <p className="text-2xl font-bold text-gray-800">
+        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-blue-500 min-w-0 fluid-metric-container">
+          <p className="text-xs sm:text-sm text-gray-600 truncate">Total Jam Kerja</p>
+          <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 fluid-metric-value mt-1">
             {stats.total_hours_worked.toFixed(1)} H
           </p>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
-          <p className="text-sm text-gray-600">Hari Kerja</p>
-          <p className="text-2xl font-bold text-gray-800">
+        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-green-500 min-w-0 fluid-metric-container">
+          <p className="text-xs sm:text-sm text-gray-600 truncate">Hari Kerja</p>
+          <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 fluid-metric-value mt-1">
             {stats.total_work_days} Hari
           </p>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-amber-500">
-          <p className="text-sm text-gray-600">Rata-rata/Hari</p>
-          <p className="text-2xl font-bold text-gray-800">
+        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-amber-500 min-w-0 fluid-metric-container">
+          <p className="text-xs sm:text-sm text-gray-600 truncate">Rata-rata/Hari</p>
+          <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 fluid-metric-value mt-1">
             {stats.avg_hours_per_day.toFixed(1)} H
           </p>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-purple-500">
-          <p className="text-sm text-gray-600">Alat Aktif</p>
-          <p className="text-2xl font-bold text-gray-800">
+        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-purple-500 min-w-0 fluid-metric-container">
+          <p className="text-xs sm:text-sm text-gray-600 truncate">Alat Aktif</p>
+          <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 fluid-metric-value mt-1">
             {stats.equipment_count} Unit
           </p>
         </div>

@@ -1004,22 +1004,22 @@ const EmployeesPage = () => {
       {activeTab === TABS.PAYROLL && canAccessFinancial && (
         <div>
           {/* Payroll Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <p className="text-sm text-gray-600">Total Payroll Bulan Ini</p>
-              <p className="text-2xl font-bold text-gray-900">-</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white rounded-lg shadow-sm p-4 min-w-0 fluid-metric-container">
+              <p className="text-xs sm:text-sm text-gray-600 truncate">Total Payroll Bulan Ini</p>
+              <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 fluid-metric-value mt-1">-</p>
             </div>
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <p className="text-sm text-gray-600">Pending Approval</p>
-              <p className="text-2xl font-bold text-yellow-600">-</p>
+            <div className="bg-white rounded-lg shadow-sm p-4 min-w-0 fluid-metric-container">
+              <p className="text-xs sm:text-sm text-gray-600 truncate">Pending Approval</p>
+              <p className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-600 fluid-metric-value mt-1">-</p>
             </div>
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <p className="text-sm text-gray-600">Total Pinjaman</p>
-              <p className="text-2xl font-bold text-red-600">-</p>
+            <div className="bg-white rounded-lg shadow-sm p-4 min-w-0 fluid-metric-container">
+              <p className="text-xs sm:text-sm text-gray-600 truncate">Total Pinjaman</p>
+              <p className="text-lg sm:text-xl md:text-2xl font-bold text-red-600 fluid-metric-value mt-1">-</p>
             </div>
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <p className="text-sm text-gray-600">Total Hutang</p>
-              <p className="text-2xl font-bold text-purple-600">-</p>
+            <div className="bg-white rounded-lg shadow-sm p-4 min-w-0 fluid-metric-container">
+              <p className="text-xs sm:text-sm text-gray-600 truncate">Total Hutang</p>
+              <p className="text-lg sm:text-xl md:text-2xl font-bold text-purple-600 fluid-metric-value mt-1">-</p>
             </div>
           </div>
 

@@ -378,21 +378,21 @@ const FuelPage = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-amber-500">
-          <p className="text-sm text-gray-600">Total BBM (30 hari)</p>
-          <p className="text-2xl font-bold text-gray-800">
+        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-amber-500 min-w-0 fluid-metric-container">
+          <p className="text-xs sm:text-sm text-gray-600 truncate">Total BBM (30 hari)</p>
+          <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-800 fluid-metric-value mt-0.5">
             {stats.total_fuel_consumed.toFixed(1)} L
           </p>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
-          <p className="text-sm text-gray-600">Total BBM Terpakai</p>
-          <p className="text-2xl font-bold text-gray-800">
+        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-green-500 min-w-0 fluid-metric-container">
+          <p className="text-xs sm:text-sm text-gray-600 truncate">Total BBM Terpakai</p>
+          <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-800 fluid-metric-value mt-0.5">
             {stats.total_fuel_consumed.toFixed(1)} L
           </p>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-purple-500">
-          <p className="text-sm text-gray-600">Alat Terisi</p>
-          <p className="text-2xl font-bold text-gray-800">
+        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-purple-500 min-w-0 fluid-metric-container">
+          <p className="text-xs sm:text-sm text-gray-600 truncate">Alat Terisi</p>
+          <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-800 fluid-metric-value mt-0.5">
             {stats.equipment_count} Unit
           </p>
         </div>

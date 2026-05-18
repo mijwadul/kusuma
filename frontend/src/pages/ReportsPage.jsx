@@ -52,13 +52,13 @@ const StatusBadge = ({ status }) => {
 
 const SummaryCard = ({ icon: Icon, label, value, sub, color, iconBg }) => (
   <div className="report-card bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-start gap-4">
-    <div className={`p-3 rounded-xl ${iconBg}`}>
+    <div className={`p-3 rounded-xl ${iconBg} flex-shrink-0`}>
       <Icon size={22} className={color} />
     </div>
-    <div className="min-w-0">
+    <div className="min-w-0 flex-1">
       <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{label}</p>
-      <p className={`text-xl font-bold mt-0.5 ${color}`}>{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+      <p className={`text-sm sm:text-base md:text-lg lg:text-xl font-bold mt-0.5 break-words ${color}`}>{value}</p>
+      {sub && <p className="text-xs text-gray-400 mt-0.5 break-words">{sub}</p>}
     </div>
   </div>
 );
