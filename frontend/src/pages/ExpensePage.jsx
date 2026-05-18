@@ -504,14 +504,14 @@ const ExpensePage = () => {
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Pengeluaran Harian</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Pengeluaran Harian</h1>
           <p className="text-gray-500 mt-1 text-sm">
-            Catat & pantau pengeluaran operasional harian
+            Catat &amp; pantau pengeluaran operasional harian
           </p>
         </div>
         <button
           onClick={openAdd}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
         >
           <Plus size={16} />
           Tambah Pengeluaran
@@ -520,14 +520,14 @@ const ExpensePage = () => {
 
       {/* ── Filter Bar ── */}
       <div className="bg-white rounded-xl shadow-sm p-4">
-        <div className="flex flex-wrap items-end gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-gray-500">Dari Tanggal</label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -536,7 +536,7 @@ const ExpensePage = () => {
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -544,7 +544,7 @@ const ExpensePage = () => {
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Semua Kategori</option>
               {CATEGORIES.map((c) => (
@@ -552,20 +552,22 @@ const ExpensePage = () => {
               ))}
             </select>
           </div>
-          <button
-            onClick={handleReset}
-            className="flex items-center gap-1.5 border border-gray-300 text-gray-600 px-3 py-2 rounded-lg text-sm hover:bg-gray-50 transition-colors"
-          >
-            <RefreshCw size={14} />
-            Reset
-          </button>
-          <button
-            onClick={fetchExpenses}
-            className="flex items-center gap-1.5 border border-blue-300 text-blue-600 px-3 py-2 rounded-lg text-sm hover:bg-blue-50 transition-colors ml-auto"
-          >
-            <Search size={14} />
-            Cari
-          </button>
+          <div className="flex items-end gap-2">
+            <button
+              onClick={handleReset}
+              className="flex-1 flex items-center justify-center gap-1.5 border border-gray-300 text-gray-600 px-3 py-2 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+            >
+              <RefreshCw size={14} />
+              Reset
+            </button>
+            <button
+              onClick={fetchExpenses}
+              className="flex-1 flex items-center justify-center gap-1.5 border border-blue-300 text-blue-600 px-3 py-2 rounded-lg text-sm hover:bg-blue-50 transition-colors"
+            >
+              <Search size={14} />
+              Cari
+            </button>
+          </div>
         </div>
       </div>
 

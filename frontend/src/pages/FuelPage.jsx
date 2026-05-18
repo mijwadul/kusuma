@@ -300,14 +300,14 @@ const FuelPage = () => {
   return (
     <div>
       {/* Header */}
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
         <div className="flex items-center space-x-3">
-          <div className="p-3 bg-amber-100 rounded-lg">
-            <Fuel className="h-8 w-8 text-amber-600" />
+          <div className="p-2 sm:p-3 bg-amber-100 rounded-lg flex-shrink-0">
+            <Fuel className="h-6 w-6 sm:h-8 sm:w-8 text-amber-600" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Logistik BBM</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Logistik BBM</h1>
+            <p className="text-gray-600 text-sm">
               Pengisian solar dicatat di sini; jam kerja di menu Jam Kerja.
               Efisiensi dihitung otomatis dari keduanya.
             </p>
@@ -321,7 +321,7 @@ const FuelPage = () => {
             }
             setShowForm(!showForm);
           }}
-          className={`px-6 py-3 rounded-lg flex items-center space-x-2 transition-colors shadow-md text-white ${
+          className={`w-full sm:w-auto px-5 py-2.5 rounded-lg flex items-center justify-center space-x-2 transition-colors shadow-md text-white ${
             stockOk
               ? 'bg-amber-500 hover:bg-amber-600'
               : 'bg-gray-400 cursor-not-allowed'
@@ -377,7 +377,7 @@ const FuelPage = () => {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-amber-500">
           <p className="text-sm text-gray-600">Total BBM (30 hari)</p>
           <p className="text-2xl font-bold text-gray-800">

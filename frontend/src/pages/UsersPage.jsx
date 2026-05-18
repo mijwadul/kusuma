@@ -309,12 +309,12 @@ const UsersPage = () => {
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Manajemen User</h1>
-          <p className="text-gray-600 mt-1">Kelola user dan hak akses sistem</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Manajemen User</h1>
+          <p className="text-gray-600 mt-1 text-sm">Kelola user dan hak akses sistem</p>
         </div>
         <button
           onClick={openAddForm}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+          className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center space-x-2"
         >
           <Plus size={20} />
           <span>Tambah User</span>
@@ -345,7 +345,8 @@ const UsersPage = () => {
 
       {/* Users Table */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <table className="w-full">
+        <div className="overflow-x-auto">
+        <table className="min-w-full">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -427,6 +428,7 @@ const UsersPage = () => {
             ))}
           </tbody>
         </table>
+        </div>
         {users.length === 0 && (
           <div className="text-center py-8 text-gray-500">
             Belum ada user terdaftar

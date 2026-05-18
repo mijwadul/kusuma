@@ -268,12 +268,12 @@ const AttendancePage = () => {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Absensi Karyawan</h1>
-        <p className="text-gray-600 mt-1">Pencatatan dan pemantauan kehadiran karyawan</p>
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Absensi Karyawan</h1>
+        <p className="text-gray-600 mt-1 text-sm">Pencatatan dan pemantauan kehadiran karyawan</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <div className="bg-white rounded-lg shadow-sm p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="p-2 bg-blue-100 rounded-lg">
@@ -449,11 +449,11 @@ const AttendancePage = () => {
 
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Filter & Riwayat Absensi</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
           <select
             value={filters.employee_id}
             onChange={(e) => setFilters((prev) => ({ ...prev, employee_id: e.target.value }))}
-            className="border border-gray-300 rounded-lg px-3 py-2"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2"
           >
             <option value="">Semua karyawan</option>
             {employees.map((emp) => (
@@ -466,18 +466,18 @@ const AttendancePage = () => {
             type="date"
             value={filters.start_date}
             onChange={(e) => setFilters((prev) => ({ ...prev, start_date: e.target.value }))}
-            className="border border-gray-300 rounded-lg px-3 py-2"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2"
           />
           <input
             type="date"
             value={filters.end_date}
             onChange={(e) => setFilters((prev) => ({ ...prev, end_date: e.target.value }))}
-            className="border border-gray-300 rounded-lg px-3 py-2"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2"
           />
           <button
             type="button"
             onClick={handleApplyFilter}
-            className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg"
+            className="w-full bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg"
           >
             Terapkan Filter
           </button>

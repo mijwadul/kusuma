@@ -286,7 +286,7 @@ const EquipmentPage = () => {
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
             Equipment Management
           </h1>
           <div className="mt-2 flex items-center space-x-2">
@@ -310,7 +310,7 @@ const EquipmentPage = () => {
             </button>
           </div>
         </div>
-        <div className="flex space-x-3">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => navigate("/fuel")}
             className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors shadow-md"
@@ -329,7 +329,8 @@ const EquipmentPage = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <table className="w-full">
+        <div className="overflow-x-auto">
+        <table className="min-w-full">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -501,6 +502,7 @@ const EquipmentPage = () => {
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       {showForm && (

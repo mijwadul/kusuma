@@ -134,15 +134,15 @@ const RentalRatesPage = () => {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 flex items-center">
-          <Truck className="h-8 w-8 mr-3 text-blue-500" />
-          Tarif Sewa & Deposit
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center">
+          <Truck className="h-6 w-6 sm:h-8 sm:w-8 mr-3 text-blue-500 flex-shrink-0" />
+          Tarif Sewa &amp; Deposit
         </h1>
         <p className="text-gray-600 mt-2">Kelola harga rental per jam dan nilai deposit equipment</p>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 bg-blue-100 rounded-lg">
@@ -205,7 +205,8 @@ const RentalRatesPage = () => {
 
       {/* Equipment Table */}
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        <table className="w-full">
+        <div className="overflow-x-auto">
+        <table className="min-w-full">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Equipment</th>
@@ -326,6 +327,7 @@ const RentalRatesPage = () => {
             ))}
           </tbody>
         </table>
+        </div>
         {filteredEquipment.length === 0 && (
           <div className="text-center py-8 text-gray-500">
             Tidak ada equipment yang sesuai filter

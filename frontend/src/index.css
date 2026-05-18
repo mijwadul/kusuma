@@ -8,10 +8,59 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Mobile-friendly tap targets */
+@media (max-width: 768px) {
+  button, a, input, select, textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Scrollable tabs on mobile */
+.tabs-scrollable {
+  display: flex;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-snap-type: x mandatory;
+  gap: 0.25rem;
+}
+
+.tabs-scrollable::-webkit-scrollbar {
+  display: none;
+}
+
+.tabs-scrollable > * {
+  flex-shrink: 0;
+  scroll-snap-align: start;
+}
+
+/* Mobile table wrapper */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: inherit;
+}
+
+/* Prevent text overflow in mobile */
+@media (max-width: 640px) {
+  .mobile-text-sm {
+    font-size: 0.875rem;
+  }
+  .mobile-hide {
+    display: none;
+  }
 }

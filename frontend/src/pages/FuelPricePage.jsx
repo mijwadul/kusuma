@@ -260,16 +260,16 @@ const FuelPricePage = () => {
   return (
     <div className="max-w-6xl mx-auto pb-10">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 flex items-center">
-          <Fuel className="h-8 w-8 mr-3 text-amber-500" />
-          Pembelian & Stok BBM
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center">
+          <Fuel className="h-6 w-6 sm:h-8 sm:w-8 mr-3 text-amber-500 flex-shrink-0" />
+          Pembelian &amp; Stok BBM
         </h1>
         <p className="text-gray-600 mt-2">Catat pembelian BBM, persetujuan, dan pantau ketersediaan stok Solar</p>
       </div>
 
       {/* Stock Summary */}
       {stockInfo && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-amber-500">
             <div className="flex items-center justify-between">
               <div>

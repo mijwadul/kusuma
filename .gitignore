@@ -1,6 +1,9 @@
 # =============================================================
 # .gitignore — PT. Kusuma Samudera Berkah
 # =============================================================
+# Panduan:
+#   ✅ File yang PERLU di-commit: source code, config.example, migrations
+#   ❌ File yang JANGAN di-commit: .env, database, uploads, generated files
 
 # ─── Python ───────────────────────────────────────────────────
 __pycache__/
@@ -38,6 +41,13 @@ test-results/
 *.db
 *.sqlite
 *.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+
+# PostgreSQL dump
+*.sql.gz
+*.dump
 
 # ─── Environment & Secrets ────────────────────────────────────
 # JANGAN pernah commit file .env yang berisi secrets!
@@ -65,9 +75,22 @@ logs/
 *~
 
 # ─── PDF & Media (generated files) ───────────────────────────
+# File yang di-generate server, jangan di-commit
 *.pdf
 *.xlsx
 *.xls
+*.csv
+
+# Upload files (user-uploaded content)
+uploads/
+static/uploads/
+media/
+/backend/uploads/
+/backend/static/uploads/
+
+# Script migrasi one-off (bukan Alembic)
+migrasi_*.py
+*_migration_temp.py
 
 # ─── OS Files ─────────────────────────────────────────────────
 # macOS
@@ -89,10 +112,12 @@ $RECYCLE.BIN/
 *~
 
 # ─── IDE & Editor ─────────────────────────────────────────────
-# VS Code
-.vscode/
+# VS Code — commit settings.json & extensions.json agar tim bisa share config
+.vscode/*
+!.vscode/settings.json
 !.vscode/extensions.json
-!.vscode/settings.json.example
+!.vscode/launch.json
+!.vscode/tasks.json
 
 # JetBrains (PyCharm, WebStorm, dll.)
 .idea/
@@ -120,3 +145,23 @@ docker-volumes/
 # File migrations DI-COMMIT — hanya abaikan cache-nya
 migrations/__pycache__/
 migrations/versions/__pycache__/
+
+# ─── Backup & Temp files ──────────────────────────────────────
+*.backup
+*.old
+*.orig
+.cache/
+tmp/
+temp/
+
+# ─── ReportLab / WeasyPrint temporary ─────────────────────────
+/backend/app/generated/
+/backend/app/temp/
+
+# ─── Frontend generated assets ────────────────────────────────
+# Hasil 'npm run build' — tidak perlu di-commit, di-build saat deploy
+frontend/dist/
+
+# ─── Package lock (opsional — uncommit baris ini jika ingin commit lock) ─
+# package-lock.json
+# yarn.lock

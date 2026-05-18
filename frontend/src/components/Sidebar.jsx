@@ -267,7 +267,7 @@ const Sidebar = ({ children }) => {
       <div className="min-h-screen bg-gray-100">
         {/* Mobile Header */}
         <div className="bg-green-800 text-white p-4 flex items-center justify-between shadow-md fixed top-0 left-0 right-0 z-50">
-          <h1 className="text-lg font-bold">PT. Kusuma Samudera</h1>
+          <h1 className="text-base font-bold truncate mr-2">PT. Kusuma Samudera</h1>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2 hover:bg-green-700 rounded-lg transition-colors"
@@ -283,7 +283,7 @@ const Sidebar = ({ children }) => {
             onClick={() => setMobileMenuOpen(false)}
           >
             <div
-              className="absolute top-16 left-0 right-0 bg-green-800 text-white shadow-lg"
+              className="absolute top-16 left-0 right-0 bg-green-800 text-white shadow-lg max-h-[calc(100vh-4rem)] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <nav className="p-4 space-y-1">
@@ -384,7 +384,7 @@ const Sidebar = ({ children }) => {
         )}
 
         {/* Mobile Content */}
-        <div className="pt-16 p-4">{children}</div>
+        <div className="pt-16 px-3 py-4 min-w-0 overflow-x-hidden">{children}</div>
       </div>
     );
   }
@@ -546,7 +546,7 @@ const Sidebar = ({ children }) => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 h-screen overflow-y-auto p-6">{children}</div>
+      <div className="flex-1 h-screen overflow-y-auto p-6 min-w-0 overflow-x-hidden">{children}</div>
     </div>
   );
 };

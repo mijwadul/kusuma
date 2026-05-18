@@ -384,10 +384,10 @@ const PayrollPage = () => {
   return (
     <div className="space-y-6">
       {/* ── Page Header ───────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <FileText className="w-7 h-7 text-blue-600" />
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <FileText className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 flex-shrink-0" />
             Payroll &amp; Slip Gaji
           </h1>
           <p className="text-gray-500 text-sm mt-1">
@@ -397,7 +397,7 @@ const PayrollPage = () => {
         {isFinance && (
           <button
             onClick={openModal}
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-medium transition-colors shadow-sm"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-medium transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Buat Payroll

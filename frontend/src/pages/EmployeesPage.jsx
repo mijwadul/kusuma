@@ -712,48 +712,48 @@ const EmployeesPage = () => {
   return (
     <div>
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Manajemen Karyawan</h1>
-        <p className="text-gray-600 mt-1">Kelola data karyawan, payroll, dan kehadiran</p>
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Manajemen Karyawan</h1>
+        <p className="text-gray-600 mt-1 text-sm">Kelola data karyawan, payroll, dan kehadiran</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg mb-6">
+      <div className="tabs-scrollable bg-gray-100 p-1 rounded-lg mb-4 sm:mb-6">
         <button
           onClick={() => setActiveTab(TABS.EMPLOYEES)}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+          className={`flex-shrink-0 py-2 px-3 sm:px-4 rounded-md text-sm font-medium transition-colors ${
             activeTab === TABS.EMPLOYEES
               ? 'bg-white text-blue-600 shadow-sm'
               : 'text-gray-600 hover:text-gray-900'
           }`}
         >
-          <Briefcase className="inline-block w-4 h-4 mr-2" />
+          <Briefcase className="inline-block w-4 h-4 mr-1 sm:mr-2" />
           Data Karyawan
         </button>
         {canAccessFinancial && (
           <button
             onClick={() => setActiveTab(TABS.PAYROLL)}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+            className={`flex-shrink-0 py-2 px-3 sm:px-4 rounded-md text-sm font-medium transition-colors ${
               activeTab === TABS.PAYROLL
                 ? 'bg-white text-blue-600 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            <Wallet className="inline-block w-4 h-4 mr-2" />
+            <Wallet className="inline-block w-4 h-4 mr-1 sm:mr-2" />
             Payroll
           </button>
         )}
         {canAccessFinancial && (
           <button
             onClick={() => setActiveTab(TABS.LOANS)}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+            className={`flex-shrink-0 py-2 px-3 sm:px-4 rounded-md text-sm font-medium transition-colors ${
               activeTab === TABS.LOANS
                 ? 'bg-white text-blue-600 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            <CreditCard className="inline-block w-4 h-4 mr-2" />
-            Pinjaman & Hutang
+            <CreditCard className="inline-block w-4 h-4 mr-1 sm:mr-2" />
+            Pinjaman &amp; Hutang
           </button>
         )}
       </div>
@@ -762,9 +762,9 @@ const EmployeesPage = () => {
       {activeTab === TABS.EMPLOYEES && (
         <div>
           {/* Search & Filter */}
-          <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="flex-1 flex gap-4">
+          <div className="bg-white rounded-lg shadow-sm p-4 mb-4 sm:mb-6">
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
@@ -778,7 +778,7 @@ const EmployeesPage = () => {
                 <select
                   value={departmentFilter}
                   onChange={(e) => setDepartmentFilter(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Semua Departemen</option>
                   {departments.map(dept => (
@@ -792,7 +792,7 @@ const EmployeesPage = () => {
                     resetEmployeeForm();
                     setShowEmployeeForm(true);
                   }}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+                  className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center"
                 >
                   <Plus className="w-5 h-5 mr-2" />
                   Tambah Karyawan
@@ -803,7 +803,8 @@ const EmployeesPage = () => {
 
           {/* Employees Table */}
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <table className="w-full">
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Karyawan</th>
@@ -901,7 +902,8 @@ const EmployeesPage = () => {
                   </tr>
                 ))}
               </tbody>
-            </table>
+              </table>
+            </div>
             {filteredEmployees.length === 0 && (
               <div className="text-center py-8 text-gray-500">
                 Tidak ada karyawan yang ditemukan

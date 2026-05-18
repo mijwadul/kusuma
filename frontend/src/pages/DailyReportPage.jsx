@@ -384,7 +384,7 @@ const DailyReportPage = () => {
         {/* ── Header ── */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 no-print">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
               Laporan Keuangan Harian
             </h1>
             <p className="text-gray-500 mt-1 text-sm">

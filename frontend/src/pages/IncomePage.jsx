@@ -414,9 +414,9 @@ const IncomePage = () => {
   return (
     <div className="space-y-6">
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
             Pemasukan &amp; Pendapatan
           </h1>
           <p className="text-gray-500 text-sm mt-1">
@@ -425,7 +425,7 @@ const IncomePage = () => {
         </div>
         <button
           onClick={openAddModal}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium text-sm transition-colors shadow-sm"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium text-sm transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" /> Tambah Pemasukan
         </button>
@@ -460,12 +460,12 @@ const IncomePage = () => {
       </div>
 
       {/* ── Tabs ───────────────────────────────────────────────────────── */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+      <div className="tabs-scrollable bg-gray-100 p-1 rounded-xl">
         {TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               activeTab === tab.key
                 ? "bg-white text-gray-800 shadow-sm"
                 : "text-gray-600 hover:text-gray-800"

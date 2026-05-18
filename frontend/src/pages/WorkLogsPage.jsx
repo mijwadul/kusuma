@@ -382,23 +382,23 @@ const WorkLogsPage = () => {
   return (
     <div>
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4 sm:mb-6">
         <div className="flex items-center space-x-3">
-          <div className="p-3 bg-blue-100 rounded-lg">
-            <Clock className="h-8 w-8 text-blue-600" />
+          <div className="p-2 sm:p-3 bg-blue-100 rounded-lg flex-shrink-0">
+            <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
               Log Jam Kerja Alat
             </h1>
-            <p className="text-gray-600">
+            <p className="text-gray-600 text-sm">
               Pencatatan jam operasional dan utilitas equipment
             </p>
           </div>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center space-x-2 transition-colors shadow-md"
+          className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center justify-center space-x-2 transition-colors shadow-md"
         >
           {showForm ? <X size={20} /> : <Plus size={20} />}
           <span>{showForm ? "Batal" : "Catat Kerja"}</span>
@@ -406,7 +406,7 @@ const WorkLogsPage = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <div className="bg-white p-4 rounded-lg shadow border-l-4 border-blue-500">
           <p className="text-sm text-gray-600">Total Jam Kerja</p>
           <p className="text-2xl font-bold text-gray-800">
