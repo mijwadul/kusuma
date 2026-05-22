@@ -23,6 +23,7 @@ class IncomeRecord(Base):
     unit_price = Column(Float, nullable=True)
     payment_method = Column(String(20), nullable=True)  # cash, transfer
     license_plate = Column(String(50), nullable=True)
+    driver_name = Column(String(100), nullable=True)
     vehicle_type = Column(String(50), nullable=True)  # Colt Diesel, Tronton
     notes = Column(Text, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)

@@ -94,6 +94,17 @@ class CustomerMaterialPreference(BaseModel):
     material_type: str
     unit: str
     unit_price: Optional[float] = None
+    vehicle_type: str = "Tronton"
+
+class CustomerTruck(BaseModel):
+    license_plate: str
+    driver_name: Optional[str] = None
+    vehicle_type: str = "Tronton"
+
+class AddTruckRequest(BaseModel):
+    license_plate: str
+    driver_name: Optional[str] = None
+    vehicle_type: str = "Colt Diesel"
 
 class CustomerCreate(BaseModel):
     name: str
@@ -105,6 +116,7 @@ class CustomerCreate(BaseModel):
     notes: Optional[str] = None
     is_active: bool = True
     material_preferences: List[CustomerMaterialPreference] = []
+    trucks: List[CustomerTruck] = []
 
 class CustomerUpdate(BaseModel):
     name: Optional[str] = None
@@ -116,6 +128,7 @@ class CustomerUpdate(BaseModel):
     notes: Optional[str] = None
     is_active: Optional[bool] = None
     material_preferences: Optional[List[CustomerMaterialPreference]] = None
+    trucks: Optional[List[CustomerTruck]] = None
 
 class CustomerResponse(BaseModel):
     id: int
@@ -128,6 +141,7 @@ class CustomerResponse(BaseModel):
     notes: Optional[str]
     is_active: bool
     material_preferences: List[CustomerMaterialPreference] = []
+    trucks: List[CustomerTruck] = []
     total_purchases: float = 0.0   # sum dari income_records untuk customer ini
     purchase_count: int = 0
 
@@ -184,10 +198,19 @@ def _build_project_response(proj: Project, db: Session) -> ProjectResponse:
 
 def _build_customer_response(cust: Customer, db: Session) -> CustomerResponse:
     prefs: List[CustomerMaterialPreference] = []
+    trucks: List[CustomerTruck] = []
+    
     if cust.materials_json:
         try:
             raw = json.loads(cust.materials_json)
             prefs = [CustomerMaterialPreference(**r) for r in raw]
+        except Exception:
+            pass
+
+    if getattr(cust, "trucks_json", None):
+        try:
+            raw_trucks = json.loads(cust.trucks_json)
+            trucks = [CustomerTruck(**r) for r in raw_trucks]
         except Exception:
             pass
 
@@ -214,6 +237,7 @@ def _build_customer_response(cust: Customer, db: Session) -> CustomerResponse:
         notes=cust.notes,
         is_active=bool(cust.is_active),
         material_preferences=prefs,
+        trucks=trucks,
         total_purchases=round(float(total_q or 0), 2),
         purchase_count=int(count_q),
     )
@@ -234,6 +258,10 @@ def get_meta(current_user: User = Depends(get_current_user)):
 # ══════════════════════════════════════════════════════════════════════════════
 # PROJECT ENDPOINTS
 # ══════════════════════════════════════════════════════════════════════════════
+
+
+
+
 
 @router.get("/projects", response_model=List[ProjectResponse])
 def list_projects(
@@ -395,6 +423,7 @@ def create_customer(
         raise HTTPException(status_code=403, detail="Hanya GM yang dapat menambah customer")
 
     prefs_json = json.dumps([p.model_dump() for p in data.material_preferences]) if data.material_preferences else None
+    trucks_json = json.dumps([t.model_dump() for t in data.trucks]) if data.trucks else None
 
     cust = Customer(
         name=data.name,
@@ -406,6 +435,7 @@ def create_customer(
         notes=data.notes,
         is_active=data.is_active,
         materials_json=prefs_json,
+        trucks_json=trucks_json,
         created_by=current_user.id,
     )
     db.add(cust)
@@ -428,16 +458,52 @@ def update_customer(
     if not cust:
         raise HTTPException(status_code=404, detail="Customer tidak ditemukan")
 
-    fields = data.model_dump(exclude_unset=True, exclude={"material_preferences"})
+    fields = data.model_dump(exclude_unset=True, exclude={"material_preferences", "trucks"})
     for k, v in fields.items():
         setattr(cust, k, v)
 
     if data.material_preferences is not None:
         cust.materials_json = json.dumps([p.model_dump() for p in data.material_preferences])
+        
+    if data.trucks is not None:
+        cust.trucks_json = json.dumps([t.model_dump() for t in data.trucks])
 
     db.commit()
     db.refresh(cust)
     return _build_customer_response(cust, db)
+
+@router.post("/customers/{customer_id}/trucks")
+def add_customer_truck(
+    customer_id: int,
+    data: AddTruckRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    cust = db.query(Customer).filter(Customer.id == customer_id).first()
+    if not cust:
+        raise HTTPException(status_code=404, detail="Customer tidak ditemukan")
+        
+    trucks = []
+    if getattr(cust, "trucks_json", None):
+        try:
+            raw = json.loads(cust.trucks_json)
+            trucks = [CustomerTruck(**r) for r in raw]
+        except Exception:
+            pass
+            
+    # Check if already exists
+    if any(t.license_plate.upper() == data.license_plate.upper() for t in trucks):
+        return {"message": "Truck already exists"}
+        
+    trucks.append(CustomerTruck(
+        license_plate=data.license_plate.upper(),
+        driver_name=data.driver_name,
+        vehicle_type=data.vehicle_type
+    ))
+    
+    cust.trucks_json = json.dumps([t.model_dump() for t in trucks])
+    db.commit()
+    return {"message": "Truck added successfully"}
 
 
 @router.delete("/customers/{customer_id}", status_code=status.HTTP_204_NO_CONTENT)

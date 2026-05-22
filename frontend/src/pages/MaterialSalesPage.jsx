@@ -70,6 +70,7 @@ const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment 
     income_date: editData?.income_date || todayStr(),
     customer_name: editData?.customer_name || "",
     license_plate: editData?.license_plate || "",
+    driver_name: editData?.driver_name || "",
     vehicle_type: editData?.vehicle_type || "Colt Diesel",
     material_type: editData?.material_type || meta?.material_types?.[0] || "",
     unit: editData?.unit || (meta?.material_units?.[meta?.material_types?.[0]]?.[0]) || "ton",
@@ -81,6 +82,19 @@ const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment 
   });
   const [saving, setSaving] = useState(false);
   const [priceHint, setPriceHint] = useState(null);
+  const [saveTruckToCustomer, setSaveTruckToCustomer] = useState(true);
+
+  // Deteksi jika nopol baru
+  const currentCust = useMemo(() => {
+    return customers.find(c => c.name === form.customer_name);
+  }, [customers, form.customer_name]);
+
+  const isNewTruck = useMemo(() => {
+    if (!currentCust || !form.license_plate) return false;
+    const hasTruck = (currentCust.trucks || []).some(t => t.license_plate.toUpperCase() === form.license_plate.toUpperCase());
+    return !hasTruck;
+  }, [currentCust, form.license_plate]);
+
 
   // Auto calculate amount
   useEffect(() => {
@@ -93,7 +107,7 @@ const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment 
 
   // Auto lookup price
   useEffect(() => {
-    const { material_type, unit, customer_name } = form;
+    const { material_type, unit, customer_name, vehicle_type } = form;
     if (!material_type || !unit) return;
     
     let cancelled = false;
@@ -101,6 +115,7 @@ const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment 
       try {
         const params = new URLSearchParams({ material_type, unit });
         if (customer_name.trim()) params.set("customer_name", customer_name.trim());
+        if (vehicle_type) params.set("vehicle_type", vehicle_type);
         const data = await authFetch(`/api/v1/material-prices/lookup?${params}`);
         if (cancelled) return;
         
@@ -117,7 +132,7 @@ const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment 
     
     const timer = setTimeout(lookup, 400);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [form.material_type, form.unit, form.customer_name]);
+  }, [form.material_type, form.unit, form.customer_name, form.vehicle_type]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -130,20 +145,43 @@ const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment 
         amount: parseFloat(form.amount) || 0,
         customer_name: form.customer_name,
         license_plate: form.license_plate,
+        driver_name: form.driver_name,
         vehicle_type: form.vehicle_type,
-        material_type: form.material_type,
-        quantity: parseFloat(form.quantity) || 0,
-        unit: form.unit,
+        material_type: form.material_type || meta?.material_types?.[0] || "Unknown",
+        quantity: parseFloat(form.quantity) || 1,
+        unit: form.unit || "ton",
         unit_price: parseFloat(form.unit_price) || 0,
-        payment_method: form.payment_method,
+        payment_method: form.payment_method || "transfer",
         notes: form.notes
       };
+      
+      // Hitung ulang amount jika kosong
+      if (!payload.amount) {
+        payload.amount = payload.quantity * payload.unit_price;
+      }
 
       if (editData) {
         await authFetch(`/api/v1/income-records/${editData.id}`, { method: "PUT", body: JSON.stringify(payload) });
       } else {
         await authFetch(`/api/v1/income-records`, { method: "POST", body: JSON.stringify(payload) });
       }
+
+      // Auto-add truck
+      if (isNewTruck && saveTruckToCustomer && currentCust) {
+        try {
+          await authFetch(`/api/v1/projects-data/customers/${currentCust.id}/trucks`, {
+            method: "POST",
+            body: JSON.stringify({
+              license_plate: form.license_plate.toUpperCase(),
+              driver_name: form.driver_name,
+              vehicle_type: form.vehicle_type
+            })
+          });
+        } catch (e) {
+          console.error("Gagal simpan armada baru:", e);
+        }
+      }
+
       toast.success("Penjualan berhasil dicatat");
       onSaved();
     } catch (err) {
@@ -183,89 +221,89 @@ const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment 
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Plat Nomor</label>
               <input 
                 type="text" 
-                list="equipment-list"
+                list="trucks-list"
                 value={form.license_plate} 
-                onChange={e => setForm(p => ({...p, license_plate: e.target.value}))} 
+                onChange={e => {
+                  const val = e.target.value.toUpperCase();
+                  setForm(p => {
+                    const newForm = {...p, license_plate: val};
+                    // Auto-fill logic
+                    for (const cust of customers) {
+                      if (cust.trucks) {
+                        const truck = cust.trucks.find(t => t.license_plate.toUpperCase() === val);
+                        if (truck) {
+                          newForm.customer_name = cust.name;
+                          newForm.driver_name = truck.driver_name || "";
+                          newForm.vehicle_type = truck.vehicle_type || "Colt Diesel";
+                          
+                          // Auto-fill material preferences
+                          const pref = cust.material_preferences?.find(m => m.vehicle_type === newForm.vehicle_type) || cust.material_preferences?.[0];
+                          if (pref) {
+                            newForm.material_type = pref.material_type;
+                            newForm.unit = pref.unit;
+                            if (pref.unit_price) newForm.unit_price = pref.unit_price;
+                          }
+                          newForm.quantity = "1";
+                          
+                          break;
+                        }
+                      }
+                    }
+                    return newForm;
+                  });
+                }} 
                 placeholder="Nopol Truk..."
                 className={inputCls} 
               />
-              <datalist id="equipment-list">
-                {equipment.map(e => <option key={e.id} value={e.license_plate || e.name}>{e.name}</option>)}
+              <datalist id="trucks-list">
+                {customers.flatMap(c => (c.trucks || []).map(t => <option key={t.license_plate} value={t.license_plate}>{t.license_plate} - {c.name}</option>))}
               </datalist>
             </div>
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Nama Supir</label>
+              <input 
+                type="text" 
+                value={form.driver_name} 
+                onChange={e => setForm(p => ({...p, driver_name: e.target.value}))} 
+                placeholder="Nama Supir..."
+                className={inputCls} 
+              />
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Jenis Kendaraan</label>
-              <select value={form.vehicle_type} onChange={e => setForm(p => ({...p, vehicle_type: e.target.value}))} className={inputCls}>
+              <select value={form.vehicle_type} onChange={e => setForm(p => ({...p, vehicle_type: e.target.value}))} className={inputCls} required>
                 <option value="Colt Diesel">Colt Diesel</option>
                 <option value="Tronton">Tronton</option>
-                <option value="Lainnya">Lainnya</option>
               </select>
             </div>
           </div>
 
-          <div className="pt-2 border-t">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Jenis Material</label>
-            <select 
-              value={form.material_type} 
-              onChange={e => {
-                const mat = e.target.value;
-                setForm(p => ({
-                  ...p, material_type: mat, 
-                  unit: meta?.material_units?.[mat]?.[0] || "ton", 
-                  unit_price: "" 
-                }));
-                setPriceHint(null);
-              }} 
-              className={inputCls}
-            >
-              {meta?.material_types?.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
-          </div>
+          {isNewTruck && (
+            <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3 flex items-start gap-3">
+              <input 
+                type="checkbox" 
+                id="saveNewTruck" 
+                checked={saveTruckToCustomer} 
+                onChange={e => setSaveTruckToCustomer(e.target.checked)} 
+                className="mt-1 w-4 h-4 text-emerald-600 rounded"
+              />
+              <div>
+                <label htmlFor="saveNewTruck" className="text-sm font-semibold text-blue-800 cursor-pointer block mb-0.5">
+                  Simpan Kendaraan Baru
+                </label>
+                <p className="text-xs text-blue-600">
+                  Nopol <span className="font-bold">{form.license_plate.toUpperCase()}</span> belum ada di data armada <span className="font-bold">{form.customer_name}</span>. Centang ini agar otomatis ditambahkan.
+                </p>
+              </div>
+            </div>
+          )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Kuantitas</label>
-              <input type="number" step="0.01" required value={form.quantity} onChange={e => setForm(p => ({...p, quantity: e.target.value}))} className={inputCls} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Satuan</label>
-              <select value={form.unit} onChange={e => setForm(p => ({...p, unit: e.target.value, unit_price: ""}))} className={inputCls}>
-                {(meta?.material_units?.[form.material_type] || meta?.all_units || []).map(u => <option key={u} value={u}>{u}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
-                Harga/Satuan
-                {priceHint && (
-                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${priceHint.is_custom ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                    {priceHint.is_custom ? "Harga Customer" : "Harga Default"}
-                  </span>
-                )}
-              </label>
-              <input type="number" required value={form.unit_price} onChange={e => setForm(p => ({...p, unit_price: e.target.value}))} className={inputCls} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Total Harga</label>
-              <input type="number" required value={form.amount} onChange={e => setForm(p => ({...p, amount: e.target.value}))} className={`${inputCls} bg-gray-50`} />
-              {form.amount && <p className="text-xs text-gray-500 mt-1">{formatIDR(form.amount)}</p>}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Metode Pembayaran</label>
-            <select value={form.payment_method} onChange={e => setForm(p => ({...p, payment_method: e.target.value}))} className={inputCls}>
-              <option value="transfer">Transfer</option>
-              <option value="cash">Cash</option>
-            </select>
-          </div>
+          {/* Input Material, Kuantitas, Harga disembunyikan sesuai permintaan karena terisi otomatis */}
 
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={onClose} className="flex-1 py-2.5 border rounded-xl text-sm font-medium">Batal</button>
@@ -364,6 +402,7 @@ const SaleDetailModal = ({ sale, isGM, currentUser, onClose, onEdit, onDelete })
     { label: "Tanggal",         value: formatDate(sale.income_date) },
     { label: "Customer",        value: sale.customer_name || "-" },
     { label: "Plat Nomor",      value: sale.license_plate || "-" },
+    { label: "Nama Supir",      value: sale.driver_name || "-" },
     { label: "Jenis Kendaraan", value: sale.vehicle_type || "-" },
     { label: "Material",        value: <MaterialBadge type={sale.material_type} /> },
     { label: "Volume",          value: `${Number(sale.quantity).toLocaleString("id-ID")} ${sale.unit}` },
@@ -554,7 +593,7 @@ export default function MaterialSalesPage() {
                     <td className="px-4 py-3 font-medium whitespace-nowrap">{s.customer_name}</td>
                     <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
                       <div className="flex items-center gap-1.5"><Truck size={12}/> {s.license_plate || "-"}</div>
-                      <div className="mt-0.5 text-gray-400">{s.vehicle_type || "-"}</div>
+                      <div className="mt-0.5 text-gray-400">{s.vehicle_type || "-"} • {s.driver_name || "Tanpa Supir"}</div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap"><MaterialBadge type={s.material_type} meta={meta} /></td>
                     <td className="px-4 py-3 text-right font-medium whitespace-nowrap">{s.quantity} {s.unit}</td>

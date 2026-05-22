@@ -30,6 +30,7 @@ def _lookup_price(
     material_type: str,
     unit: str,
     customer_name: Optional[str] = None,
+    vehicle_type: Optional[str] = None,
 ):
     """
     Cari harga dengan prioritas:
@@ -47,6 +48,9 @@ def _lookup_price(
                 prefs = json.loads(cust.materials_json)
                 for p in prefs:
                     if p.get("material_type") == material_type and p.get("unit") == unit:
+                        if p.get("vehicle_type") and vehicle_type:
+                            if p.get("vehicle_type").lower() != vehicle_type.lower():
+                                continue
                         if p.get("unit_price"):
                             return {
                                 "found": True,
@@ -99,14 +103,15 @@ def lookup_price(
     material_type: str = Query(...),
     unit: str = Query(...),
     customer_name: Optional[str] = Query(default=None),
+    vehicle_type: Optional[str] = Query(default=None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
-    Cari harga untuk kombinasi material + unit + customer.
+    Cari harga untuk kombinasi material + unit + customer + kendaraan.
     Digunakan untuk auto-fill harga di form penjualan.
     """
-    result = _lookup_price(db, material_type, unit, customer_name)
+    result = _lookup_price(db, material_type, unit, customer_name, vehicle_type)
     if not result.get("found"):
         return MaterialPriceLookup(found=False)
     

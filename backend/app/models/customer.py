@@ -31,6 +31,9 @@ class Customer(Base):
     # Format: [{"material_type":"Limestone (urugan)","unit":"m3"},...]
     materials_json = Column(Text, nullable=True)
 
+    # Daftar kendaraan customer (JSON string simpan di kolom trucks_json)
+    trucks_json = Column(Text, nullable=True)
+
     # Relasi ke income records
     # income_records = relationship("IncomeRecord", ...)  # dibuat lewat query
 

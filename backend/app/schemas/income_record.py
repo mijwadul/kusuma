@@ -18,6 +18,7 @@ class IncomeRecordBase(BaseModel):
     unit_price: Optional[float] = None
     payment_method: Optional[str] = None
     license_plate: Optional[str] = None
+    driver_name: Optional[str] = None
     vehicle_type: Optional[str] = None
     notes: Optional[str] = None
 
@@ -40,6 +41,7 @@ class IncomeRecordUpdate(BaseModel):
     unit_price: Optional[float] = None
     payment_method: Optional[str] = None
     license_plate: Optional[str] = None
+    driver_name: Optional[str] = None
     vehicle_type: Optional[str] = None
     notes: Optional[str] = None
 

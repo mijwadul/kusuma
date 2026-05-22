@@ -65,6 +65,7 @@ export default function ProjectsPage() {
   const [showProjModal, setShowProjModal] = useState(false);
   const [showCustModal, setShowCustModal] = useState(false);
   const [editData, setEditData] = useState(null);
+  const [viewCust, setViewCust] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
 
   // Form states
@@ -75,7 +76,7 @@ export default function ProjectsPage() {
   });
   const [custForm, setCustForm] = useState({
     name: "", company: "", contact_person: "", phone: "", email: "", address: "",
-    notes: "", is_active: true, material_preferences: []
+    notes: "", is_active: true, material_preferences: [], trucks: []
   });
 
   useEffect(() => {
@@ -190,12 +191,13 @@ export default function ProjectsPage() {
     if (c) {
       setCustForm({
         ...c,
-        material_preferences: c.material_preferences.map(m => ({ ...m }))
+        material_preferences: c.material_preferences.map(m => ({ ...m })),
+        trucks: c.trucks ? c.trucks.map(t => ({ ...t })) : []
       });
     } else {
       setCustForm({
         name: "", company: "", contact_person: "", phone: "", email: "", address: "",
-        notes: "", is_active: true, material_preferences: []
+        notes: "", is_active: true, material_preferences: [], trucks: []
       });
     }
     setShowCustModal(true);
@@ -220,7 +222,7 @@ export default function ProjectsPage() {
   const addCustMaterial = () => {
     setCustForm(prev => ({
       ...prev,
-      material_preferences: [...prev.material_preferences, { material_type: meta?.material_types[0] || "", unit: "ton" }]
+      material_preferences: [...prev.material_preferences, { material_type: meta?.material_types[0] || "", unit: "ton", vehicle_type: "Tronton" }]
     }));
   };
   const updateCustMaterial = (idx, field, val) => {
@@ -231,8 +233,19 @@ export default function ProjectsPage() {
     }
     setCustForm(prev => ({ ...prev, material_preferences: arr }));
   };
-  const removeCustMaterial = (idx) => {
-    setCustForm(prev => ({ ...prev, material_preferences: prev.material_preferences.filter((_, i) => i !== idx) }));
+  const addCustTruck = () => {
+    setCustForm(prev => ({
+      ...prev,
+      trucks: [...prev.trucks, { license_plate: "", driver_name: "", vehicle_type: "Colt Diesel" }]
+    }));
+  };
+  const updateCustTruck = (idx, field, val) => {
+    const arr = [...custForm.trucks];
+    arr[idx][field] = val;
+    setCustForm(prev => ({ ...prev, trucks: arr }));
+  };
+  const removeCustTruck = (idx) => {
+    setCustForm(prev => ({ ...prev, trucks: prev.trucks.filter((_, i) => i !== idx) }));
   };
 
   return (
@@ -329,6 +342,7 @@ export default function ProjectsPage() {
                 <tr>
                   <th className="px-4 py-3 text-left whitespace-nowrap">Nama / Perusahaan</th>
                   <th className="px-4 py-3 text-left whitespace-nowrap">Kontak</th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap">Armada Kendaraan</th>
                   <th className="px-4 py-3 text-left whitespace-nowrap">Preferensi Material</th>
                   <th className="px-4 py-3 text-left whitespace-nowrap">Total Pembelian</th>
                   {isGM && <th className="px-4 py-3 text-center whitespace-nowrap">Aksi</th>}
@@ -336,7 +350,7 @@ export default function ProjectsPage() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {customers.map(c => (
-                  <tr key={c.id} className="hover:bg-gray-50">
+                  <tr key={c.id} onClick={() => setViewCust(c)} className="hover:bg-emerald-50/60 cursor-pointer transition-colors">
                     <td className="px-4 py-3 whitespace-nowrap">
                       <p className="font-semibold text-gray-800">{c.name}</p>
                       <p className="text-xs text-gray-500">{c.company || "-"}</p>
@@ -346,11 +360,18 @@ export default function ProjectsPage() {
                       <p>{c.contact_person || "-"}</p>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
+                      {!c.trucks || c.trucks.length === 0 ? "-" : (
+                        <span className="text-gray-500 font-medium">{c.trucks.length} Kendaraan terdaftar</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
                       {c.material_preferences.length === 0 ? "-" : (
                         <div className="flex flex-col gap-1">
                           {c.material_preferences.map((m, i) => (
                             <span key={i} className="bg-gray-100 px-2 py-0.5 rounded w-fit">
-                              {m.material_type} ({m.unit}) {m.unit_price ? ` - ${formatIDR(m.unit_price)}` : ""}
+                              {m.material_type} ({m.unit})
+                              {m.vehicle_type ? ` - ${m.vehicle_type}` : ""}
+                              {m.unit_price ? ` - ${formatIDR(m.unit_price)}` : ""}
                             </span>
                           ))}
                         </div>
@@ -360,7 +381,7 @@ export default function ProjectsPage() {
                       {formatIDR(c.total_purchases)} <span className="text-gray-400 font-normal text-xs">({c.purchase_count}x)</span>
                     </td>
                     {isGM && (
-                      <td className="px-4 py-3 text-center whitespace-nowrap">
+                      <td className="px-4 py-3 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <button onClick={() => openCustModal(c)} className="p-1 text-blue-500 hover:bg-blue-50 rounded"><Pencil size={15} /></button>
                         <button onClick={() => setConfirmDelete(c)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={15} /></button>
                       </td>
@@ -507,6 +528,13 @@ export default function ProjectsPage() {
                       </select>
                     </div>
                     <div className="flex-1">
+                      <label className="block text-xs mb-1">Jenis Kendaraan *</label>
+                      <select value={m.vehicle_type || "Tronton"} onChange={e => updateCustMaterial(idx, "vehicle_type", e.target.value)} className="w-full border rounded text-sm p-1.5" required>
+                        <option value="Tronton">Tronton</option>
+                        <option value="Colt Diesel">Colt Diesel</option>
+                      </select>
+                    </div>
+                    <div className="flex-1">
                       <label className="block text-xs mb-1">Harga/Satuan (opsional)</label>
                       <input type="number" placeholder="Rp..." value={m.unit_price || ""} onChange={e => updateCustMaterial(idx, "unit_price", e.target.value)} className="w-full border rounded text-sm p-1.5" />
                     </div>
@@ -516,11 +544,144 @@ export default function ProjectsPage() {
                 {custForm.material_preferences.length === 0 && <p className="text-xs text-gray-400 italic">Tambahkan preferensi harga material jika ada.</p>}
               </div>
 
+              <div className="pt-4 border-t">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-semibold text-sm">Armada Kendaraan (Opsional)</h3>
+                  <button type="button" onClick={addCustTruck} className="text-xs flex items-center gap-1 bg-orange-50 text-orange-700 px-2 py-1 rounded">
+                    <Plus size={14}/> Tambah Kendaraan
+                  </button>
+                </div>
+                {custForm.trucks.map((t, idx) => (
+                  <div key={idx} className="flex items-end gap-2 mb-2 p-2 bg-gray-50 rounded border flex-wrap">
+                    <div className="flex-1 min-w-[120px]">
+                      <label className="block text-xs mb-1">Plat Nomor *</label>
+                      <input type="text" required placeholder="Contoh: B 1234 CD" value={t.license_plate} onChange={e => updateCustTruck(idx, "license_plate", e.target.value)} className="w-full border rounded text-sm p-1.5 uppercase" />
+                    </div>
+                    <div className="flex-1 min-w-[120px]">
+                      <label className="block text-xs mb-1">Nama Supir</label>
+                      <input type="text" placeholder="Contoh: Budi" value={t.driver_name || ""} onChange={e => updateCustTruck(idx, "driver_name", e.target.value)} className="w-full border rounded text-sm p-1.5" />
+                    </div>
+                    <div className="flex-1 min-w-[120px]">
+                      <label className="block text-xs mb-1">Jenis Kendaraan *</label>
+                      <select value={t.vehicle_type} onChange={e => updateCustTruck(idx, "vehicle_type", e.target.value)} className="w-full border rounded text-sm p-1.5" required>
+                        <option value="Colt Diesel">Colt Diesel</option>
+                        <option value="Tronton">Tronton</option>
+                      </select>
+                    </div>
+                    <button type="button" onClick={() => removeCustTruck(idx)} className="p-2 text-red-500 hover:bg-red-100 rounded mb-0.5"><Trash2 size={14}/></button>
+                  </div>
+                ))}
+                {custForm.trucks.length === 0 && <p className="text-xs text-gray-400 italic">Tambahkan data armada jika penjualan dikaitkan dengan nopol.</p>}
+              </div>
+
               <div className="flex justify-end gap-2 pt-4">
                 <button type="button" onClick={() => setShowCustModal(false)} className="px-4 py-2 border rounded-xl text-sm">Batal</button>
                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold">Simpan Pelanggan</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Detail Modal */}
+      {viewCust && !showCustModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setViewCust(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10 rounded-t-2xl">
+              <div className="flex items-center gap-2">
+                <Users size={18} className="text-emerald-600" />
+                <h2 className="text-base font-semibold text-gray-800">Detail Pelanggan</h2>
+              </div>
+              <button onClick={() => setViewCust(null)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 overflow-y-auto">
+              <div className="mb-6">
+                <h3 className="text-xl font-bold text-gray-800">{viewCust.name}</h3>
+                {viewCust.company && <p className="text-gray-500 text-sm">{viewCust.company}</p>}
+                
+                <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-400 block text-xs">Kontak Person</span>
+                    <span className="font-medium text-gray-800">{viewCust.contact_person || "-"}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 block text-xs">Telepon</span>
+                    <span className="font-medium text-gray-800">{viewCust.phone || "-"}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-gray-400 block text-xs">Email</span>
+                    <span className="font-medium text-gray-800">{viewCust.email || "-"}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-gray-400 block text-xs">Alamat</span>
+                    <span className="font-medium text-gray-800">{viewCust.address || "-"}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Armada Kendaraan */}
+              <div className="mb-6">
+                <h4 className="text-sm font-bold text-gray-800 border-b pb-2 mb-3">Armada Kendaraan ({viewCust.trucks?.length || 0})</h4>
+                {!viewCust.trucks || viewCust.trucks.length === 0 ? (
+                  <p className="text-gray-400 text-sm italic">Belum ada armada yang didaftarkan.</p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {viewCust.trucks.map((t, i) => (
+                      <div key={i} className="flex justify-between items-center bg-gray-50 p-2 rounded-lg border border-gray-100">
+                        <div>
+                          <span className="font-bold text-gray-800 block">{t.license_plate}</span>
+                          <span className="text-xs text-gray-500">Supir: {t.driver_name || "Tanpa Nama"}</span>
+                        </div>
+                        <span className="text-xs font-medium bg-emerald-100 text-emerald-700 px-2 py-1 rounded">
+                          {t.vehicle_type}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Preferensi Material */}
+              <div>
+                <h4 className="text-sm font-bold text-gray-800 border-b pb-2 mb-3">Preferensi Material</h4>
+                {viewCust.material_preferences.length === 0 ? (
+                  <p className="text-gray-400 text-sm italic">Belum ada preferensi material.</p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {viewCust.material_preferences.map((m, i) => (
+                      <div key={i} className="flex justify-between items-center bg-gray-50 p-2 rounded-lg border border-gray-100">
+                        <div>
+                          <span className="font-bold text-gray-800 block">{m.material_type} ({m.unit})</span>
+                          {m.vehicle_type && <span className="text-xs text-gray-500">Kendaraan: {m.vehicle_type}</span>}
+                        </div>
+                        {m.unit_price && (
+                          <span className="text-sm font-bold text-emerald-600">
+                            {formatIDR(m.unit_price)}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {isGM && (
+              <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 rounded-b-2xl bg-gray-50 mt-auto">
+                <button
+                  onClick={() => {
+                    openCustModal(viewCust);
+                    setViewCust(null);
+                  }}
+                  className="flex items-center justify-center gap-2 px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors"
+                >
+                  <Pencil size={15} /> Edit Data
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
