@@ -295,7 +295,13 @@ const FuelPage = () => {
   const currentStock = fuelStock?.current_stock ?? null;
   const stockOk = currentStock === null || currentStock > 0;
   const inputLiters = parseFloat(formData.liters_filled) || 0;
-  const litersExceedStock = currentStock !== null && inputLiters > currentStock;
+  
+  // Jika sedang edit, stok yang tersedia adalah stok saat ini + jumlah liter sebelumnya
+  const availableStock = editingLog 
+    ? (currentStock !== null ? currentStock + (parseFloat(editingLog.liters_filled) || 0) : null)
+    : currentStock;
+
+  const litersExceedStock = availableStock !== null && inputLiters > availableStock;
 
   return (
     <div>
@@ -315,14 +321,18 @@ const FuelPage = () => {
         </div>
         <button
           onClick={() => {
-            if (!stockOk) {
-              toast.error('Stok BBM habis! Catat pembelian BBM terlebih dahulu di menu Pembelian & Stok BBM.');
-              return;
+            if (showForm) {
+              handleCancelEdit();
+            } else {
+              if (!stockOk) {
+                toast.error('Stok BBM habis! Catat pembelian BBM terlebih dahulu di menu Pembelian & Stok BBM.');
+                return;
+              }
+              setShowForm(true);
             }
-            setShowForm(!showForm);
           }}
           className={`w-full sm:w-auto px-5 py-2.5 rounded-lg flex items-center justify-center space-x-2 transition-colors shadow-md text-white ${
-            stockOk
+            stockOk || showForm
               ? 'bg-amber-500 hover:bg-amber-600'
               : 'bg-gray-400 cursor-not-allowed'
           }`}
@@ -552,9 +562,9 @@ const FuelPage = () => {
             </div>
 
             {/* Sisa Stok Warning */}
-            {currentStock !== null && (
+            {availableStock !== null && (
               <div className={`mb-2 px-4 py-3 rounded-lg text-sm flex items-center gap-2 ${
-                currentStock <= 0
+                !editingLog && currentStock <= 0
                   ? 'bg-red-50 border border-red-200 text-red-700'
                   : litersExceedStock
                   ? 'bg-orange-50 border border-orange-200 text-orange-700'
@@ -562,11 +572,11 @@ const FuelPage = () => {
               }`}>
                 <AlertTriangle className="h-4 w-4 shrink-0" />
                 <span>
-                  {currentStock <= 0
+                  {!editingLog && currentStock <= 0
                     ? 'Stok BBM habis. Tidak dapat melakukan pengisian.'
                     : litersExceedStock
-                    ? `Input melebihi sisa stok! Sisa stok: ${currentStock.toLocaleString('id-ID')} L`
-                    : `Sisa stok BBM: ${currentStock.toLocaleString('id-ID')} L`
+                    ? `Input melebihi sisa stok! Sisa stok: ${availableStock.toLocaleString('id-ID')} L`
+                    : `Sisa stok BBM: ${availableStock.toLocaleString('id-ID')} L`
                   }
                 </span>
               </div>
@@ -576,7 +586,7 @@ const FuelPage = () => {
             <div className="flex space-x-3 pt-4">
               <button
                 type="submit"
-                disabled={currentStock !== null && (currentStock <= 0 || litersExceedStock)}
+                disabled={availableStock !== null && ((!editingLog && currentStock <= 0) || litersExceedStock)}
                 className={`flex-1 ${
                   editingLog ? "bg-blue-500 hover:bg-blue-600" : "bg-amber-500 hover:bg-amber-600"
                 } text-white py-3 rounded-lg font-semibold flex items-center justify-center space-x-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
