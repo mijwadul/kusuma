@@ -107,9 +107,13 @@ app.include_router(
     income_records_router, prefix="/api/v1/income-records", tags=["income-records"]
 )
 app.include_router(reports_router, prefix="/api/v1/reports", tags=["reports"])
+from .api.v1.projects import router as projects_router
+from .api.v1.invoices import router as invoices_router
+
+# ... inside router inclusion block ...
 app.include_router(material_prices_router, prefix="/api/v1/material-prices", tags=["material-prices"])
 app.include_router(projects_router, prefix="/api/v1/projects-data", tags=["projects"])
-
+app.include_router(invoices_router, prefix="/api/v1/invoices", tags=["invoices"])
 
 @app.get("/")
 def read_root():

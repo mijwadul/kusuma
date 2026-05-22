@@ -622,28 +622,49 @@ export default function ReportsPage() {
 
             {/* ── Net Balance Summary ───────────────────────────────── */}
             <div className="mt-6 bg-gray-50 rounded-2xl border border-gray-200 p-5">
-              <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wide mb-4">Ringkasan Keuangan</h3>
-              <div className="space-y-2.5 max-w-sm ml-auto">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Penjualan Material</span>
-                  <span className="font-semibold text-emerald-700">{formatRupiah(report.summary.total_material_sales)}</span>
-                </div>
-                <div className="border-t border-gray-200 pt-2 space-y-1.5">
+              <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wide mb-4">Ringkasan Keuangan (Paid vs Unpaid)</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-4">
+                {/* Kolom Pemasukan */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold text-emerald-700 uppercase tracking-wider border-b border-emerald-200 pb-1 mb-2">Total Pemasukan</h4>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">  − Pembelian BBM</span>
-                    <span className="font-semibold text-red-600">{formatRupiah(report.summary.total_fuel_expense)}</span>
+                    <span className="text-gray-500">Pemasukan Terbayar (Paid)</span>
+                    <span className="font-semibold text-emerald-700">{formatRupiah(report.summary.total_income_paid)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">  − Gaji Karyawan</span>
-                    <span className="font-semibold text-red-600">{formatRupiah(report.summary.total_payroll_expense)}</span>
+                    <span className="text-gray-500">Pemasukan Belum Terbayar (Unpaid)</span>
+                    <span className="font-semibold text-amber-600">{formatRupiah(report.summary.total_income_unpaid)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-bold pt-1">
+                    <span className="text-gray-800">Total Akumulasi Pemasukan</span>
+                    <span className="text-emerald-800">{formatRupiah(report.summary.total_income_paid + report.summary.total_income_unpaid)}</span>
                   </div>
                 </div>
-                <div className="border-t-2 border-gray-300 pt-3 flex justify-between">
-                  <span className="font-bold text-gray-800">Selisih Bersih</span>
-                  <span className={`font-bold text-lg ${report.summary.net_balance >= 0 ? "text-emerald-700" : "text-red-600"}`}>
-                    {formatRupiah(report.summary.net_balance)}
-                  </span>
+
+                {/* Kolom Pengeluaran */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold text-red-700 uppercase tracking-wider border-b border-red-200 pb-1 mb-2">Total Pengeluaran</h4>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Pengeluaran Terbayar (Paid)</span>
+                    <span className="font-semibold text-red-600">{formatRupiah(report.summary.total_expense_paid)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Pengeluaran Belum Terbayar (Unpaid)</span>
+                    <span className="font-semibold text-amber-600">{formatRupiah(report.summary.total_expense_unpaid)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-bold pt-1">
+                    <span className="text-gray-800">Total Akumulasi Pengeluaran</span>
+                    <span className="text-red-800">{formatRupiah(report.summary.total_expense_paid + report.summary.total_expense_unpaid)}</span>
+                  </div>
                 </div>
+              </div>
+
+              <div className="border-t-2 border-gray-300 pt-4 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm">
+                <span className="font-bold text-gray-800 text-lg mb-2 md:mb-0">Estimasi Selisih Bersih (Net Balance)</span>
+                <span className={`font-black text-2xl tracking-tight ${report.summary.net_balance >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                  {formatRupiah(report.summary.net_balance)}
+                </span>
               </div>
             </div>
 

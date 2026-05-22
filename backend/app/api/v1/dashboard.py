@@ -220,12 +220,48 @@ def get_daily_report(
             }
         )
 
+    # 5. Split Paid vs Unpaid (For Daily Report)
+    from ...models.invoice import Invoice
+    # Paid Payroll
+    payroll_paid = payroll_total
+    # Unpaid Payroll (not computed in daily report natively, assuming 0 for daily snapshot or we can just fetch pending payroll for the date)
+    payroll_unpaid = 0 
+    
+    # Fuel Paid/Unpaid (FuelPrice on this date)
+    fuel_paid = float(fuel_price_obj.total_price or 0) if fuel_price_obj and getattr(fuel_price_obj, "payment_status", "unpaid") == "paid" else 0
+    fuel_unpaid = fuel_total - fuel_paid if fuel_total > fuel_paid else fuel_total # simple fallback
+    
+    # Expense Paid/Unpaid
+    expense_paid = sum(float(e.amount or 0) for e in other_expenses if e.payment_status == "paid")
+    expense_unpaid = sum(float(e.amount or 0) for e in other_expenses if e.payment_status == "unpaid")
+
+    total_expense_paid = payroll_paid + fuel_paid + expense_paid
+    total_expense_unpaid = payroll_unpaid + fuel_unpaid + expense_unpaid
+
+    # Income Paid/Unpaid
+    # Project Payments are assumed paid
+    project_paid = project_income_total
+    # Unpaid material sales (Invoices created today)
+    unpaid_invoices_today = db.query(Invoice).filter(
+        Invoice.invoice_date == report_date,
+        Invoice.status == "unpaid"
+    ).all()
+    material_unpaid = sum(float(inv.total_amount or 0) for inv in unpaid_invoices_today)
+    material_paid = material_income_total - material_unpaid if material_income_total > material_unpaid else material_income_total
+
+    total_income_paid = project_paid + material_paid
+    total_income_unpaid = material_unpaid
+
     return {
         "date": str(report_date),
         "summary": {
             "total_income": round(total_income, 2),
             "total_expense": round(total_expense, 2),
             "net": round(total_income - total_expense, 2),
+            "total_income_paid": round(total_income_paid, 2),
+            "total_income_unpaid": round(total_income_unpaid, 2),
+            "total_expense_paid": round(total_expense_paid, 2),
+            "total_expense_unpaid": round(total_expense_unpaid, 2),
         },
         "expenses": {
             "payroll": {

@@ -12,10 +12,11 @@ import {
   Calendar,
   Loader2,
   RefreshCw,
+  FileText,
 } from "lucide-react";
 import { API_URL } from "../api/auth";
 import AlertModal from "../components/AlertModal";
-
+import InvoiceGenerator from "../components/InvoiceGenerator";
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const formatIDR = (v) =>
   Number(v ?? 0).toLocaleString("id-ID", {
@@ -58,6 +59,7 @@ const TABS = [
   { key: "all", label: "📂 Semua" },
   { key: "project_payment", label: "📁 Pembayaran Proyek" },
   { key: "material_sale", label: "🪨 Penjualan Material" },
+  { key: "invoices", label: "📄 Daftar Invoice" },
 ];
 
 // Shared fetch with auth
@@ -132,6 +134,9 @@ const IncomePage = () => {
   const [editId, setEditId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [customers, setCustomers] = useState([]);
 
   // Forms
   const [projectForm, setProjectForm] = useState(defaultProjectForm());
@@ -142,25 +147,38 @@ const IncomePage = () => {
   const fetchRecords = useCallback(async () => {
     setLoading(true);
     try {
-      const typeParam = activeTab !== "all" ? `&income_type=${activeTab}` : "";
-      const data = await authFetchHelper(
-        `${API_URL}/income-records?start_date=${startDate}&end_date=${endDate}${typeParam}`,
-      );
-      setRecords(
-        Array.isArray(data) ? data : (data?.records ?? data?.items ?? []),
-      );
+      if (activeTab === "invoices") {
+        const data = await authFetchHelper(`${API_URL}/invoices`);
+        setRecords(Array.isArray(data) ? data : []);
+      } else {
+        const typeParam = activeTab !== "all" ? `&income_type=${activeTab}` : "";
+        const data = await authFetchHelper(
+          `${API_URL}/income-records?start_date=${startDate}&end_date=${endDate}${typeParam}`,
+        );
+        setRecords(
+          Array.isArray(data) ? data : (data?.records ?? data?.items ?? []),
+        );
+      }
     } catch {
-      toast.error("Gagal memuat data pemasukan");
+      toast.error(activeTab === "invoices" ? "Gagal memuat daftar invoice" : "Gagal memuat data pemasukan");
     } finally {
       setLoading(false);
     }
   }, [activeTab, startDate, endDate]);
 
-  // ── Fetch projects for dropdown ──
   const fetchProjects = useCallback(async () => {
     try {
       const data = await authFetchHelper(`${API_URL}/dashboard/projects`);
       setProjects(Array.isArray(data) ? data : []);
+    } catch {
+      // silently ignore
+    }
+  }, []);
+
+  const fetchCustomers = useCallback(async () => {
+    try {
+      const data = await authFetchHelper(`${API_URL}/projects-data/customers`);
+      setCustomers(Array.isArray(data) ? data : []);
     } catch {
       // silently ignore
     }
@@ -171,7 +189,8 @@ const IncomePage = () => {
   }, [fetchRecords]);
   useEffect(() => {
     fetchProjects();
-  }, [fetchProjects]);
+    fetchCustomers();
+  }, [fetchProjects, fetchCustomers]);
 
   // Auto-fill description when project + termin berubah
   useEffect(() => {
@@ -340,6 +359,19 @@ const IncomePage = () => {
     }
   };
 
+  const handleUpdateInvoiceStatus = async (invoiceId, newStatus) => {
+    try {
+      await authFetchHelper(`${API_URL}/invoices/${invoiceId}/status`, {
+        method: "PUT",
+        body: JSON.stringify({ status: newStatus })
+      });
+      toast.success("Status invoice berhasil diupdate");
+      fetchRecords();
+    } catch (err) {
+      toast.error("Gagal update status: " + err.message);
+    }
+  };
+
   // ── Delete ──
   const triggerDelete = (id) => {
     setDeleteModal({ isOpen: true, id });
@@ -348,9 +380,15 @@ const IncomePage = () => {
   const confirmDelete = async () => {
     if (!deleteModal.id) return;
     try {
-      await authFetchHelper(`${API_URL}/income-records/${deleteModal.id}`, {
-        method: "DELETE",
-      });
+      if (activeTab === "invoices") {
+        await authFetchHelper(`${API_URL}/invoices/${deleteModal.id}`, {
+          method: "DELETE",
+        });
+      } else {
+        await authFetchHelper(`${API_URL}/income-records/${deleteModal.id}`, {
+          method: "DELETE",
+        });
+      }
       toast.success("Data berhasil dihapus");
       fetchRecords();
     } catch {
@@ -391,6 +429,20 @@ const IncomePage = () => {
     </span>
   );
 
+  const statusBadge = (status) => {
+    const map = {
+      unpaid: { bg: "bg-red-100", text: "text-red-700", label: "Unpaid" },
+      paid: { bg: "bg-emerald-100", text: "text-emerald-700", label: "Paid" },
+      cancelled: { bg: "bg-gray-100", text: "text-gray-700", label: "Cancelled" },
+    };
+    const s = map[status] || map.unpaid;
+    return (
+      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${s.bg} ${s.text}`}>
+        {s.label}
+      </span>
+    );
+  };
+
   const actionButtons = (r) => (
     <div className="flex items-center justify-center gap-2">
       <button
@@ -426,12 +478,20 @@ const IncomePage = () => {
             Kelola pemasukan dari proyek dan penjualan material
           </p>
         </div>
-        <button
-          onClick={openAddModal}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium text-sm transition-colors shadow-sm"
-        >
-          <Plus className="w-4 h-4" /> Tambah Pemasukan
-        </button>
+        <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2">
+          <button
+            onClick={() => setShowInvoiceModal(true)}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium text-sm transition-colors shadow-sm"
+          >
+            <FileText className="w-4 h-4" /> Buat Invoice
+          </button>
+          <button
+            onClick={openAddModal}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium text-sm transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" /> Tambah Pemasukan
+          </button>
+        </div>
       </div>
 
       {/* ── Summary Cards ──────────────────────────────────────────────── */}
@@ -480,36 +540,38 @@ const IncomePage = () => {
       </div>
 
       {/* ── Filter ─────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-        <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-gray-600">Dari:</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
-          />
+      {activeTab !== "invoices" && (
+        <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600">Dari:</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600">Sampai:</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
+            />
+          </div>
+          <button
+            onClick={() => {
+              setStartDate(daysAgo(30));
+              setEndDate(todayStr());
+            }}
+            className="px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-1"
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Reset ke 30 hari
+          </button>
         </div>
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-gray-600">Sampai:</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
-          />
-        </div>
-        <button
-          onClick={() => {
-            setStartDate(daysAgo(30));
-            setEndDate(todayStr());
-          }}
-          className="px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-1"
-        >
-          <RefreshCw className="w-3.5 h-3.5" /> Reset ke 30 hari
-        </button>
-      </div>
+      )}
 
       {/* ── Table ──────────────────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -720,6 +782,73 @@ const IncomePage = () => {
                     <td />
                   </tr>
                 </tfoot>
+              </table>
+            )}
+
+            {/* Tab: Daftar Invoice */}
+            {activeTab === "invoices" && (
+              <table className="min-w-full text-sm divide-y divide-gray-100">
+                <thead className="bg-gray-50 whitespace-nowrap">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Tgl Dibuat</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">No Invoice</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Customer</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Periode Tagihan</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Aksi Status</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Opsi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {records.map((r) => (
+                    <tr key={r.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={(e) => {
+                      if (e.target.tagName !== "SELECT" && e.target.tagName !== "BUTTON" && !e.target.closest('button')) {
+                        setSelectedInvoice(r);
+                        setShowInvoiceModal(true);
+                      }
+                    }}>
+                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                        {new Date(r.created_at).toLocaleDateString("id-ID")}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700 font-medium whitespace-nowrap">
+                        {r.invoice_number}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                        {r.customer_name}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
+                        {formatDate(r.start_date)} - {formatDate(r.end_date)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold text-emerald-700 tabular-nums whitespace-nowrap">
+                        {formatIDR(r.total_amount)}
+                      </td>
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
+                        {statusBadge(r.status)}
+                      </td>
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
+                        <select
+                          value={r.status}
+                          onChange={(e) => handleUpdateInvoiceStatus(r.id, e.target.value)}
+                          className="border border-gray-200 rounded-lg text-xs px-2 py-1 focus:ring-emerald-300 focus:outline-none bg-white"
+                        >
+                          <option value="unpaid">Unpaid</option>
+                          <option value="paid">Paid</option>
+                          <option value="cancelled">Cancelled</option>
+                        </select>
+                      </td>
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); triggerDelete(r.id); }}
+                          className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Hapus Invoice"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
               </table>
             )}
           </div>
@@ -1176,6 +1305,16 @@ const IncomePage = () => {
           confirmColor="bg-red-600 hover:bg-red-700"
         />
       )}
+      <InvoiceGenerator 
+        isOpen={showInvoiceModal} 
+        onClose={() => {
+          setShowInvoiceModal(false);
+          setSelectedInvoice(null);
+          fetchRecords();
+        }} 
+        customers={customers} 
+        existingInvoice={selectedInvoice}
+      />
     </div>
   );
 };

@@ -93,6 +93,10 @@ class ReportSummary(BaseModel):
     net_balance: float
     total_present_days: int
     total_employees: int
+    total_income_paid: float
+    total_income_unpaid: float
+    total_expense_paid: float
+    total_expense_unpaid: float
 
 
 class RangeReport(BaseModel):
@@ -345,8 +349,63 @@ def get_range_report(
             description=ir.description,
         ))
 
-    # ── Summary ───────────────────────────────────────────────────────────────
-    net_balance = total_material_sales - total_fuel_expense - total_payroll_expense
+    # ── Expense calculation (Paid vs Unpaid) ──
+    from ...models.expense import Expense
+    from ...models.payroll import PayrollRecord
+    from ...models.invoice import Invoice
+    
+    # Other expenses
+    other_expenses = db.query(Expense).filter(
+        Expense.expense_date >= start_date,
+        Expense.expense_date <= end_date,
+        Expense.approval_status == "approved"
+    ).all()
+    expense_paid = sum(float(e.amount or 0) for e in other_expenses if e.payment_status == "paid")
+    expense_unpaid = sum(float(e.amount or 0) for e in other_expenses if e.payment_status == "unpaid")
+    
+    # Fuel expenses
+    # fuel_purchases_rows already fetched (approved)
+    fuel_paid = sum(float(fp.total_price or 0) for fp in fuel_purchases_rows if getattr(fp, "payment_status", "unpaid") == "paid")
+    fuel_unpaid = sum(float(fp.total_price or 0) for fp in fuel_purchases_rows if getattr(fp, "payment_status", "unpaid") == "unpaid")
+    
+    # Payroll expenses
+    # Calculate for the period using PayrollRecord
+    payroll_rows = db.query(PayrollRecord).filter(
+        PayrollRecord.payment_date >= start_date,
+        PayrollRecord.payment_date <= end_date
+    ).all()
+    payroll_paid = sum(float(r.net_salary or 0) for r in payroll_rows if r.payment_status == "paid")
+    payroll_unpaid = sum(float(r.net_salary or 0) for r in payroll_rows if r.payment_status == "pending")
+    
+    total_expense_paid = expense_paid + fuel_paid + payroll_paid
+    total_expense_unpaid = expense_unpaid + fuel_unpaid + payroll_unpaid
+    total_expense_actual = total_expense_paid + total_expense_unpaid
+
+    # ── Income calculation (Paid vs Unpaid) ──
+    # Project payments (all paid)
+    project_rows = db.query(IncomeRecord).filter(
+        IncomeRecord.income_date >= start_date,
+        IncomeRecord.income_date <= end_date,
+        IncomeRecord.income_type == "project_payment",
+    ).all()
+    total_project_sales = sum(float(r.amount or 0) for r in project_rows)
+    
+    # Unpaid material sales (from invoices)
+    # Note: If an invoice covers a period, its total_amount is unpaid income.
+    # To keep it simple for the range, we look at invoices dated in this range.
+    unpaid_invoices = db.query(Invoice).filter(
+        Invoice.invoice_date >= start_date,
+        Invoice.invoice_date <= end_date,
+        Invoice.status == "unpaid"
+    ).all()
+    total_income_unpaid = sum(float(inv.total_amount or 0) for inv in unpaid_invoices)
+    
+    total_income_all = total_material_sales + total_project_sales
+    total_income_paid = total_income_all - total_income_unpaid
+    if total_income_paid < 0:
+        total_income_paid = 0
+
+    net_balance = total_income_all - total_expense_actual
 
     return RangeReport(
         period_start=str(start_date),
@@ -360,6 +419,10 @@ def get_range_report(
             net_balance=round(net_balance, 2),
             total_present_days=total_present_global,
             total_employees=len(attendance_summary),
+            total_income_paid=round(total_income_paid, 2),
+            total_income_unpaid=round(total_income_unpaid, 2),
+            total_expense_paid=round(total_expense_paid, 2),
+            total_expense_unpaid=round(total_expense_unpaid, 2),
         ),
         fuel_purchases=fuel_purchases,
         fuel_by_equipment=fuel_by_equipment,
