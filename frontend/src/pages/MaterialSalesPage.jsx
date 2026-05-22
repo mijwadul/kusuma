@@ -138,27 +138,37 @@ const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment 
     e.preventDefault();
     setSaving(true);
     try {
+      // Auto-resolve material preference based on final customer and vehicle
+      let finalMat = form.material_type;
+      let finalUnit = form.unit;
+      let finalPrice = form.unit_price;
+
+      if (currentCust) {
+        const pref = currentCust.material_preferences?.find(m => m.vehicle_type === form.vehicle_type) || currentCust.material_preferences?.[0];
+        if (pref) {
+          finalMat = pref.material_type;
+          finalUnit = pref.unit;
+          if (pref.unit_price) finalPrice = pref.unit_price;
+        }
+      }
+
       const payload = {
         income_date: form.income_date,
         income_type: "material_sale",
-        description: `Penjualan ${form.material_type} - ${form.customer_name}`,
-        amount: parseFloat(form.amount) || 0,
+        description: `Penjualan ${finalMat || meta?.material_types?.[0] || "Unknown"} - ${form.customer_name}`,
         customer_name: form.customer_name,
         license_plate: form.license_plate,
         driver_name: form.driver_name,
         vehicle_type: form.vehicle_type,
-        material_type: form.material_type || meta?.material_types?.[0] || "Unknown",
-        quantity: parseFloat(form.quantity) || 1,
-        unit: form.unit || "ton",
-        unit_price: parseFloat(form.unit_price) || 0,
+        material_type: finalMat || meta?.material_types?.[0] || "Unknown",
+        quantity: 1, // Otomatis selalu 1
+        unit: finalUnit || "ritase", // Default ritase
+        unit_price: parseFloat(finalPrice) || 0,
         payment_method: form.payment_method || "transfer",
         notes: form.notes
       };
       
-      // Hitung ulang amount jika kosong
-      if (!payload.amount) {
-        payload.amount = payload.quantity * payload.unit_price;
-      }
+      payload.amount = payload.quantity * payload.unit_price;
 
       if (editData) {
         await authFetch(`/api/v1/income-records/${editData.id}`, { method: "PUT", body: JSON.stringify(payload) });
