@@ -259,6 +259,29 @@ def get_meta(current_user: User = Depends(get_current_user)):
 # PROJECT ENDPOINTS
 # ══════════════════════════════════════════════════════════════════════════════
 
+@router.get("/migrate-production")
+def migrate_production(db: Session = Depends(get_db)):
+    from sqlalchemy import text
+    results = []
+    
+    try:
+        db.execute(text("ALTER TABLE customers ADD COLUMN trucks_json TEXT DEFAULT NULL;"))
+        db.commit()
+        results.append("customers.trucks_json added")
+    except Exception as e:
+        db.rollback()
+        results.append(f"customers.trucks_json error (maybe exists): {str(e)}")
+        
+    try:
+        db.execute(text("ALTER TABLE income_records ADD COLUMN driver_name VARCHAR(100) DEFAULT NULL;"))
+        db.commit()
+        results.append("income_records.driver_name added")
+    except Exception as e:
+        db.rollback()
+        results.append(f"income_records.driver_name error (maybe exists): {str(e)}")
+        
+    return {"status": "Migration complete", "details": results}
+
 
 
 
