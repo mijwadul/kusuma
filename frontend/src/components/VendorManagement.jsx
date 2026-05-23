@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { API_URL } from "../api/auth";
 import { toast } from "sonner";
-import { Building2, Plus, Edit, Trash2, CheckCircle, XCircle } from "lucide-react";
+import { Building2, Plus, Edit, Trash2, CheckCircle, XCircle, Pencil } from "lucide-react";
 
 export default function VendorManagement({ userRole }) {
   const [vendors, setVendors] = useState([]);
@@ -15,6 +15,10 @@ export default function VendorManagement({ userRole }) {
   const [showTopupForm, setShowTopupForm] = useState(false);
   const [selectedVendorForTopup, setSelectedVendorForTopup] = useState(null);
   const [topupData, setTopupData] = useState({ amount: "", notes: "" });
+
+  // Edit topup state
+  const [editingTopup, setEditingTopup] = useState(null);
+  const [editTopupData, setEditTopupData] = useState({ amount: "", notes: "" });
 
   const isGM = userRole === "gm" || userRole === "admin";
   const canManage = ["gm", "finance", "admin"].includes(userRole);
@@ -131,6 +135,50 @@ export default function VendorManagement({ userRole }) {
     }
   };
 
+  const handleEditTopupSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`${API_URL}/vendors/topups/${editingTopup.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify({
+          vendor_id: editingTopup.vendor_id,
+          amount: parseFloat(editTopupData.amount),
+          notes: editTopupData.notes
+        })
+      });
+      if (res.ok) {
+        toast.success("Data deposit berhasil diperbarui");
+        setEditingTopup(null);
+        fetchVendors();
+        fetchTopups();
+      } else {
+        toast.error("Gagal memperbarui deposit");
+      }
+    } catch (err) {
+      toast.error("Error jaringan");
+    }
+  };
+
+  const handleDeleteTopup = async (id) => {
+    if (!window.confirm("Hapus data Top-Up Deposit ini? Saldo vendor akan otomatis diperbarui.")) return;
+    try {
+      const res = await fetch(`${API_URL}/vendors/topups/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${getToken()}` }
+      });
+      if (res.ok) {
+        toast.success("Data deposit dihapus");
+        fetchVendors();
+        fetchTopups();
+      } else {
+        toast.error("Gagal menghapus deposit");
+      }
+    } catch (err) {
+      toast.error("Error jaringan");
+    }
+  };
+
   if (!canManage) return null;
 
   return (
@@ -170,7 +218,7 @@ export default function VendorManagement({ userRole }) {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{v.contact_person || "-"} <br/> {v.phone}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 py-1 rounded text-sm font-bold ${v.balance_deposit < 0 ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'}`}>
-                    Rp {Number(v.balance_deposit).toLocaleString("id-ID")}
+                    {v.balance_deposit < 0 ? '⚠️ Hutang: ' : ''}Rp {Number(v.balance_deposit).toLocaleString("id-ID")}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
@@ -200,6 +248,7 @@ export default function VendorManagement({ userRole }) {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nominal</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catatan</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   {isGM && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi GM</th>}
                 </tr>
@@ -212,6 +261,7 @@ export default function VendorManagement({ userRole }) {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(t.topup_date).toLocaleString('id-ID')}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{v?.name || `Vendor #${t.vendor_id}`}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-emerald-600">Rp {Number(t.amount).toLocaleString('id-ID')}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{t.notes || "-"}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 text-xs rounded-full font-semibold ${t.status === 'approved' ? 'bg-green-100 text-green-800' : t.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
                           {t.status.toUpperCase()}
@@ -219,12 +269,29 @@ export default function VendorManagement({ userRole }) {
                       </td>
                       {isGM && (
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {t.status === 'pending' && (
-                            <div className="flex gap-2">
-                              <button onClick={() => handleApproveTopup(t.id, 'approved')} className="text-green-600 hover:text-green-800" title="Setujui"><CheckCircle size={18}/></button>
-                              <button onClick={() => handleApproveTopup(t.id, 'rejected')} className="text-red-600 hover:text-red-800" title="Tolak"><XCircle size={18}/></button>
-                            </div>
-                          )}
+                          <div className="flex gap-2 items-center">
+                            {t.status === 'pending' && (
+                              <>
+                                <button onClick={() => handleApproveTopup(t.id, 'approved')} className="text-green-600 hover:text-green-800" title="Setujui"><CheckCircle size={18}/></button>
+                                <button onClick={() => handleApproveTopup(t.id, 'rejected')} className="text-red-600 hover:text-red-800" title="Tolak"><XCircle size={18}/></button>
+                              </>
+                            )}
+                            {/* Edit & Delete selalu muncul untuk GM */}
+                            <button
+                              onClick={() => { setEditingTopup(t); setEditTopupData({ amount: t.amount, notes: t.notes || "" }); }}
+                              className="text-indigo-600 hover:text-indigo-800"
+                              title="Edit Deposit"
+                            >
+                              <Pencil size={16}/>
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTopup(t.id)}
+                              className="text-red-600 hover:text-red-800"
+                              title="Hapus Deposit"
+                            >
+                              <Trash2 size={16}/>
+                            </button>
+                          </div>
                         </td>
                       )}
                     </tr>
@@ -234,6 +301,43 @@ export default function VendorManagement({ userRole }) {
             </table>
           </div>
         </>
+      )}
+
+      {/* Edit Topup Modal */}
+      {editingTopup && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-xl">
+            <h3 className="text-lg font-bold mb-1">Edit Data Deposit</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Vendor: <strong>{vendors.find(v => v.id === editingTopup.vendor_id)?.name}</strong> &nbsp;|&nbsp;
+              Status: <span className={`font-semibold ${editingTopup.status === 'approved' ? 'text-green-600' : 'text-yellow-600'}`}>{editingTopup.status.toUpperCase()}</span>
+            </p>
+            <form onSubmit={handleEditTopupSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-700">Nominal Rp</label>
+                <input
+                  type="number" required min="1"
+                  value={editTopupData.amount}
+                  onChange={e => setEditTopupData({ ...editTopupData, amount: e.target.value })}
+                  className="mt-1 w-full border rounded p-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-700">Catatan/Keterangan</label>
+                <input
+                  value={editTopupData.notes}
+                  onChange={e => setEditTopupData({ ...editTopupData, notes: e.target.value })}
+                  className="mt-1 w-full border rounded p-2"
+                  placeholder="Cth: Transfer BCA 20 Mei"
+                />
+              </div>
+              <div className="flex justify-end gap-2 mt-6">
+                <button type="button" onClick={() => setEditingTopup(null)} className="px-4 py-2 bg-gray-200 rounded">Batal</button>
+                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded font-bold">Simpan Perubahan</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Forms */}

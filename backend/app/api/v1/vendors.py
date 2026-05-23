@@ -20,15 +20,45 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 # ============================================
 # VENDOR CRUD
 # ============================================
+from .work_logs import _calculate_rental_costs
+
+def _sync_vendor_balance(db: Session, vendor: Vendor):
+    from ...models import Equipment, WorkLog
+    # 1. Total Topup (Approved)
+    topups = db.query(VendorTopUp).filter(
+        VendorTopUp.vendor_id == vendor.id,
+        VendorTopUp.status == "approved"
+    ).all()
+    total_topup = sum((t.amount for t in topups), Decimal("0"))
+    
+    # 2. Total Biaya Rental dari WorkLog
+    equipments = db.query(Equipment).filter(Equipment.vendor_id == vendor.id).all()
+    total_rental_cost = Decimal("0")
+    if equipments:
+        eq_map = {e.id: e for e in equipments if e.ownership_status == "rental"}
+        if eq_map:
+            work_logs = db.query(WorkLog).filter(WorkLog.equipment_id.in_(eq_map.keys())).all()
+            for wl in work_logs:
+                eq = eq_map[wl.equipment_id]
+                costs = _calculate_rental_costs(wl, eq)
+                total_rental_cost += costs["rental_cost_total"]
+                
+    vendor.balance_deposit = total_topup - total_rental_cost
+    db.commit()
+
 @router.get("", response_model=List[VendorResponse])
 def get_vendors(db: Session = Depends(get_db)):
-    return db.query(Vendor).order_by(Vendor.name).all()
+    vendors = db.query(Vendor).order_by(Vendor.name).all()
+    for v in vendors:
+        _sync_vendor_balance(db, v)
+    return vendors
 
 @router.get("/{vendor_id}", response_model=VendorResponse)
 def get_vendor(vendor_id: int, db: Session = Depends(get_db)):
     vendor = db.query(Vendor).filter(Vendor.id == vendor_id).first()
     if not vendor:
         raise HTTPException(status_code=404, detail="Vendor not found")
+    _sync_vendor_balance(db, vendor)
     return vendor
 
 @router.post("", response_model=VendorResponse)
@@ -140,9 +170,39 @@ def approve_topup(topup_id: int, status: str = "approved", db: Session = Depends
         
     return topup
 
+@router.put("/topups/{topup_id}", response_model=VendorTopUpResponse)
+def edit_topup(topup_id: int, data: VendorTopUpCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Edit a topup record (GM only)."""
+    if current_user.role not in ["gm", "admin"] and not current_user.is_admin and not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Hanya GM yang dapat mengedit deposit")
+
+    topup = db.query(VendorTopUp).filter(VendorTopUp.id == topup_id).first()
+    if not topup:
+        raise HTTPException(status_code=404, detail="TopUp not found")
+
+    topup.amount = data.amount
+    topup.notes = data.notes
+    # Jika status masih pending, tetap pending. Jika sudah approved, biarkan approved.
+    db.commit()
+    db.refresh(topup)
+    return topup
+
+@router.delete("/topups/{topup_id}")
+def delete_topup(topup_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Delete a topup record (GM only). Balance is recalculated dynamically."""
+    if current_user.role not in ["gm", "admin"] and not current_user.is_admin and not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Hanya GM yang dapat menghapus deposit")
+
+    topup = db.query(VendorTopUp).filter(VendorTopUp.id == topup_id).first()
+    if not topup:
+        raise HTTPException(status_code=404, detail="TopUp not found")
+
+    db.delete(topup)
+    db.commit()
+    return {"message": "Top-Up deposit berhasil dihapus"}
+
 def _apply_topup_and_expense(db: Session, topup: VendorTopUp, vendor: Vendor, user_id: int):
-    # 1. Add balance to vendor
-    vendor.balance_deposit = Decimal(str(vendor.balance_deposit or 0)) + Decimal(str(topup.amount))
+    # 1. Vendor balance is dynamically calculated when fetching, no need to update it here.
     
     # 2. Record Expense
     expense = Expense(

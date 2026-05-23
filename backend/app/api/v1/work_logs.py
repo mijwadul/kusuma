@@ -145,12 +145,7 @@ def create_work_log(work_log: WorkLogCreate, db: Session = Depends(get_db)):
     
     db.add(db_work_log)
     
-    # Auto deduct vendor deposit
-    if equipment.ownership_status == "rental" and equipment.vendor_id:
-        vendor = db.query(Vendor).filter(Vendor.id == equipment.vendor_id).first()
-        if vendor:
-            costs = _calculate_rental_costs(db_work_log, equipment)
-            vendor.balance_deposit = Decimal(str(vendor.balance_deposit or 0)) - costs["rental_cost_total"]
+    # Vendor deposit is now dynamically calculated when fetching vendors.
 
     db.commit()
     db.refresh(db_work_log)
@@ -185,15 +180,7 @@ def update_work_log(
             discount_hours = hours_for_cap
         update_data["rental_discount_hours"] = discount_hours
     
-    # Auto deduct vendor deposit logic
-    equipment = db.query(Equipment).filter(Equipment.id == work_log.equipment_id).first()
-    vendor = None
-    old_costs = None
-    if equipment and equipment.ownership_status == "rental" and equipment.vendor_id:
-        vendor = db.query(Vendor).filter(Vendor.id == equipment.vendor_id).first()
-        if vendor:
-            old_costs = _calculate_rental_costs(work_log, equipment)
-            vendor.balance_deposit = Decimal(str(vendor.balance_deposit or 0)) + old_costs["rental_cost_total"]
+    # Vendor deposit is now dynamically calculated when fetching vendors.
     
     for key, value in update_data.items():
         setattr(work_log, key, value)
