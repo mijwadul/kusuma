@@ -101,9 +101,9 @@ const StatCard = ({ icon: Icon, label, value, sub, color, onClick, badge }) => (
       <Icon className="w-5 h-5 text-white" />
     </div>
     <div className="flex-1 min-w-0">
-      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">{label}</p>
+      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider line-clamp-2 leading-snug" title={label}>{label}</p>
       <p className="text-lg sm:text-xl md:text-2xl font-extrabold text-slate-800 tracking-tight mt-1.5 tabular-nums fluid-metric-value">{value}</p>
-      {sub && <p className="text-xs text-slate-400 font-medium mt-1 truncate">{sub}</p>}
+      {sub && <p className="text-[11px] text-slate-400 font-medium mt-1 leading-tight line-clamp-2" title={sub}>{sub}</p>}
     </div>
     {badge && (
       <span className="shrink-0 bg-red-500/10 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full border border-red-500/20 animate-pulse">
@@ -645,6 +645,25 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {financeSummary.vendor_deposits && financeSummary.vendor_deposits.filter(v => v.balance_deposit <= 5000000).length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
+              <AlertTriangle className="w-6 h-6 text-red-500 shrink-0 mt-0.5 animate-pulse" />
+              <div>
+                <h3 className="text-sm font-bold text-red-800">Deposit Vendor Menipis / Minus</h3>
+                <p className="text-xs text-red-700 mt-1">
+                  {financeSummary.vendor_deposits.filter(v => v.balance_deposit <= 5000000).map(v => (
+                    <span key={v.id} className="block mt-1">
+                      • {v.name}: <span className="font-bold">Rp {Number(v.balance_deposit).toLocaleString('id-ID')}</span>
+                    </span>
+                  ))}
+                </p>
+                <button onClick={() => navigate('/equipment')} className="mt-2 text-xs font-bold text-red-700 underline hover:text-red-900">
+                  Top-Up Sekarang di Menu Equipment
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
               icon={Wallet}
@@ -653,6 +672,7 @@ export default function DashboardPage() {
               sub={`${financeSummary.unpaid_bills_count} bills menunggu bayar`}
               color="bg-red-500"
               badge={financeSummary.unpaid_bills_count > 0 ? financeSummary.unpaid_bills_count : undefined}
+              onClick={() => document.getElementById('unpaid-center')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
             />
             <StatCard
               icon={Receipt}
@@ -661,6 +681,7 @@ export default function DashboardPage() {
               sub={`${financeSummary.unpaid_invoices_count} invoice dari customer`}
               color="bg-orange-500"
               badge={financeSummary.unpaid_invoices_count > 0 ? financeSummary.unpaid_invoices_count : undefined}
+              onClick={() => document.getElementById('unpaid-center')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
             />
             <StatCard
               icon={Fuel}
@@ -1549,7 +1570,7 @@ export default function DashboardPage() {
 
       {/* ── Unpaid Center (Finance & GM) ─────────────────────────────────── */}
       {(role === 'finance' || isGM) && financeSummary && (
-        <div className="bg-white rounded-3xl border border-red-100 shadow-sm overflow-hidden p-6 mt-8">
+        <div id="unpaid-center" className="bg-white rounded-3xl border border-red-100 shadow-sm overflow-hidden p-6 mt-8">
           <h2 className="text-lg font-bold text-red-600 flex items-center gap-2 mb-6">
             <AlertTriangle className="w-5 h-5" />
             Unpaid Center - Menunggu Pelunasan

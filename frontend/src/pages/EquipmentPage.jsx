@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { API_URL } from "../api/auth";
 import AlertModal from "../components/AlertModal";
 import EquipmentDetailModal from "../components/EquipmentDetailModal";
+import VendorManagement from "../components/VendorManagement";
 
 const EquipmentPage = () => {
   const navigate = useNavigate();
@@ -13,13 +14,13 @@ const EquipmentPage = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteEquipmentId, setDeleteEquipmentId] = useState(null);
-  const [showBrandDeleteModal, setShowBrandDeleteModal] = useState(false);
-  const [brandToDelete, setBrandToDelete] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [fuelReport, setFuelReport] = useState([]);
-  const [userRole, setUserRole] = useState("user"); // Simulasi role user
+  const [deleteEquipmentId, setDeleteEquipmentId] = useState(null);
+  const [showBrandDeleteModal, setShowBrandDeleteModal] = useState(false);
+  const [brandToDelete, setBrandToDelete] = useState(null);
+  const [userRole, setUserRole] = useState(null); // Real role
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const locationInputRef = useRef(null);
   const [brands, setBrands] = useState(() => {
@@ -28,6 +29,7 @@ const EquipmentPage = () => {
       ? JSON.parse(saved)
       : ["Caterpillar", "Komatsu", "Hitachi", "Volvo", "JCB"];
   });
+  const [vendorsList, setVendorsList] = useState([]);
   const [formData, setFormData] = useState({
     name: "",
     brand: "",
@@ -37,14 +39,44 @@ const EquipmentPage = () => {
     status: "active",
     ownership_status: "internal",
     rental_rate_per_hour: "",
-    deposit_amount: "",
     vendor_id: "",
   });
 
   useEffect(() => {
+    fetchUserRole();
     fetchEquipment();
     fetchFuelReport();
+    fetchVendorsList();
   }, []);
+
+  const fetchUserRole = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUserRole(data.role);
+      }
+    } catch (error) {
+      console.error("Error fetching user role", error);
+    }
+  };
+
+  const fetchVendorsList = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/vendors`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setVendorsList(await res.json());
+      }
+    } catch (err) {
+      console.error("Error fetching vendors", err);
+    }
+  };
 
   // Kumpulkan lokasi unik dari data equipment yang sudah ada
   const locationSuggestions = useMemo(() => {
@@ -127,9 +159,7 @@ const EquipmentPage = () => {
           formData.rental_rate_per_hour === ""
             ? null
             : formData.rental_rate_per_hour,
-        deposit_amount:
-          formData.deposit_amount === "" ? null : formData.deposit_amount,
-        vendor_id: formData.vendor_id === "" ? null : formData.vendor_id,
+        vendor_id: formData.vendor_id === "" ? null : parseInt(formData.vendor_id),
       };
 
       const response = await fetch(url, {
@@ -176,7 +206,6 @@ const EquipmentPage = () => {
       status: item.status,
       ownership_status: item.ownership_status || "internal",
       rental_rate_per_hour: item.rental_rate_per_hour || "",
-      deposit_amount: item.deposit_amount || "",
       vendor_id: item.vendor_id || "",
     });
     setShowForm(true);
@@ -267,7 +296,6 @@ const EquipmentPage = () => {
       status: "active",
       ownership_status: "internal",
       rental_rate_per_hour: "",
-      deposit_amount: "",
       vendor_id: "",
     });
   };
@@ -289,26 +317,6 @@ const EquipmentPage = () => {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
             Equipment Management
           </h1>
-          <div className="mt-2 flex items-center space-x-2">
-            <span className="text-sm text-gray-600">Role saat ini:</span>
-            <span
-              className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                userRole === "admin"
-                  ? "bg-purple-100 text-purple-800"
-                  : "bg-gray-100 text-gray-800"
-              }`}
-            >
-              {userRole === "admin" ? "Admin" : "Operator"}
-            </span>
-            <button
-              onClick={() =>
-                setUserRole(userRole === "admin" ? "user" : "admin")
-              }
-              className="text-xs text-blue-600 hover:text-blue-800 underline"
-            >
-              Ganti Role
-            </button>
-          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -504,6 +512,9 @@ const EquipmentPage = () => {
         </table>
         </div>
       </div>
+      
+      {/* VENDOR MANAGEMENT SECTION */}
+      {userRole && <VendorManagement userRole={userRole} />}
 
       {showForm && (
         <div
@@ -729,28 +740,9 @@ const EquipmentPage = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">
-                        Nilai Deposit
+                        Vendor Perusahaan Sewa
                       </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={formData.deposit_amount}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            deposit_amount: e.target.value,
-                          })
-                        }
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                        Vendor ID
-                      </label>
-                      <input
-                        type="number"
+                      <select
                         value={formData.vendor_id}
                         onChange={(e) =>
                           setFormData({
@@ -759,8 +751,14 @@ const EquipmentPage = () => {
                           })
                         }
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                        placeholder="Opsional"
-                      />
+                      >
+                        <option value="">-- Pilih Vendor --</option>
+                        {vendorsList.map((v) => (
+                          <option key={v.id} value={v.id}>
+                            {v.name}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </>
                 )}

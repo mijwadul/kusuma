@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from ...core.auth import get_current_user
 from ...core.database import get_db
-from ...models import Employee, Equipment, FuelLog, FuelPrice, PayrollRecord, Project
+from ...models import Employee, Equipment, FuelLog, FuelPrice, PayrollRecord, Project, Vendor
 from ...schemas import Employee as EmployeeSchema
 from ...schemas import Equipment as EquipmentSchema
 from ...schemas import Project as ProjectSchema
@@ -521,6 +521,13 @@ def get_finance_summary(
                 "amount": float(ms.amount or 0)
             })
     
+    # 7. Vendors Deposit Alert
+    vendors = db.query(Vendor).all()
+    vendor_deposits = [
+        {"id": v.id, "name": v.name, "balance_deposit": float(v.balance_deposit or 0)}
+        for v in vendors
+    ]
+    
     return {
         "unpaid_bills_amount": total_unpaid_bills_amount,
         "unpaid_bills_count": total_unpaid_bills_count,
@@ -534,5 +541,6 @@ def get_finance_summary(
         "uninvoiced_material_sales_count": len(uninvoiced_sales),
         "pending_fuel_purchases": pending_fuel_purchases,
         "pending_expenses": pending_expenses,
-        "recent_pending_fuel": recent_pending_fuel
+        "recent_pending_fuel": recent_pending_fuel,
+        "vendor_deposits": vendor_deposits
     }

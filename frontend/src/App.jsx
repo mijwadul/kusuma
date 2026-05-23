@@ -18,7 +18,6 @@ import AttendancePage from "./pages/AttendancePage";
 import MaterialSalesPage from "./pages/MaterialSalesPage";
 import IncomePage from "./pages/IncomePage";
 import FuelPricePage from "./pages/FuelPricePage";
-import RentalRatesPage from "./pages/RentalRatesPage";
 import PayrollPage from "./pages/PayrollPage";
 import ExpensePage from "./pages/ExpensePage";
 import DailyReportPage from "./pages/DailyReportPage";
@@ -59,7 +58,6 @@ function App() {
           <Route path="/material-sales" element={<MaterialSalesPage />} />
           <Route path="/income" element={<IncomePage />} />
           <Route path="/finance/fuel-price" element={<FuelPricePage />} />
-          <Route path="/finance/rental-rates" element={<RentalRatesPage />} />
           <Route path="/payroll" element={<PayrollPage />} />
           <Route path="/expenses" element={<ExpensePage />} />
           <Route path="/daily-report" element={<DailyReportPage />} />

@@ -188,12 +188,6 @@ const Sidebar = ({ children }) => {
           show: true,
         },
         {
-          path: "/finance/rental-rates",
-          icon: Truck,
-          label: "Tarif Sewa & Deposit",
-          show: true,
-        },
-        {
           path: "/income",
           icon: Wallet,
           label: "Pemasukan & Pendapatan",

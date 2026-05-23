@@ -14,7 +14,6 @@ class EquipmentBase(BaseModel):
     status: Optional[str] = "active"
     ownership_status: Optional[str] = "internal"
     rental_rate_per_hour: Optional[Decimal] = Decimal("0")
-    deposit_amount: Optional[Decimal] = Decimal("0")
     vendor_id: Optional[int] = None
 
 
@@ -31,7 +30,6 @@ class EquipmentUpdate(BaseModel):
     status: Optional[str] = None
     ownership_status: Optional[str] = None
     rental_rate_per_hour: Optional[Decimal] = None
-    deposit_amount: Optional[Decimal] = None
     vendor_id: Optional[int] = None
 
 

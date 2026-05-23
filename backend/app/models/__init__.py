@@ -13,3 +13,4 @@ from .project import Project
 from .user import User
 from .work_log import WorkLog
 from .invoice import Invoice
+from .vendor import Vendor, VendorTopUp
