@@ -125,10 +125,13 @@ def create_topup(data: VendorTopUpCreate, db: Session = Depends(get_db), current
         
     is_gm = current_user.role in ["gm", "admin"] or current_user.is_admin or current_user.is_superuser
     
+    topup_dt = data.topup_date if data.topup_date else datetime.now()
+    
     topup = VendorTopUp(
         vendor_id=data.vendor_id,
         amount=data.amount,
         notes=data.notes,
+        topup_date=topup_dt,
         status="approved" if is_gm else "pending",
         created_by=current_user.id,
         approved_by=current_user.id if is_gm else None,
@@ -182,6 +185,8 @@ def edit_topup(topup_id: int, data: VendorTopUpCreate, db: Session = Depends(get
 
     topup.amount = data.amount
     topup.notes = data.notes
+    if data.topup_date:
+        topup.topup_date = data.topup_date
     # Jika status masih pending, tetap pending. Jika sudah approved, biarkan approved.
     db.commit()
     db.refresh(topup)
@@ -205,11 +210,13 @@ def _apply_topup_and_expense(db: Session, topup: VendorTopUp, vendor: Vendor, us
     # 1. Vendor balance is dynamically calculated when fetching, no need to update it here.
     
     # 2. Record Expense
+    expense_dt = topup.topup_date.date() if topup.topup_date else datetime.now().date()
+    
     expense = Expense(
         category="deposit",
         description=f"Deposit Alat - {vendor.name}: {topup.notes or ''}",
         amount=float(topup.amount),
-        expense_date=datetime.now().date(),
+        expense_date=expense_dt,
         created_by=user_id,
         approval_status="approved",
         approved_by=user_id,

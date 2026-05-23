@@ -28,6 +28,8 @@ const InvoiceGenerator = ({ isOpen, onClose, customers = [], existingInvoice = n
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [discountType, setDiscountType] = useState("");
+  const [discountValue, setDiscountValue] = useState("");
   
   // Preview State
   const [previewData, setPreviewData] = useState(null);
@@ -48,6 +50,8 @@ const InvoiceGenerator = ({ isOpen, onClose, customers = [], existingInvoice = n
         setStartDate("");
         setEndDate("");
         setNotes("");
+        setDiscountType("");
+        setDiscountValue("");
       }
     }
   }, [isOpen, existingInvoice]);
@@ -63,6 +67,10 @@ const InvoiceGenerator = ({ isOpen, onClose, customers = [], existingInvoice = n
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setPreviewData(data);
+      if (invoice.discount_type) {
+        setDiscountType(invoice.discount_type);
+        setDiscountValue(invoice.discount_value);
+      }
     } catch (err) {
       toast.error("Gagal memuat detail invoice: " + err.message);
     } finally {
@@ -136,6 +144,30 @@ const InvoiceGenerator = ({ isOpen, onClose, customers = [], existingInvoice = n
         <td style="padding: 6px 10px; border: 1px solid #ddd; text-align: right;">${formatIDR(item.amount)}</td>
       </tr>
     `).join('');
+
+    let discountHTML = '';
+    let discountAmount = 0;
+    let finalAmount = total_amount;
+    
+    if (discountType === 'percentage' && discountValue) {
+      discountAmount = total_amount * (parseFloat(discountValue) / 100);
+      finalAmount = total_amount - discountAmount;
+      discountHTML = `
+        <tr>
+          <td colspan="8" style="text-align: right; padding: 10px;" class="total-row">Diskon (${discountValue}%)</td>
+          <td style="text-align: right; padding: 10px; color: #ef4444; border: 1px solid #ddd;" class="total-row">- ${formatIDR(discountAmount)}</td>
+        </tr>
+      `;
+    } else if (discountType === 'nominal' && discountValue) {
+      discountAmount = parseFloat(discountValue);
+      finalAmount = total_amount - discountAmount;
+      discountHTML = `
+        <tr>
+          <td colspan="8" style="text-align: right; padding: 10px;" class="total-row">Diskon (Nominal)</td>
+          <td style="text-align: right; padding: 10px; color: #ef4444; border: 1px solid #ddd;" class="total-row">- ${formatIDR(discountAmount)}</td>
+        </tr>
+      `;
+    }
 
     return `
       <html>
@@ -223,8 +255,13 @@ const InvoiceGenerator = ({ isOpen, onClose, customers = [], existingInvoice = n
             </tbody>
             <tfoot>
               <tr>
+                <td colspan="8" style="text-align: right; padding: 10px;" class="total-row">Subtotal</td>
+                <td style="text-align: right; padding: 10px; border: 1px solid #ddd;" class="total-row">${formatIDR(total_amount)}</td>
+              </tr>
+              ${discountHTML}
+              <tr>
                 <td colspan="8" style="text-align: right; padding: 10px;" class="total-row">Total Tagihan</td>
-                <td style="text-align: right; padding: 10px; color: #10b981; border: 1px solid #ddd;" class="total-row">${formatIDR(total_amount)}</td>
+                <td style="text-align: right; padding: 10px; color: #10b981; border: 1px solid #ddd;" class="total-row">${formatIDR(finalAmount)}</td>
               </tr>
             </tfoot>
           </table>
@@ -258,7 +295,9 @@ const InvoiceGenerator = ({ isOpen, onClose, customers = [], existingInvoice = n
         start_date: previewData.start_date,
         end_date: previewData.end_date,
         total_amount: previewData.total_amount,
-        notes: notes || undefined
+        notes: notes || undefined,
+        discount_type: discountType || null,
+        discount_value: discountValue ? parseFloat(discountValue) : null
       };
       
       if (existingInvoice) {
@@ -295,7 +334,9 @@ const InvoiceGenerator = ({ isOpen, onClose, customers = [], existingInvoice = n
         start_date: previewData.start_date,
         end_date: previewData.end_date,
         total_amount: previewData.total_amount,
-        notes: notes || undefined
+        notes: notes || undefined,
+        discount_type: discountType || null,
+        discount_value: discountValue ? parseFloat(discountValue) : null
       };
       
       let res;
@@ -475,6 +516,40 @@ const InvoiceGenerator = ({ isOpen, onClose, customers = [], existingInvoice = n
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Jenis Diskon
+                      </label>
+                      <select
+                        value={discountType}
+                        onChange={(e) => {
+                          setDiscountType(e.target.value);
+                          if (!e.target.value) setDiscountValue("");
+                        }}
+                        className={inputCls}
+                      >
+                        <option value="">Tidak Ada</option>
+                        <option value="percentage">Persentase (%)</option>
+                        <option value="nominal">Nominal (Rp)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Nilai Diskon {discountType === "percentage" ? "(%)" : discountType === "nominal" ? "(Rp)" : ""}
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        disabled={!discountType}
+                        value={discountValue}
+                        onChange={(e) => setDiscountValue(e.target.value)}
+                        placeholder="Contoh: 10 atau 50000"
+                        className={inputCls}
+                      />
+                    </div>
                   </div>
                   
                   <div className="mt-4">

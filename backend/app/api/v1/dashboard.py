@@ -148,6 +148,8 @@ def get_daily_report(
 
     from ...models.expense import Expense
     from ...models.income_record import IncomeRecord
+    from ...models.work_log import WorkLog
+    from .work_logs import _calculate_rental_costs
 
     if report_date is None:
         report_date = date_type.today()
@@ -185,6 +187,7 @@ def get_daily_report(
     from sqlalchemy import or_
     other_expenses = db.query(Expense).filter(
         Expense.approval_status == "approved",
+        Expense.category != "deposit",
         or_(
             Expense.expense_date == report_date,
             func.date(Expense.paid_at) == report_date
@@ -205,7 +208,33 @@ def get_daily_report(
     project_income_total = sum(float(r.amount or 0) for r in project_income)
     material_income_total = sum(float(r.amount or 0) for r in material_income)
 
-    total_expense = payroll_total + fuel_total + other_expenses_total
+    # 4b. Biaya Jam Kerja Alat Berat (Rental)
+    work_logs_today = (
+        db.query(WorkLog, Equipment)
+        .join(Equipment, WorkLog.equipment_id == Equipment.id)
+        .filter(WorkLog.work_date == report_date, Equipment.ownership_status == 'rental')
+        .all()
+    )
+    
+    rental_total = 0.0
+    rental_items = []
+    for wl, eq in work_logs_today:
+        costs = _calculate_rental_costs(wl, eq)
+        total_cost = float(costs["rental_cost_total"])
+        rental_total += total_cost
+        
+        vendor_name = db.query(Vendor.name).filter(Vendor.id == eq.vendor_id).scalar() if eq.vendor_id else "Unknown"
+        
+        rental_items.append({
+            "id": wl.id,
+            "equipment_name": eq.name,
+            "vendor_name": vendor_name,
+            "total_hours": float(wl.total_hours or 0),
+            "rental_rate_per_hour": float(costs["rental_rate_per_hour"]),
+            "rental_cost_total": total_cost,
+        })
+
+    total_expense = payroll_total + fuel_total + other_expenses_total + rental_total
     total_income = project_income_total + material_income_total
 
     # Build payroll items (join employee name)
@@ -238,9 +267,13 @@ def get_daily_report(
     # Expense Paid/Unpaid
     expense_paid = sum(float(e.amount or 0) for e in other_expenses if e.payment_status == "paid")
     expense_unpaid = sum(float(e.amount or 0) for e in other_expenses if e.payment_status == "unpaid")
+    
+    # Rental Expense Paid/Unpaid (Assuming always paid via deposit deduction natively for this report structure)
+    rental_paid = rental_total
+    rental_unpaid = 0
 
-    total_expense_paid = payroll_paid + fuel_paid + expense_paid
-    total_expense_unpaid = payroll_unpaid + fuel_unpaid + expense_unpaid
+    total_expense_paid = payroll_paid + fuel_paid + expense_paid + rental_paid
+    total_expense_unpaid = payroll_unpaid + fuel_unpaid + expense_unpaid + rental_unpaid
 
     # Income Paid/Unpaid
     # Project Payments are assumed paid
@@ -304,6 +337,11 @@ def get_daily_report(
                     }
                     for e in other_expenses
                 ],
+            },
+            "equipment_rental": {
+                "total": round(rental_total, 2),
+                "count": len(rental_items),
+                "items": rental_items,
             },
         },
         "income": {

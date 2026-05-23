@@ -16,6 +16,11 @@ class Invoice(Base):
     status = Column(String(20), default="unpaid") # unpaid, paid, cancelled
     notes = Column(Text, nullable=True)
     
+    discount_type = Column(String(20), nullable=True) # 'percentage' or 'nominal'
+    discount_value = Column(Float, nullable=True)
+    discount_amount = Column(Float, nullable=True)
+    final_amount = Column(Float, nullable=True) # total_amount - discount_amount
+    
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

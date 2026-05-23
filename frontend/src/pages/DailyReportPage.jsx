@@ -28,9 +28,13 @@ import {
   Package,
   RefreshCw,
   AlertCircle,
+  Truck,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { API_URL } from "../api/auth";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -78,10 +82,34 @@ const PIE_COLORS = ["#3b82f6", "#f59e0b", "#9ca3af"];
 const PAYMENT_TERM_MAP = {
   termin_1: "Termin 1",
   termin_2: "Termin 2",
-  termin_3: "Termin 3",
   lunas: "Lunas",
   dp: "DP",
   pelunasan: "Pelunasan",
+};
+
+const handleExportPDF = async (reportDate) => {
+  const element = document.getElementById("daily-report-content");
+  if (!element) return;
+  
+  const loadingToast = toast.loading("Generating PDF...");
+  try {
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+    });
+    
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    
+    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    pdf.save(`Laporan_Harian_${reportDate}.pdf`);
+    toast.success("PDF berhasil di-download", { id: loadingToast });
+  } catch (err) {
+    toast.error("Gagal generate PDF", { id: loadingToast });
+  }
 };
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
@@ -347,6 +375,11 @@ const DailyReportPage = () => {
     count: 0,
     items: [],
   };
+  const equipment_rental = expenses.equipment_rental ?? {
+    total: 0,
+    count: 0,
+    items: [],
+  };
 
   const projectPayments = income.project_payments ?? {
     total: 0,
@@ -364,6 +397,7 @@ const DailyReportPage = () => {
     { name: "Gaji", value: payroll.total },
     { name: "BBM", value: fuel.total },
     { name: "Lainnya", value: others.total },
+    { name: "Sewa Alat", value: equipment_rental.total },
   ].filter((d) => d.value > 0);
 
   const hasExpenseData = summary.total_expense > 0;
@@ -392,11 +426,11 @@ const DailyReportPage = () => {
             </p>
           </div>
           <button
-            onClick={() => window.print()}
+            onClick={() => handleExportPDF(reportDate)}
             className="flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-50 transition-colors self-start"
           >
-            <Printer size={16} />
-            Print
+            <Download size={16} />
+            Download PDF
           </button>
         </div>
 
@@ -443,9 +477,10 @@ const DailyReportPage = () => {
           </button>
         </div>
 
-        {/* ── Summary Cards ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <SummaryCard
+        <div id="daily-report-content" className="space-y-6">
+          {/* ── Summary Cards ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <SummaryCard
             title="Total Pemasukan"
             amount={summary.total_income}
             sub={`${projectPayments.count + materialSales.count} sumber pemasukan`}
@@ -692,6 +727,40 @@ const DailyReportPage = () => {
               )}
             </div>
 
+            {/* Sewa Alat */}
+            <div className="bg-white rounded-xl shadow-sm p-5">
+              {loading ? (
+                <div className="space-y-2">
+                  <SkeletonBlock className="h-5 w-32" />
+                  <SkeletonBlock className="h-20" />
+                </div>
+              ) : (
+                <>
+                  <SectionHeader
+                    icon={Truck}
+                    title={`Sewa Alat Berat (${equipment_rental.count})`}
+                    total={equipment_rental.total}
+                    iconColor="text-indigo-500"
+                  />
+                  <SimpleTable
+                    headers={[
+                      { label: "Nama Alat" },
+                      { label: "Vendor" },
+                      { label: "Jam", right: true },
+                      { label: "Biaya", right: true },
+                    ]}
+                    rows={equipment_rental.items.map((it) => [
+                      it.equipment_name ?? "-",
+                      it.vendor_name ?? "-",
+                      `${it.total_hours ?? 0} Jam`,
+                      formatIDR(it.rental_cost_total),
+                    ])}
+                    emptyMsg="Belum ada penyewaan alat berat hari ini"
+                  />
+                </>
+              )}
+            </div>
+
             {/* Pengeluaran Lain */}
             <div className="bg-white rounded-xl shadow-sm p-5">
               {loading ? (
@@ -851,6 +920,7 @@ const DailyReportPage = () => {
               </div>
             )}
           </div>
+        </div>
         </div>
 
         {/* ── Empty state jika tidak ada data sama sekali ── */}

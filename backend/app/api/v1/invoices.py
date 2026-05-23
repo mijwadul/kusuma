@@ -39,6 +39,8 @@ class InvoiceCreate(BaseModel):
     end_date: date
     total_amount: float
     notes: Optional[str] = None
+    discount_type: Optional[str] = None
+    discount_value: Optional[float] = None
 
 class InvoiceUpdate(BaseModel):
     customer_name: Optional[str] = None
@@ -46,6 +48,8 @@ class InvoiceUpdate(BaseModel):
     end_date: Optional[date] = None
     total_amount: Optional[float] = None
     notes: Optional[str] = None
+    discount_type: Optional[str] = None
+    discount_value: Optional[float] = None
 
 class InvoiceResponse(BaseModel):
     id: int
@@ -55,6 +59,10 @@ class InvoiceResponse(BaseModel):
     start_date: date
     end_date: date
     total_amount: float
+    discount_type: Optional[str]
+    discount_value: Optional[float]
+    discount_amount: Optional[float]
+    final_amount: Optional[float]
     status: str
     notes: Optional[str]
     created_at: str
@@ -136,6 +144,17 @@ def create_invoice(
 
     invoice_number = f"{prefix}{seq:04d}"
 
+    discount_amount = 0.0
+    final_amount = data.total_amount
+
+    if data.discount_type == "percentage" and data.discount_value:
+        discount_amount = data.total_amount * (data.discount_value / 100)
+    elif data.discount_type == "nominal" and data.discount_value:
+        discount_amount = data.discount_value
+
+    if data.discount_type:
+        final_amount = data.total_amount - discount_amount
+
     new_invoice = Invoice(
         invoice_number=invoice_number,
         customer_name=data.customer_name,
@@ -143,6 +162,10 @@ def create_invoice(
         start_date=data.start_date,
         end_date=data.end_date,
         total_amount=data.total_amount,
+        discount_type=data.discount_type,
+        discount_value=data.discount_value,
+        discount_amount=discount_amount if data.discount_type else None,
+        final_amount=final_amount if data.discount_type else None,
         notes=data.notes,
         created_by=current_user.id if current_user else None,
     )
@@ -159,6 +182,10 @@ def create_invoice(
         start_date=new_invoice.start_date,
         end_date=new_invoice.end_date,
         total_amount=new_invoice.total_amount,
+        discount_type=new_invoice.discount_type,
+        discount_value=new_invoice.discount_value,
+        discount_amount=new_invoice.discount_amount,
+        final_amount=new_invoice.final_amount,
         status=new_invoice.status,
         notes=new_invoice.notes,
         created_at=str(new_invoice.created_at),
@@ -179,6 +206,10 @@ def get_invoices(
             start_date=inv.start_date,
             end_date=inv.end_date,
             total_amount=inv.total_amount,
+            discount_type=inv.discount_type,
+            discount_value=inv.discount_value,
+            discount_amount=inv.discount_amount,
+            final_amount=inv.final_amount,
             status=inv.status,
             notes=inv.notes,
             created_at=str(inv.created_at),
@@ -217,6 +248,10 @@ def update_invoice_status(
         start_date=inv.start_date,
         end_date=inv.end_date,
         total_amount=inv.total_amount,
+        discount_type=inv.discount_type,
+        discount_value=inv.discount_value,
+        discount_amount=inv.discount_amount,
+        final_amount=inv.final_amount,
         status=inv.status,
         notes=inv.notes,
         created_at=str(inv.created_at),
@@ -257,6 +292,10 @@ def pay_invoice(
         start_date=inv.start_date,
         end_date=inv.end_date,
         total_amount=inv.total_amount,
+        discount_type=inv.discount_type,
+        discount_value=inv.discount_value,
+        discount_amount=inv.discount_amount,
+        final_amount=inv.final_amount,
         status=inv.status,
         notes=inv.notes,
         created_at=str(inv.created_at),
@@ -285,6 +324,22 @@ def update_invoice(
     for key, value in update_data.items():
         setattr(inv, key, value)
         
+    # Re-calculate final_amount if needed
+    if "total_amount" in update_data or "discount_type" in update_data or "discount_value" in update_data:
+        if inv.discount_type == "percentage" and inv.discount_value:
+            inv.discount_amount = inv.total_amount * (inv.discount_value / 100)
+        elif inv.discount_type == "nominal" and inv.discount_value:
+            inv.discount_amount = inv.discount_value
+        else:
+            inv.discount_amount = 0.0
+            
+        if inv.discount_type:
+            inv.final_amount = inv.total_amount - inv.discount_amount
+        else:
+            inv.final_amount = None
+            inv.discount_amount = None
+            inv.discount_value = None
+
     db.commit()
     db.refresh(inv)
     
@@ -296,6 +351,10 @@ def update_invoice(
         start_date=inv.start_date,
         end_date=inv.end_date,
         total_amount=inv.total_amount,
+        discount_type=inv.discount_type,
+        discount_value=inv.discount_value,
+        discount_amount=inv.discount_amount,
+        final_amount=inv.final_amount,
         status=inv.status,
         notes=inv.notes,
         created_at=str(inv.created_at),

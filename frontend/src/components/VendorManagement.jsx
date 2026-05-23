@@ -101,6 +101,7 @@ export default function VendorManagement({ userRole }) {
         body: JSON.stringify({
           vendor_id: selectedVendorForTopup.id,
           amount: parseFloat(topupData.amount),
+          topup_date: topupData.topup_date ? new Date(topupData.topup_date).toISOString() : undefined,
           notes: topupData.notes
         })
       });
@@ -144,6 +145,7 @@ export default function VendorManagement({ userRole }) {
         body: JSON.stringify({
           vendor_id: editingTopup.vendor_id,
           amount: parseFloat(editTopupData.amount),
+          topup_date: editTopupData.topup_date ? new Date(editTopupData.topup_date).toISOString() : undefined,
           notes: editTopupData.notes
         })
       });
@@ -223,7 +225,7 @@ export default function VendorManagement({ userRole }) {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                   <button 
-                    onClick={() => { setSelectedVendorForTopup(v); setTopupData({ amount: "", notes: "" }); setShowTopupForm(true); }}
+                    onClick={() => { setSelectedVendorForTopup(v); setTopupData({ amount: "", notes: "", topup_date: new Date().toISOString().slice(0, 16) }); setShowTopupForm(true); }}
                     className="text-white bg-amber-500 hover:bg-amber-600 px-3 py-1.5 rounded font-medium"
                   >
                     Top Up
@@ -278,7 +280,7 @@ export default function VendorManagement({ userRole }) {
                             )}
                             {/* Edit & Delete selalu muncul untuk GM */}
                             <button
-                              onClick={() => { setEditingTopup(t); setEditTopupData({ amount: t.amount, notes: t.notes || "" }); }}
+                              onClick={() => { setEditingTopup(t); setEditTopupData({ amount: t.amount, notes: t.notes || "", topup_date: t.topup_date ? new Date(t.topup_date).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16) }); }}
                               className="text-indigo-600 hover:text-indigo-800"
                               title="Edit Deposit"
                             >
@@ -319,6 +321,15 @@ export default function VendorManagement({ userRole }) {
                   type="number" required min="1"
                   value={editTopupData.amount}
                   onChange={e => setEditTopupData({ ...editTopupData, amount: e.target.value })}
+                  className="mt-1 w-full border rounded p-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-700">Tanggal Top-Up</label>
+                <input
+                  type="datetime-local"
+                  value={editTopupData.topup_date}
+                  onChange={e => setEditTopupData({ ...editTopupData, topup_date: e.target.value })}
                   className="mt-1 w-full border rounded p-2"
                 />
               </div>
@@ -370,6 +381,7 @@ export default function VendorManagement({ userRole }) {
             )}
             <form onSubmit={handleTopupSubmit} className="space-y-4">
               <div><label className="block text-sm text-gray-700">Nominal Rp</label><input type="number" required min="1" value={topupData.amount} onChange={e=>setTopupData({...topupData, amount: e.target.value})} className="mt-1 w-full border rounded p-2" /></div>
+              <div><label className="block text-sm text-gray-700">Tanggal Top-Up</label><input type="datetime-local" value={topupData.topup_date} onChange={e=>setTopupData({...topupData, topup_date: e.target.value})} className="mt-1 w-full border rounded p-2" /></div>
               <div><label className="block text-sm text-gray-700">Catatan/Keterangan</label><input value={topupData.notes} onChange={e=>setTopupData({...topupData, notes: e.target.value})} className="mt-1 w-full border rounded p-2" placeholder="Cth: Transfer BCA 20 Mei" /></div>
               <div className="flex justify-end gap-2 mt-6">
                 <button type="button" onClick={() => setShowTopupForm(false)} className="px-4 py-2 bg-gray-200 rounded">Batal</button>

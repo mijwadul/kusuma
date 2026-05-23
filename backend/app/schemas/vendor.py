@@ -33,6 +33,7 @@ class VendorResponse(VendorBase):
 class VendorTopUpCreate(BaseModel):
     vendor_id: int
     amount: Decimal
+    topup_date: Optional[datetime] = None
     notes: Optional[str] = None
 
 class VendorTopUpResponse(BaseModel):
