@@ -171,19 +171,31 @@ const AttendancePage = () => {
     setSubmitting(true);
     const finalDate = isHelper ? toLocalDateInput(new Date()) : formData.date;
 
-    const combineDateTime = (dateStr, timeStr) => {
-      if (!timeStr) return null;
-      return `${dateStr}T${timeStr}:00`;
-    };
-
     const payload = {
       employee_id: Number(formData.employee_id),
       date: finalDate,
       status: formData.status,
-      check_in: combineDateTime(finalDate, formData.check_in),
-      check_out: combineDateTime(finalDate, formData.check_out),
+      check_in: null,
+      check_out: null,
       notes: formData.notes || null
     };
+
+    if (formData.check_in) {
+      payload.check_in = `${finalDate}T${formData.check_in}:00`;
+    }
+
+    if (formData.check_out) {
+      let checkoutDateStr = finalDate;
+      if (formData.check_in && formData.check_out < formData.check_in) {
+         const d = new Date(finalDate);
+         d.setDate(d.getDate() + 1);
+         const year = d.getFullYear();
+         const month = String(d.getMonth() + 1).padStart(2, '0');
+         const day = String(d.getDate()).padStart(2, '0');
+         checkoutDateStr = `${year}-${month}-${day}`;
+      }
+      payload.check_out = `${checkoutDateStr}T${formData.check_out}:00`;
+    }
 
     try {
       const method = editingId ? 'PUT' : 'POST';

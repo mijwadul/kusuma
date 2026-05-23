@@ -300,7 +300,10 @@ export default function DashboardPage() {
     if (currentUser?.role !== "field") return;
     try {
       const today = toLocalDateInput(new Date());
-      const res = await authFetch(`${API_URL}/employees/attendance?start_date=${today}&end_date=${today}`);
+      const yesterdayDate = new Date();
+      yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+      const yesterday = toLocalDateInput(yesterdayDate);
+      const res = await authFetch(`${API_URL}/employees/attendance?start_date=${yesterday}&end_date=${today}`);
       setTodayAttendance(res);
     } catch (e) {
       console.error("Failed to fetch attendance:", e);
@@ -544,7 +547,12 @@ export default function DashboardPage() {
                  const selectedId = Number(selectedFieldEmployee);
                  if (!selectedId) return <button disabled className="w-full sm:w-auto px-6 py-2 bg-gray-300 text-white font-medium rounded-lg transition-colors">Pilih Pekerja</button>;
                  
-                 const currentRecord = todayAttendance.find(a => a.employee_id === selectedId);
+                 const records = todayAttendance.filter(a => a.employee_id === selectedId);
+                 const todayStr = toLocalDateInput(new Date());
+                 let currentRecord = records.find(a => a.date === todayStr);
+                 if (!currentRecord) {
+                    currentRecord = records.find(a => !a.check_out);
+                 }
                  
                  if (!currentRecord) {
                     return (

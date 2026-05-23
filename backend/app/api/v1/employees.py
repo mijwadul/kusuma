@@ -12,7 +12,7 @@ from datetime import date, datetime, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi import status as http_status
+from fastapi import status
 from sqlalchemy import and_, or_, between, func
 from sqlalchemy.orm import Session
 
@@ -711,8 +711,8 @@ def update_attendance(
         if any(k not in allowed_keys for k in update_dict.keys()):
              raise HTTPException(status_code=403, detail="Field staff can only update check_out time")
              
-        if attendance.date != date.today():
-             raise HTTPException(status_code=403, detail="Field staff can only check out for today's attendance")
+        if attendance.date != date.today() and attendance.date != date.today() - timedelta(days=1):
+             raise HTTPException(status_code=403, detail="Field staff can only check out for today's or yesterday's attendance")
 
     update_data = attendance_update.model_dump(exclude_unset=True)
     for key, value in update_data.items():
