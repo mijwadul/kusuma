@@ -454,6 +454,32 @@ def approve_fuel_purchase(
     return purchase
 
 
+@router.put("/price/{price_id}/pay", response_model=FuelPriceSchema)
+def pay_fuel_purchase(
+    price_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Mark fuel purchase as paid (Finance/GM)"""
+    if not current_user.is_admin and not current_user.is_superuser and current_user.role not in ['gm', 'finance', 'admin']:
+        raise HTTPException(status_code=403, detail="Hanya Finance atau GM yang dapat menandai lunas")
+        
+    purchase = db.query(FuelPrice).filter(FuelPrice.id == price_id).first()
+    if not purchase:
+        raise HTTPException(status_code=404, detail="Data pembelian BBM tidak ditemukan")
+        
+    if purchase.payment_status == "paid":
+        raise HTTPException(status_code=400, detail="Pembelian sudah lunas")
+        
+    purchase.payment_status = "paid"
+    purchase.paid_by = current_user.id
+    purchase.paid_at = datetime.now()
+    
+    db.commit()
+    db.refresh(purchase)
+    return purchase
+
+
 @router.put("/price/{price_id}", response_model=FuelPriceSchema)
 def update_fuel_purchase(
     price_id: int,

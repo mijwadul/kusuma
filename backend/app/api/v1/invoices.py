@@ -222,6 +222,46 @@ def update_invoice_status(
         created_at=str(inv.created_at),
     )
 
+@router.put("/{invoice_id}/pay", response_model=InvoiceResponse)
+def pay_invoice(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    inv = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+    if not inv:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+        
+    is_admin_or_gm = (
+        getattr(current_user, "is_admin", False)
+        or getattr(current_user, "is_superuser", False)
+        or getattr(current_user, "role", "") in ("admin", "gm", "finance")
+    )
+    if not is_admin_or_gm:
+        raise HTTPException(status_code=403, detail="Not authorized to pay invoice")
+        
+    if inv.status == "paid":
+        raise HTTPException(status_code=400, detail="Invoice already paid")
+        
+    inv.status = "paid"
+    # Note: Using updated_at or creating a new paid_at field might be better, 
+    # but for now updating status triggers updated_at
+    db.commit()
+    db.refresh(inv)
+    
+    return InvoiceResponse(
+        id=inv.id,
+        invoice_number=inv.invoice_number,
+        customer_name=inv.customer_name,
+        invoice_date=inv.invoice_date,
+        start_date=inv.start_date,
+        end_date=inv.end_date,
+        total_amount=inv.total_amount,
+        status=inv.status,
+        notes=inv.notes,
+        created_at=str(inv.created_at),
+    )
+
 @router.put("/{invoice_id}", response_model=InvoiceResponse)
 def update_invoice(
     invoice_id: int,

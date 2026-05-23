@@ -254,6 +254,7 @@ class PayrollCalculationResult(BaseModel):
 
     # Income
     basic_salary: float
+    overtime_hours: float = 0.0
     overtime_amount: float
     bonus: float
     allowance: float

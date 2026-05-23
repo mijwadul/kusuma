@@ -364,6 +364,29 @@ export default function DashboardPage() {
     }
   };
 
+  // ── mark as paid ──
+  const handleMarkPaid = async (type, id) => {
+    try {
+      let endpoint = "";
+      if (type === "expense") endpoint = `/expenses/${id}/pay`;
+      else if (type === "fuel") endpoint = `/fuel/price/${id}/pay`;
+      else if (type === "payroll") endpoint = `/employees/payroll/${id}/pay`;
+      else if (type === "invoice") endpoint = `/invoices/${id}/pay`;
+      
+      const res = await fetch(`${API_URL}${endpoint}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (!res.ok) throw new Error("Gagal menandai lunas");
+      toast.success("Berhasil ditandai sebagai lunas!");
+      fetchAll();
+      fetchDailyReport();
+      fetchYesterdayReport();
+    } catch (e) {
+      toast.error(e.message || "Terjadi kesalahan");
+    }
+  };
+
   // ── attendance action ──
   const handleAttendanceAction = async (employeeId, action, attendanceId = null) => {
     setAttendanceLoading(true);
@@ -609,15 +632,35 @@ export default function DashboardPage() {
               Finance Summary
             </h2>
           </div>
+          
+          {financeSummary.uninvoiced_material_sales_count > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
+              <AlertTriangle className="w-6 h-6 text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-bold text-amber-800">Menunggu Diterbitkan Invoice</h3>
+                <p className="text-xs text-amber-700 mt-1">
+                  Terdapat {financeSummary.uninvoiced_material_sales_count} penjualan material yang belum dibuatkan invoice. Segera periksa menu Material Sales / Invoices.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
               icon={Wallet}
-              label="Tagihan Unpaid"
+              label="Tagihan Pengeluaran"
               value={formatIDR(financeSummary.unpaid_bills_amount)}
-              sub={`${financeSummary.unpaid_bills_count} tagihan menunggu`}
+              sub={`${financeSummary.unpaid_bills_count} bills menunggu bayar`}
               color="bg-red-500"
               badge={financeSummary.unpaid_bills_count > 0 ? financeSummary.unpaid_bills_count : undefined}
-              onClick={() => navigate("/expenses")}
+            />
+            <StatCard
+              icon={Receipt}
+              label="Invoice Belum Lunas"
+              value={formatIDR(financeSummary.unpaid_invoices_amount)}
+              sub={`${financeSummary.unpaid_invoices_count} invoice dari customer`}
+              color="bg-orange-500"
+              badge={financeSummary.unpaid_invoices_count > 0 ? financeSummary.unpaid_invoices_count : undefined}
             />
             <StatCard
               icon={Fuel}
@@ -629,11 +672,11 @@ export default function DashboardPage() {
               onClick={() => navigate("/fuel")}
             />
             <StatCard
-              icon={Receipt}
+              icon={AlertTriangle}
               label="Pengeluaran Pending"
               value={financeSummary.pending_expenses}
               sub="Menunggu approval GM"
-              color="bg-orange-500"
+              color="bg-purple-500"
               badge={financeSummary.pending_expenses > 0 ? financeSummary.pending_expenses : undefined}
               onClick={() => navigate("/expenses")}
             />
@@ -1503,6 +1546,107 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* ── Unpaid Center (Finance & GM) ─────────────────────────────────── */}
+      {(role === 'finance' || isGM) && financeSummary && (
+        <div className="bg-white rounded-3xl border border-red-100 shadow-sm overflow-hidden p-6 mt-8">
+          <h2 className="text-lg font-bold text-red-600 flex items-center gap-2 mb-6">
+            <AlertTriangle className="w-5 h-5" />
+            Unpaid Center - Menunggu Pelunasan
+          </h2>
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* Invoices */}
+            <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4">
+              <h3 className="text-sm font-semibold text-slate-800 mb-3 flex justify-between items-center">
+                <span>Invoice Customer Unpaid</span>
+                <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded-full">{financeSummary.unpaid_invoices.length}</span>
+              </h3>
+              <div className="space-y-2">
+                {financeSummary.unpaid_invoices.length === 0 ? <p className="text-xs text-slate-400">Tidak ada data.</p> : financeSummary.unpaid_invoices.map(inv => (
+                  <div key={inv.id} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-xs">
+                    <div>
+                      <p className="text-xs font-bold text-slate-700">{inv.invoice_number}</p>
+                      <p className="text-[10px] text-slate-500">{inv.customer_name} • {formatDate(inv.date)}</p>
+                      <p className="text-xs font-semibold text-orange-600">{formatIDR(inv.amount)}</p>
+                    </div>
+                    <button onClick={() => handleMarkPaid('invoice', inv.id)} className="px-3 py-1.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100">
+                      Tandai Lunas
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Payroll */}
+            <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4">
+              <h3 className="text-sm font-semibold text-slate-800 mb-3 flex justify-between items-center">
+                <span>Gaji Karyawan Unpaid</span>
+                <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded-full">{financeSummary.unpaid_payroll.length}</span>
+              </h3>
+              <div className="space-y-2">
+                {financeSummary.unpaid_payroll.length === 0 ? <p className="text-xs text-slate-400">Tidak ada data.</p> : financeSummary.unpaid_payroll.map(p => (
+                  <div key={p.id} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-xs">
+                    <div>
+                      <p className="text-xs font-bold text-slate-700">{p.employee_name}</p>
+                      <p className="text-[10px] text-slate-500">Periode: {formatDate(p.period_start)} - {formatDate(p.period_end)}</p>
+                      <p className="text-xs font-semibold text-red-600">{formatIDR(p.amount)}</p>
+                    </div>
+                    <button onClick={() => handleMarkPaid('payroll', p.id)} className="px-3 py-1.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100">
+                      Tandai Lunas
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Fuel */}
+            <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4">
+              <h3 className="text-sm font-semibold text-slate-800 mb-3 flex justify-between items-center">
+                <span>Pembelian BBM Unpaid</span>
+                <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded-full">{financeSummary.unpaid_fuel.length}</span>
+              </h3>
+              <div className="space-y-2">
+                {financeSummary.unpaid_fuel.length === 0 ? <p className="text-xs text-slate-400">Tidak ada data.</p> : financeSummary.unpaid_fuel.map(f => (
+                  <div key={f.id} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-xs">
+                    <div>
+                      <p className="text-xs font-bold text-slate-700">Solar {f.liters} L</p>
+                      <p className="text-[10px] text-slate-500">{formatDate(f.date)}</p>
+                      <p className="text-xs font-semibold text-red-600">{formatIDR(f.amount)}</p>
+                    </div>
+                    <button onClick={() => handleMarkPaid('fuel', f.id)} className="px-3 py-1.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100">
+                      Tandai Lunas
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Expenses */}
+            <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4">
+              <h3 className="text-sm font-semibold text-slate-800 mb-3 flex justify-between items-center">
+                <span>Pengeluaran Lainnya Unpaid</span>
+                <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded-full">{financeSummary.unpaid_expenses.length}</span>
+              </h3>
+              <div className="space-y-2">
+                {financeSummary.unpaid_expenses.length === 0 ? <p className="text-xs text-slate-400">Tidak ada data.</p> : financeSummary.unpaid_expenses.map(e => (
+                  <div key={e.id} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-xs">
+                    <div>
+                      <p className="text-xs font-bold text-slate-700 uppercase">{e.category}</p>
+                      <p className="text-[10px] text-slate-500 line-clamp-1">{e.description}</p>
+                      <p className="text-xs font-semibold text-red-600">{formatIDR(e.amount)}</p>
+                    </div>
+                    <button onClick={() => handleMarkPaid('expense', e.id)} className="px-3 py-1.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100">
+                      Tandai Lunas
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       
       <AlertModal
         isOpen={deleteAttendanceModal.isOpen}

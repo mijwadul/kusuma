@@ -182,9 +182,13 @@ def get_daily_report(
     fuel_total = total_liters * price_per_liter
 
     # 3. Pengeluaran lain-lain dari tabel expenses (hanya yang sudah diapprove)
+    from sqlalchemy import or_
     other_expenses = db.query(Expense).filter(
-        Expense.expense_date == report_date,
-        Expense.approval_status == "approved"
+        Expense.approval_status == "approved",
+        or_(
+            Expense.expense_date == report_date,
+            func.date(Expense.paid_at) == report_date
+        )
     ).all()
     expenses_by_cat: dict = {}
     for exp in other_expenses:
@@ -383,9 +387,16 @@ def get_daily_report_history(
         fuel_cost = float(liters or 0) * ppl
 
         # Other expenses
+        from sqlalchemy import or_
         other = (
             db.query(func.coalesce(func.sum(Expense.amount), 0))
-            .filter(Expense.expense_date == d, Expense.approval_status == "approved")
+            .filter(
+                Expense.approval_status == "approved",
+                or_(
+                    Expense.expense_date == d,
+                    func.date(Expense.paid_at) == d
+                )
+            )
             .scalar()
         )
 
@@ -422,25 +433,62 @@ def get_finance_summary(
     """Ringkasan khusus untuk dashboard Finance"""
     from ...models.expense import Expense
     from ...models.fuel_price import FuelPrice
+    from ...models.invoice import Invoice
+    from ...models.payroll import PayrollRecord
+    from ...models.income_record import IncomeRecord
+    from ...models.employee import Employee
     
-    # 1. Tagihan Unpaid (Expense yang sudah diapprove tapi belum dibayar)
-    unpaid_expenses = db.query(func.coalesce(func.sum(Expense.amount), 0)).filter(
+    # 1. Unpaid Expenses
+    unpaid_expenses_list = db.query(Expense).filter(
         Expense.approval_status == "approved",
         Expense.payment_status == "unpaid"
-    ).scalar()
-    
-    unpaid_expenses_count = db.query(Expense).filter(
-        Expense.approval_status == "approved",
-        Expense.payment_status == "unpaid"
-    ).count()
+    ).order_by(Expense.expense_date.desc()).all()
+    unpaid_expenses_amount = sum(float(e.amount or 0) for e in unpaid_expenses_list)
+    unpaid_expenses = [
+        {"id": e.id, "date": str(e.expense_date), "category": e.category, "description": e.description, "amount": float(e.amount or 0)}
+        for e in unpaid_expenses_list
+    ]
 
-    # 2. Pembelian BBM yang belum diapprove
-    pending_fuel_q = db.query(FuelPrice).filter(
-        FuelPrice.approval_status == "pending"
-    )
+    # 2. Unpaid Fuel
+    unpaid_fuel_list = db.query(FuelPrice).filter(
+        FuelPrice.approval_status == "approved",
+        FuelPrice.payment_status == "unpaid"
+    ).order_by(FuelPrice.effective_date.desc()).all()
+    unpaid_fuel_amount = sum(float(f.total_price or 0) for f in unpaid_fuel_list)
+    unpaid_fuel = [
+        {"id": f.id, "date": str(f.effective_date), "liters": float(f.liters or 0), "amount": float(f.total_price or 0), "notes": f.notes}
+        for f in unpaid_fuel_list
+    ]
+
+    # 3. Unpaid Payroll
+    unpaid_payroll_list = db.query(PayrollRecord).filter(
+        PayrollRecord.payment_status == "approved"
+    ).order_by(PayrollRecord.period_start.desc()).all()
+    unpaid_payroll_amount = sum(float(p.net_salary or 0) for p in unpaid_payroll_list)
+    unpaid_payroll = []
+    for p in unpaid_payroll_list:
+        emp = db.query(Employee).filter(Employee.id == p.employee_id).first()
+        unpaid_payroll.append({
+            "id": p.id, "employee_name": emp.name if emp else "-", "period_start": str(p.period_start), "period_end": str(p.period_end), "amount": float(p.net_salary or 0)
+        })
+
+    # 4. Unpaid Invoices
+    unpaid_invoices_list = db.query(Invoice).filter(
+        Invoice.status == "unpaid"
+    ).order_by(Invoice.invoice_date.desc()).all()
+    unpaid_invoices_amount = sum(float(i.total_amount or 0) for i in unpaid_invoices_list)
+    unpaid_invoices = [
+        {"id": i.id, "invoice_number": i.invoice_number, "customer_name": i.customer_name, "date": str(i.invoice_date), "amount": float(i.total_amount or 0)}
+        for i in unpaid_invoices_list
+    ]
+    
+    total_unpaid_bills_amount = unpaid_expenses_amount + unpaid_fuel_amount + unpaid_payroll_amount
+    total_unpaid_bills_count = len(unpaid_expenses_list) + len(unpaid_fuel_list) + len(unpaid_payroll_list)
+
+    # 5. Pending approvals
+    pending_fuel_q = db.query(FuelPrice).filter(FuelPrice.approval_status == "pending")
     pending_fuel_purchases = pending_fuel_q.count()
     recent_pending_fuel_list = pending_fuel_q.order_by(FuelPrice.effective_date.desc()).limit(10).all()
-    
     recent_pending_fuel = [
         {
             "id": f.id,
@@ -452,14 +500,38 @@ def get_finance_summary(
         for f in recent_pending_fuel_list
     ]
 
-    # 3. Pengeluaran yang belum diapprove (Expense)
-    pending_expenses = db.query(Expense).filter(
-        Expense.approval_status == "pending"
-    ).count()
+    pending_expenses = db.query(Expense).filter(Expense.approval_status == "pending").count()
+    
+    # 6. Uninvoiced Material Sales (Notification)
+    material_sales = db.query(IncomeRecord).filter(IncomeRecord.income_type == "material_sale").all()
+    invoices_all = db.query(Invoice).all()
+    uninvoiced_sales = []
+    for ms in material_sales:
+        is_invoiced = False
+        for inv in invoices_all:
+            if inv.customer_name == ms.customer_name and inv.start_date <= ms.income_date <= inv.end_date:
+                is_invoiced = True
+                break
+        if not is_invoiced:
+            uninvoiced_sales.append({
+                "id": ms.id, 
+                "date": str(ms.income_date), 
+                "customer_name": ms.customer_name, 
+                "material_type": ms.material_type, 
+                "amount": float(ms.amount or 0)
+            })
     
     return {
-        "unpaid_bills_amount": float(unpaid_expenses or 0),
-        "unpaid_bills_count": unpaid_expenses_count,
+        "unpaid_bills_amount": total_unpaid_bills_amount,
+        "unpaid_bills_count": total_unpaid_bills_count,
+        "unpaid_invoices_amount": unpaid_invoices_amount,
+        "unpaid_invoices_count": len(unpaid_invoices_list),
+        "unpaid_expenses": unpaid_expenses,
+        "unpaid_fuel": unpaid_fuel,
+        "unpaid_payroll": unpaid_payroll,
+        "unpaid_invoices": unpaid_invoices,
+        "uninvoiced_material_sales": uninvoiced_sales,
+        "uninvoiced_material_sales_count": len(uninvoiced_sales),
         "pending_fuel_purchases": pending_fuel_purchases,
         "pending_expenses": pending_expenses,
         "recent_pending_fuel": recent_pending_fuel

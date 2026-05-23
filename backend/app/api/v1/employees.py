@@ -86,8 +86,15 @@ def calculate_payroll(
     Calculate payroll for an employee
     """
     # Get attendance data
+    auto_overtime_hours = 0
+    basic_salary = 0
+    present_days = 0
+    
+    daily_salary = employee.daily_salary or 0
+    hourly_overtime_rate = employee.hourly_overtime_rate or 0
+
     if db:
-        present_days = (
+        attendances = (
             db.query(Attendance)
             .filter(
                 and_(
@@ -96,10 +103,26 @@ def calculate_payroll(
                     Attendance.status.in_(["present", "late"]),
                 )
             )
-            .count()
+            .all()
         )
+        present_days = len(attendances)
+        
+        for att in attendances:
+            work_hours = att.work_hours or 0
+            if work_hours < 6:
+                # 50% salary if work hours < 6
+                basic_salary += (daily_salary * 0.5)
+            else:
+                basic_salary += daily_salary
+                
+            if work_hours > 12:
+                auto_overtime_hours += (work_hours - 12)
     else:
-        present_days = 0  # Default if no DB
+        # Default behavior without DB
+        basic_salary = daily_salary * present_days
+
+    # Combine manual overtime and auto overtime
+    total_overtime_hours = overtime_hours + auto_overtime_hours
 
     # Calculate work days in period (exclude weekends)
     work_days = 0
@@ -112,11 +135,7 @@ def calculate_payroll(
     absent_days = work_days - present_days
 
     # Calculate income
-    daily_salary = employee.daily_salary or 0
-    hourly_overtime_rate = employee.hourly_overtime_rate or 0
-
-    basic_salary = daily_salary * present_days
-    overtime_amount = hourly_overtime_rate * overtime_hours
+    overtime_amount = hourly_overtime_rate * total_overtime_hours
 
     total_income = basic_salary + overtime_amount + bonus + allowance
 
@@ -162,6 +181,7 @@ def calculate_payroll(
         present_days=present_days,
         absent_days=absent_days,
         basic_salary=basic_salary,
+        overtime_hours=total_overtime_hours,
         overtime_amount=overtime_amount,
         bonus=bonus,
         allowance=allowance,
@@ -489,7 +509,7 @@ def create_payroll(
         work_days=calc_result.work_days,
         present_days=calc_result.present_days,
         absent_days=calc_result.absent_days,
-        overtime_hours=payroll.overtime_hours or 0,
+        overtime_hours=calc_result.overtime_hours,
         overtime_amount=calc_result.overtime_amount,
         basic_salary=calc_result.basic_salary,
         bonus=payroll.bonus or 0,
@@ -605,6 +625,35 @@ def approve_payroll(
     db.commit()
     db.refresh(payroll)
 
+    return payroll
+
+@router.put("/payroll/{payroll_id}/pay", response_model=PayrollResponse)
+def pay_payroll(
+    payroll_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Mark payroll as paid. (GM/Finance)
+    """
+    if current_user.role not in ["finance", "gm", "admin"] and not current_user.is_admin and not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Not authorized to pay payroll")
+
+    payroll = db.query(PayrollRecord).filter(PayrollRecord.id == payroll_id).first()
+    if not payroll:
+        raise HTTPException(status_code=404, detail="Payroll record not found")
+
+    if payroll.payment_status == "paid":
+        raise HTTPException(status_code=400, detail="Payroll already paid")
+        
+    if payroll.payment_status == "pending":
+        raise HTTPException(status_code=400, detail="Payroll must be approved first")
+
+    payroll.payment_status = "paid"
+    payroll.payment_date = date.today()
+    
+    db.commit()
+    db.refresh(payroll)
     return payroll
 
 
