@@ -204,9 +204,28 @@ def get_daily_report(
         db.query(IncomeRecord).filter(IncomeRecord.income_date == report_date).all()
     )
     project_income = [r for r in income_records if r.income_type == "project_payment"]
-    material_income = [r for r in income_records if r.income_type == "material_sale"]
     project_income_total = sum(float(r.amount or 0) for r in project_income)
-    material_income_total = sum(float(r.amount or 0) for r in material_income)
+    
+    # b. Material Sales (Hanya dari Invoice yang diterbitkan hari ini)
+    from ...models.invoice import Invoice
+    invoices_today = db.query(Invoice).filter(Invoice.invoice_date == report_date).all()
+    material_income_total = sum(float(inv.final_amount if inv.final_amount is not None else (inv.total_amount or 0)) for inv in invoices_today)
+
+    # c. Material Sales yang BELUM di-invoice (Informasi Tambahan)
+    material_sales_today = [r for r in income_records if r.income_type == "material_sale"]
+    invoices_all = db.query(Invoice).all() # Load all to check if invoiced
+    uninvoiced_material_sales = []
+    for ms in material_sales_today:
+        is_invoiced = False
+        for inv in invoices_all:
+            if inv.customer_name == ms.customer_name and inv.start_date <= ms.income_date <= inv.end_date:
+                is_invoiced = True
+                break
+        if not is_invoiced:
+            uninvoiced_material_sales.append(ms)
+    
+    uninvoiced_material_total = sum(float(r.amount or 0) for r in uninvoiced_material_sales)
+
 
     # 4b. Biaya Jam Kerja Alat Berat (Rental)
     work_logs_today = (
@@ -279,11 +298,8 @@ def get_daily_report(
     # Project Payments are assumed paid
     project_paid = project_income_total
     # Unpaid material sales (Invoices created today)
-    unpaid_invoices_today = db.query(Invoice).filter(
-        Invoice.invoice_date == report_date,
-        Invoice.status == "unpaid"
-    ).all()
-    material_unpaid = sum(float(inv.total_amount or 0) for inv in unpaid_invoices_today)
+    unpaid_invoices_today = [inv for inv in invoices_today if inv.status == "unpaid"]
+    material_unpaid = sum(float(inv.final_amount if inv.final_amount is not None else (inv.total_amount or 0)) for inv in unpaid_invoices_today)
     material_paid = material_income_total - material_unpaid if material_income_total > material_unpaid else material_income_total
 
     total_income_paid = project_paid + material_paid
@@ -299,6 +315,7 @@ def get_daily_report(
             "total_income_unpaid": round(total_income_unpaid, 2),
             "total_expense_paid": round(total_expense_paid, 2),
             "total_expense_unpaid": round(total_expense_unpaid, 2),
+            "uninvoiced_material_total": round(uninvoiced_material_total, 2),
         },
         "expenses": {
             "payroll": {
@@ -362,7 +379,24 @@ def get_daily_report(
             },
             "material_sales": {
                 "total": round(material_income_total, 2),
-                "count": len(material_income),
+                "count": len(invoices_today),
+                "items": [
+                    {
+                        "id": r.id,
+                        "customer_name": r.customer_name,
+                        "material_type": "Invoice Tagihan",
+                        "quantity": "-",
+                        "unit": "-",
+                        "unit_price": 0,
+                        "amount": float(r.final_amount if r.final_amount is not None else (r.total_amount or 0)),
+                        "notes": r.notes,
+                    }
+                    for r in invoices_today
+                ],
+            },
+            "uninvoiced_material": {
+                "total": round(uninvoiced_material_total, 2),
+                "count": len(uninvoiced_material_sales),
                 "items": [
                     {
                         "id": r.id,
@@ -374,7 +408,7 @@ def get_daily_report(
                         "amount": float(r.amount or 0),
                         "notes": r.notes,
                     }
-                    for r in material_income
+                    for r in uninvoiced_material_sales
                 ],
             },
         },
@@ -514,9 +548,9 @@ def get_finance_summary(
     unpaid_invoices_list = db.query(Invoice).filter(
         Invoice.status == "unpaid"
     ).order_by(Invoice.invoice_date.desc()).all()
-    unpaid_invoices_amount = sum(float(i.total_amount or 0) for i in unpaid_invoices_list)
+    unpaid_invoices_amount = sum(float(i.final_amount if i.final_amount is not None else (i.total_amount or 0)) for i in unpaid_invoices_list)
     unpaid_invoices = [
-        {"id": i.id, "invoice_number": i.invoice_number, "customer_name": i.customer_name, "date": str(i.invoice_date), "amount": float(i.total_amount or 0)}
+        {"id": i.id, "invoice_number": i.invoice_number, "customer_name": i.customer_name, "date": str(i.invoice_date), "amount": float(i.final_amount if i.final_amount is not None else (i.total_amount or 0))}
         for i in unpaid_invoices_list
     ]
     

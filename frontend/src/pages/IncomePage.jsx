@@ -821,7 +821,7 @@ const IncomePage = () => {
                         {formatDate(r.start_date)} - {formatDate(r.end_date)}
                       </td>
                       <td className="px-4 py-3 text-right font-semibold text-emerald-700 tabular-nums whitespace-nowrap">
-                        {formatIDR(r.total_amount)}
+                        {formatIDR(r.final_amount ?? r.total_amount)}
                       </td>
                       <td className="px-4 py-3 text-center whitespace-nowrap">
                         {statusBadge(r.status)}

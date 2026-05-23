@@ -483,7 +483,15 @@ const InvoiceGenerator = ({ isOpen, onClose, customers = [], existingInvoice = n
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-emerald-600 font-medium">Total Tagihan</p>
-                      <p className="text-2xl font-bold text-emerald-700">{formatIDR(previewData.total_amount)}</p>
+                      <p className="text-2xl font-bold text-emerald-700">
+                        {formatIDR(previewData.total_amount - (
+                          discountType === 'percentage' && discountValue 
+                            ? previewData.total_amount * (parseFloat(discountValue) / 100) 
+                            : discountType === 'nominal' && discountValue 
+                              ? parseFloat(discountValue) 
+                              : 0
+                        ))}
+                      </p>
                     </div>
                   </div>
 
@@ -515,6 +523,38 @@ const InvoiceGenerator = ({ isOpen, onClose, customers = [], existingInvoice = n
                           </tr>
                         ))}
                       </tbody>
+                      <tfoot>
+                        <tr className="bg-gray-50 font-medium">
+                          <td colSpan="7" className="px-4 py-3 text-right text-gray-700">Subtotal</td>
+                          <td className="px-4 py-3 text-right text-gray-800 whitespace-nowrap">{formatIDR(previewData.total_amount)}</td>
+                        </tr>
+                        {discountType && discountValue && (
+                          <tr className="bg-red-50 font-medium text-red-600">
+                            <td colSpan="7" className="px-4 py-3 text-right">
+                              Diskon {discountType === 'percentage' ? `(${discountValue}%)` : '(Nominal)'}
+                            </td>
+                            <td className="px-4 py-3 text-right whitespace-nowrap">
+                              - {formatIDR(
+                                discountType === 'percentage' 
+                                  ? previewData.total_amount * (parseFloat(discountValue) / 100)
+                                  : parseFloat(discountValue)
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                        <tr className="bg-emerald-50 font-bold text-emerald-700">
+                          <td colSpan="7" className="px-4 py-3 text-right">Total Akhir</td>
+                          <td className="px-4 py-3 text-right whitespace-nowrap">
+                            {formatIDR(previewData.total_amount - (
+                              discountType === 'percentage' && discountValue 
+                                ? previewData.total_amount * (parseFloat(discountValue) / 100) 
+                                : discountType === 'nominal' && discountValue 
+                                  ? parseFloat(discountValue) 
+                                  : 0
+                            ))}
+                          </td>
+                        </tr>
+                      </tfoot>
                     </table>
                   </div>
                   

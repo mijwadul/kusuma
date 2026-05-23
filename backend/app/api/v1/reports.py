@@ -97,6 +97,7 @@ class ReportSummary(BaseModel):
     total_income_unpaid: float
     total_expense_paid: float
     total_expense_unpaid: float
+    uninvoiced_material_total: Optional[float] = 0.0
 
 
 class RangeReport(BaseModel):
@@ -331,11 +332,22 @@ def get_range_report(
         .all()
     )
 
+    # Find uninvoiced material sales
+    from ...models.invoice import Invoice
+    invoices_all = db.query(Invoice).all() # Load all to check if invoiced
+    uninvoiced_material_sales = []
+    
     material_items: List[MaterialSaleItem] = []
-    total_material_sales = 0.0
     for ir in material_rows:
-        amt = float(ir.amount or 0)
-        total_material_sales += amt
+        is_invoiced = False
+        for inv in invoices_all:
+            if inv.customer_name == ir.customer_name and inv.start_date <= ir.income_date <= inv.end_date:
+                is_invoiced = True
+                break
+        
+        if not is_invoiced:
+            uninvoiced_material_sales.append(ir)
+            
         material_items.append(MaterialSaleItem(
             id=ir.id,
             tanggal=_fmt_date(ir.income_date),
@@ -343,11 +355,15 @@ def get_range_report(
             quantity=ir.quantity,
             unit=ir.unit,
             unit_price=ir.unit_price,
-            amount=amt,
+            amount=float(ir.amount or 0),
             customer_name=ir.customer_name,
             payment_method=ir.payment_method,
             description=ir.description,
         ))
+
+    # Pemasukan Material = Total Final Amount dari semua Invoice yang diterbitkan di range ini
+    invoices_in_range = [inv for inv in invoices_all if start_date <= inv.invoice_date <= end_date]
+    total_material_sales = sum(float(inv.final_amount if inv.final_amount is not None else (inv.total_amount or 0)) for inv in invoices_in_range)
 
     # ── Expense calculation (Paid vs Unpaid) ──
     from ...models.expense import Expense
@@ -393,12 +409,8 @@ def get_range_report(
     # Unpaid material sales (from invoices)
     # Note: If an invoice covers a period, its total_amount is unpaid income.
     # To keep it simple for the range, we look at invoices dated in this range.
-    unpaid_invoices = db.query(Invoice).filter(
-        Invoice.invoice_date >= start_date,
-        Invoice.invoice_date <= end_date,
-        Invoice.status == "unpaid"
-    ).all()
-    total_income_unpaid = sum(float(inv.total_amount or 0) for inv in unpaid_invoices)
+    unpaid_invoices = [inv for inv in invoices_in_range if inv.status == "unpaid"]
+    total_income_unpaid = sum(float(inv.final_amount if inv.final_amount is not None else (inv.total_amount or 0)) for inv in unpaid_invoices)
     
     total_income_all = total_material_sales + total_project_sales
     total_income_paid = total_income_all - total_income_unpaid
@@ -423,6 +435,7 @@ def get_range_report(
             total_income_unpaid=round(total_income_unpaid, 2),
             total_expense_paid=round(total_expense_paid, 2),
             total_expense_unpaid=round(total_expense_unpaid, 2),
+            uninvoiced_material_total=round(sum(float(ir.amount or 0) for ir in uninvoiced_material_sales), 2),
         ),
         fuel_purchases=fuel_purchases,
         fuel_by_equipment=fuel_by_equipment,

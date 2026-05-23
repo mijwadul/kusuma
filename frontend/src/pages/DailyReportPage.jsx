@@ -391,6 +391,11 @@ const DailyReportPage = () => {
     count: 0,
     items: [],
   };
+  const uninvoicedMaterial = income.uninvoiced_material ?? {
+    total: 0,
+    count: 0,
+    items: [],
+  };
 
   // PieChart data
   const pieData = [
@@ -863,10 +868,45 @@ const DailyReportPage = () => {
                 <>
                   <SectionHeader
                     icon={Package}
-                    title={`Penjualan Material (${materialSales.count})`}
+                    title={`Penjualan Material (Invoice) (${materialSales.count})`}
                     total={materialSales.total}
                     iconColor="text-teal-500"
                   />
+                  <SimpleTable
+                    headers={[
+                      { label: "Customer" },
+                      { label: "Keterangan" },
+                      { label: "Total", right: true },
+                    ]}
+                    rows={materialSales.items.map((it) => [
+                      it.customer_name ?? "-",
+                      it.material_type ?? "-",
+                      formatIDR(it.amount),
+                    ])}
+                    emptyMsg="Belum ada invoice diterbitkan hari ini"
+                  />
+                </>
+              )}
+            </div>
+
+            {/* Penjualan Belum Tertagih */}
+            <div className="bg-white rounded-xl border border-dashed border-gray-300 shadow-sm p-5">
+              {loading ? (
+                <div className="space-y-2">
+                  <SkeletonBlock className="h-5 w-36" />
+                  <SkeletonBlock className="h-24" />
+                </div>
+              ) : (
+                <>
+                  <SectionHeader
+                    icon={AlertCircle}
+                    title={`Belum Dibuatkan Invoice (${uninvoicedMaterial.count})`}
+                    total={uninvoicedMaterial.total}
+                    iconColor="text-amber-500"
+                  />
+                  <p className="text-xs text-gray-500 mb-3">
+                    *Penjualan di bawah ini belum ditagihkan ke customer dan tidak dihitung ke saldo kas harian sampai invoice diterbitkan.
+                  </p>
                   <SimpleTable
                     headers={[
                       { label: "Customer" },
@@ -875,14 +915,14 @@ const DailyReportPage = () => {
                       { label: "Harga/Unit", right: true },
                       { label: "Total", right: true },
                     ]}
-                    rows={materialSales.items.map((it) => [
+                    rows={uninvoicedMaterial.items.map((it) => [
                       it.customer_name ?? "-",
                       it.material_type ?? "-",
                       `${it.quantity ?? 0} ${it.unit ?? ""}`,
                       formatIDR(it.unit_price),
                       formatIDR(it.amount),
                     ])}
-                    emptyMsg="Belum ada penjualan material hari ini"
+                    emptyMsg="Semua pengiriman material hari ini sudah dibuatkan invoice"
                   />
                 </>
               )}
