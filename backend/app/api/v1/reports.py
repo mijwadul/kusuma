@@ -483,14 +483,14 @@ def get_range_report(
     # Rental cost expense
     total_equipment_rental_expense = sum(wb.total_rental_cost for wb in work_logs_by_equipment)
     
-    # Fuel consumed cost (Operational Expense)
+    # Fuel consumed cost (For information only, not for cash flow net balance)
     total_fuel_consumed_cost = sum(log_costs[fl.id] for fl in fuel_log_rows)
     
     total_expense_paid = expense_paid + fuel_paid + payroll_paid
     total_expense_unpaid = expense_unpaid + fuel_unpaid + payroll_unpaid + total_equipment_rental_expense
     
-    # Net Balance should use OPERATIONAL expense (Fuel Consumed, not Purchases)
-    total_expense_actual = expense_paid + expense_unpaid + payroll_paid + payroll_unpaid + total_fuel_consumed_cost + total_equipment_rental_expense
+    # Net Balance matches UI math (Cash/Accrual Hybrid based on Paid + Unpaid)
+    total_expense_actual = total_expense_paid + total_expense_unpaid
 
     # ── Income calculation (Paid vs Unpaid) ──
     # Project payments (all paid)
@@ -501,21 +501,17 @@ def get_range_report(
     ).all()
     total_project_sales = sum(float(r.amount or 0) for r in project_rows)
     
-    # Calculate unpaid material sales based on IncomeRecord
+    # Calculate unpaid material sales accurately
     material_unpaid = 0.0
-    for ir in material_rows:
-        ir_amount = float(ir.amount or 0)
-        # Find covering invoice
-        covering_inv = None
-        for inv in invoices_all:
-            if inv.customer_name == ir.customer_name and inv.start_date <= ir.income_date <= inv.end_date:
-                covering_inv = inv
-                break
-        
-        if not covering_inv:
-            material_unpaid += ir_amount
-        elif covering_inv.status == "unpaid":
-            material_unpaid += ir_amount
+    
+    # 1. Unpaid invoices
+    for inv in invoices_in_range:
+        if inv.status == "unpaid":
+            material_unpaid += float(inv.final_amount if inv.final_amount is not None else (inv.total_amount or 0))
+            
+    # 2. Uninvoiced material sales are implicitly unpaid
+    for ir in uninvoiced_material_sales:
+        material_unpaid += float(ir.amount or 0)
             
     total_income_unpaid = material_unpaid
     
@@ -530,7 +526,7 @@ def get_range_report(
         period_start=str(start_date),
         period_end=str(end_date),
         summary=ReportSummary(
-            total_fuel_expense=round(total_fuel_consumed_cost, 2),
+            total_fuel_expense=round(fuel_paid + fuel_unpaid, 2),
             total_fuel_liters=round(total_fuel_liters_purchased, 2),
             total_work_hours=round(total_work_hours, 2),
             total_equipment_rental_expense=round(total_equipment_rental_expense, 2),
