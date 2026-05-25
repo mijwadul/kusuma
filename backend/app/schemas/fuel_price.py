@@ -11,6 +11,7 @@ class FuelPriceBase(BaseModel):
     liters: Optional[float] = None
     total_price: Optional[float] = None
     notes: Optional[str] = None
+    vendor_name: Optional[str] = None
 
 
 class FuelPriceCreate(FuelPriceBase):
@@ -25,6 +26,7 @@ class FuelPriceUpdate(BaseModel):
     total_price: Optional[float] = None
     approval_status: Optional[str] = None
     notes: Optional[str] = None
+    vendor_name: Optional[str] = None
 
 
 class FuelPrice(FuelPriceBase):

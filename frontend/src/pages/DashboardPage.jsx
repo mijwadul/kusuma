@@ -1632,8 +1632,9 @@ export default function DashboardPage() {
                   <div key={f.id} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-xs">
                     <div>
                       <p className="text-xs font-bold text-slate-700">Solar {f.liters} L</p>
+                      <p className="text-[10px] font-medium text-amber-600 mt-0.5">BBM dari: {f.vendor_name || 'Tidak diketahui'}</p>
                       <p className="text-[10px] text-slate-500">{formatDate(f.date)}</p>
-                      <p className="text-xs font-semibold text-red-600">{formatIDR(f.amount)}</p>
+                      <p className="text-xs font-semibold text-red-600 mt-0.5">{formatIDR(f.amount)}</p>
                     </div>
                     <button onClick={() => handleMarkPaid('fuel', f.id)} className="px-3 py-1.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100">
                       Tandai Lunas

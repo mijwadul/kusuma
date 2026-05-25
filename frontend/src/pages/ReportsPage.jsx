@@ -15,6 +15,19 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
+import {
+  BarChart as RechartsBarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 
 const API_BASE = "/api/v1";
 
@@ -151,6 +164,45 @@ export default function ReportsPage() {
   };
 
   const handlePrint = () => window.print();
+
+  // --- Chart Data Preparation ---
+  const pieData = report ? [
+    { name: "BBM", value: report.summary.total_fuel_expense },
+    { name: "Gaji (Est)", value: report.summary.total_payroll_expense },
+    { name: "Sewa Alat", value: report.summary.total_equipment_rental_expense },
+  ].filter(d => d.value > 0) : [];
+
+  const PIE_COLORS = ["#f59e0b", "#3b82f6", "#8b5cf6"];
+
+  const barFuelData = report ? report.fuel_by_equipment.map(f => ({
+    name: f.equipment_name.length > 10 ? f.equipment_name.substring(0, 10) + '...' : f.equipment_name,
+    liters: f.total_liters,
+    cost: f.total_cost,
+    fullName: f.equipment_name
+  })).sort((a,b) => b.liters - a.liters).slice(0, 10) : [];
+
+  const barWorkData = report ? report.work_logs_by_equipment.map(w => ({
+    name: w.equipment_name.length > 10 ? w.equipment_name.substring(0, 10) + '...' : w.equipment_name,
+    hours: w.total_payable_hours,
+    cost: w.total_rental_cost,
+    fullName: w.equipment_name
+  })).sort((a,b) => b.hours - a.hours).slice(0, 10) : [];
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-xs">
+        <p className="font-semibold text-gray-700 mb-2">{payload[0]?.payload?.fullName || label}</p>
+        {payload.map((p, i) => (
+          <div key={i} className="flex items-center gap-2 mb-1">
+            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
+            <span className="text-gray-600">{p.name}:</span>
+            <span className="font-medium">{p.name === 'Biaya' || p.name.includes('Sewa') ? formatRupiah(p.value) : p.value}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <>
@@ -359,6 +411,86 @@ export default function ReportsPage() {
               />
             </div>
 
+            {/* ── Charts ──────────────────────────────────────────────── */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 mt-6">
+              {/* Pie Chart Komposisi Biaya */}
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <PieChart size={18} className="text-purple-500" /> Komposisi Beban Operasional
+                </h3>
+                {pieData.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-10">Tidak ada pengeluaran di periode ini.</p>
+                ) : (
+                  <>
+                    <ResponsiveContainer width="100%" height={180}>
+                      <PieChart>
+                        <Pie
+                          data={pieData}
+                          cx="50%" cy="50%"
+                          innerRadius={50} outerRadius={75}
+                          paddingAngle={3} dataKey="value"
+                        >
+                          {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                        </Pie>
+                        <Tooltip formatter={v => formatRupiah(v)} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="mt-3 space-y-2">
+                      {pieData.map((d, i) => (
+                        <div key={i} className="flex justify-between text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                            <span className="text-gray-600">{d.name}</span>
+                          </div>
+                          <span className="font-semibold text-gray-800">{formatRupiah(d.value)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Bar Chart BBM */}
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <Fuel size={18} className="text-amber-500" /> Top 10 Konsumsi BBM (Liter)
+                </h3>
+                {barFuelData.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-10">Belum ada data BBM.</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={230}>
+                    <RechartsBarChart data={barFuelData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                      <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-25} textAnchor="end" interval={0} />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="liters" name="Liter" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                    </RechartsBarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+
+              {/* Bar Chart Jam Kerja */}
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <Clock size={18} className="text-blue-500" /> Top 10 Jam Kerja Alat
+                </h3>
+                {barWorkData.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-10">Belum ada data Jam Kerja.</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={230}>
+                    <RechartsBarChart data={barWorkData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                      <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-25} textAnchor="end" interval={0} />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="hours" name="Jam Kerja" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    </RechartsBarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
             {/* ── 1. Pembelian BBM ──────────────────────────────────── */}
             <Section title="1. Pembelian BBM (Approved)">
               {report.fuel_purchases.length === 0 ? (
@@ -412,6 +544,7 @@ export default function ReportsPage() {
                       <Th>Nama Alat</Th>
                       <Th>Tipe</Th>
                       <Th right>Total Liter</Th>
+                      <Th right>Total Biaya (FIFO)</Th>
                       <Th right>Jml Pengisian</Th>
                     </tr>
                   </thead>
@@ -422,16 +555,26 @@ export default function ReportsPage() {
                         <Td bold>{fb.equipment_name}</Td>
                         <Td>{fb.equipment_type}</Td>
                         <Td right bold>{formatNum(fb.total_liters)} L</Td>
+                        <Td right bold className="text-amber-700">{formatRupiah(fb.total_cost)}</Td>
                         <Td right>{fb.refuel_count}×</Td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
-                    <TotalRow
-                      cols={5}
-                      label="Total Liter"
-                      value={`${formatNum(report.fuel_by_equipment.reduce((s, r) => s + r.total_liters, 0))} L`}
-                    />
+                    <tr className="bg-gray-50">
+                      <td colSpan={3} className="px-4 py-3 text-right font-bold text-gray-700 border-t border-gray-200">
+                        Total
+                      </td>
+                      <td className="px-4 py-3 text-right font-bold text-gray-900 border-t border-gray-200">
+                        {formatNum(report.fuel_by_equipment.reduce((s, r) => s + r.total_liters, 0))} L
+                      </td>
+                      <td className="px-4 py-3 text-right font-bold text-gray-900 border-t border-gray-200 text-amber-700">
+                        {formatRupiah(report.fuel_by_equipment.reduce((s, r) => s + r.total_cost, 0))}
+                      </td>
+                      <td className="px-4 py-3 text-right font-bold text-gray-900 border-t border-gray-200">
+                        {report.fuel_by_equipment.reduce((s, r) => s + r.refuel_count, 0)}×
+                      </td>
+                    </tr>
                   </tfoot>
                 </TableWrapper>
               )}
@@ -452,6 +595,9 @@ export default function ReportsPage() {
                         <Th>Nama Alat</Th>
                         <Th>Tipe</Th>
                         <Th right>Total Jam</Th>
+                        <Th right>Jam Diskon</Th>
+                        <Th right>Jam Dibayar</Th>
+                        <Th right>Biaya Sewa Alat</Th>
                         <Th right>Jml Log</Th>
                       </tr>
                     </thead>
@@ -461,17 +607,35 @@ export default function ReportsPage() {
                           <Td muted>{idx + 1}</Td>
                           <Td bold>{wb.equipment_name}</Td>
                           <Td>{wb.equipment_type}</Td>
-                          <Td right bold>{formatNum(wb.total_hours)} jam</Td>
+                          <Td right>{formatNum(wb.total_hours)}</Td>
+                          <Td right className="text-red-500">{formatNum(wb.total_discount_hours)}</Td>
+                          <Td right bold className="text-blue-700">{formatNum(wb.total_payable_hours)}</Td>
+                          <Td right bold className="text-amber-700">{formatRupiah(wb.total_rental_cost)}</Td>
                           <Td right>{wb.log_count}×</Td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
-                      <TotalRow
-                        cols={5}
-                        label="Total Jam Kerja"
-                        value={`${formatNum(report.summary.total_work_hours)} jam`}
-                      />
+                      <tr className="bg-gray-50">
+                        <td colSpan={3} className="px-4 py-3 text-right font-bold text-gray-700 border-t border-gray-200">
+                          Total Keseluruhan
+                        </td>
+                        <td className="px-4 py-3 text-right font-bold text-gray-900 border-t border-gray-200">
+                          {formatNum(report.summary.total_work_hours)}
+                        </td>
+                        <td className="px-4 py-3 text-right font-bold text-red-600 border-t border-gray-200">
+                          {formatNum(report.work_logs_by_equipment.reduce((s, r) => s + r.total_discount_hours, 0))}
+                        </td>
+                        <td className="px-4 py-3 text-right font-bold text-blue-700 border-t border-gray-200">
+                          {formatNum(report.work_logs_by_equipment.reduce((s, r) => s + r.total_payable_hours, 0))}
+                        </td>
+                        <td className="px-4 py-3 text-right font-bold text-amber-700 border-t border-gray-200">
+                          {formatRupiah(report.work_logs_by_equipment.reduce((s, r) => s + r.total_rental_cost, 0))}
+                        </td>
+                        <td className="px-4 py-3 text-right font-bold text-gray-900 border-t border-gray-200">
+                          {report.work_logs_by_equipment.reduce((s, r) => s + r.log_count, 0)}×
+                        </td>
+                      </tr>
                     </tfoot>
                   </TableWrapper>
 
@@ -486,7 +650,10 @@ export default function ReportsPage() {
                             <Th>Tanggal</Th>
                             <Th>Alat</Th>
                             <Th>Operator</Th>
-                            <Th right>Jam</Th>
+                            <Th right>Total Jam</Th>
+                            <Th right>Diskon</Th>
+                            <Th right>Dibayar</Th>
+                            <Th right>Biaya Sewa Alat</Th>
                             <Th>Deskripsi</Th>
                           </tr>
                         </thead>
@@ -497,7 +664,12 @@ export default function ReportsPage() {
                               <Td>{formatDate(wd.work_date)}</Td>
                               <Td bold>{wd.equipment_name}</Td>
                               <Td>{wd.operator_name || "-"}</Td>
-                              <Td right>{formatNum(wd.total_hours)} jam</Td>
+                              <Td right>{formatNum(wd.total_hours)}</Td>
+                              <Td right className={wd.rental_discount_hours > 0 ? "text-red-500 font-medium" : ""}>
+                                {formatNum(wd.rental_discount_hours)}
+                              </Td>
+                              <Td right bold className="text-blue-700">{formatNum(wd.payable_rental_hours)}</Td>
+                              <Td right bold className="text-amber-700">{formatRupiah(wd.total_rental_cost)}</Td>
                               <Td muted>{wd.work_description || "-"}</Td>
                             </tr>
                           ))}
@@ -530,6 +702,7 @@ export default function ReportsPage() {
                         <Th right>Total Jam</Th>
                         <Th right>Lembur</Th>
                         <Th right>Gaji Harian</Th>
+                        <Th right>Bonus Operator</Th>
                         <Th right>Est. Gaji</Th>
                       </tr>
                     </thead>
@@ -559,13 +732,16 @@ export default function ReportsPage() {
                             </span>
                           </Td>
                           <Td right>{formatRupiah(att.daily_salary)}</Td>
+                          <Td right className={att.operator_bonus > 0 ? "text-blue-600 font-bold" : "text-gray-400"}>
+                            {formatRupiah(att.operator_bonus)}
+                          </Td>
                           <Td right bold>{formatRupiah(att.estimated_salary)}</Td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
                       <TotalRow
-                        cols={10}
+                        cols={11}
                         label={`Total Estimasi (${report.attendance_summary.length} karyawan · ${report.summary.total_present_days} hari hadir)`}
                         value={formatRupiah(report.summary.total_payroll_expense)}
                       />
@@ -652,6 +828,10 @@ export default function ReportsPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Pengeluaran Belum Terbayar (Unpaid)</span>
                     <span className="font-semibold text-amber-600">{formatRupiah(report.summary.total_expense_unpaid)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs pb-1">
+                    <span className="text-gray-400 pl-2">└ Termasuk Biaya Sewa Alat</span>
+                    <span className="font-medium text-amber-600/70">{formatRupiah(report.summary.total_equipment_rental_expense)}</span>
                   </div>
                   <div className="flex justify-between text-sm font-bold pt-1">
                     <span className="text-gray-800">Total Akumulasi Pengeluaran</span>

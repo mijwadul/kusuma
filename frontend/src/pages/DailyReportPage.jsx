@@ -12,6 +12,7 @@ import {
   PieChart,
   Pie,
   Cell,
+  BarChart,
 } from "recharts";
 import {
   ChevronLeft,
@@ -30,6 +31,7 @@ import {
   AlertCircle,
   Truck,
   Download,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { API_URL } from "../api/auth";
@@ -87,11 +89,18 @@ const PAYMENT_TERM_MAP = {
   pelunasan: "Pelunasan",
 };
 
-const handleExportPDF = async (reportDate) => {
+const handleExportPDF = async (reportDate, setIsExporting) => {
   const element = document.getElementById("daily-report-content");
   if (!element) return;
   
   const loadingToast = toast.loading("Generating PDF...");
+  
+  if (setIsExporting) {
+    setIsExporting(true);
+    // Wait for React to re-render without animations
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+
   try {
     const canvas = await html2canvas(element, {
       scale: 2,
@@ -109,6 +118,8 @@ const handleExportPDF = async (reportDate) => {
     toast.success("PDF berhasil di-download", { id: loadingToast });
   } catch (err) {
     toast.error("Gagal generate PDF", { id: loadingToast });
+  } finally {
+    if (setIsExporting) setIsExporting(false);
   }
 };
 
@@ -267,6 +278,7 @@ const DailyReportPage = () => {
   const [loading, setLoading] = useState(true);
   const [histLoading, setHistLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // ── fetch user ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -405,6 +417,18 @@ const DailyReportPage = () => {
     { name: "Sewa Alat", value: equipment_rental.total },
   ].filter((d) => d.value > 0);
 
+  const barFuelData = fuel.items.map(f => ({
+    name: (f.equipment_name || "-").length > 10 ? (f.equipment_name || "-").substring(0, 10) + "..." : (f.equipment_name || "-"),
+    liters: f.liters,
+    fullName: f.equipment_name || "-"
+  })).sort((a,b) => b.liters - a.liters).slice(0, 10);
+
+  const barWorkData = equipment_rental.items.map(w => ({
+    name: (w.equipment_name || "-").length > 10 ? (w.equipment_name || "-").substring(0, 10) + "..." : (w.equipment_name || "-"),
+    hours: w.total_hours,
+    fullName: w.equipment_name || "-"
+  })).sort((a,b) => b.hours - a.hours).slice(0, 10);
+
   const hasExpenseData = summary.total_expense > 0;
 
   // ── render ──────────────────────────────────────────────────────────────────
@@ -431,7 +455,7 @@ const DailyReportPage = () => {
             </p>
           </div>
           <button
-            onClick={() => handleExportPDF(reportDate)}
+            onClick={() => handleExportPDF(reportDate, setIsExporting)}
             className="flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-50 transition-colors self-start"
           >
             <Download size={16} />
@@ -559,6 +583,7 @@ const DailyReportPage = () => {
                     stackId="exp"
                     fill={CHART_COLORS.payroll}
                     radius={[0, 0, 0, 0]}
+                    isAnimationActive={!isExporting}
                   />
                   <Bar
                     dataKey="fuel"
@@ -566,6 +591,7 @@ const DailyReportPage = () => {
                     stackId="exp"
                     fill={CHART_COLORS.fuel}
                     radius={[0, 0, 0, 0]}
+                    isAnimationActive={!isExporting}
                   />
                   <Bar
                     dataKey="others"
@@ -573,6 +599,7 @@ const DailyReportPage = () => {
                     stackId="exp"
                     fill={CHART_COLORS.others}
                     radius={[4, 4, 0, 0]}
+                    isAnimationActive={!isExporting}
                   />
                   <Line
                     type="monotone"
@@ -582,6 +609,7 @@ const DailyReportPage = () => {
                     strokeWidth={2}
                     dot={{ r: 3, fill: CHART_COLORS.income }}
                     activeDot={{ r: 5 }}
+                    isAnimationActive={!isExporting}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -614,6 +642,7 @@ const DailyReportPage = () => {
                       outerRadius={72}
                       paddingAngle={3}
                       dataKey="value"
+                      isAnimationActive={!isExporting}
                     >
                       {pieData.map((_, i) => (
                         <Cell
@@ -647,6 +676,53 @@ const DailyReportPage = () => {
                   ))}
                 </div>
               </>
+            )}
+          </div>
+        </div>
+
+        {/* ── Additional Bar Charts ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="bg-white rounded-xl shadow-sm p-5">
+            <h2 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <Fuel size={18} className="text-amber-500" /> Top BBM Harian (Liter)
+            </h2>
+            {barFuelData.length === 0 ? (
+              <div className="h-40 flex flex-col items-center justify-center text-gray-400">
+                <Minus size={24} className="mb-2" />
+                <p className="text-sm">Tidak ada BBM hari ini</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={barFuelData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-25} textAnchor="end" interval={0} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="liters" name="Liter" fill="#f59e0b" radius={[4, 4, 0, 0]} isAnimationActive={!isExporting} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-5">
+            <h2 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <Clock size={18} className="text-blue-500" /> Top Jam Kerja Harian
+            </h2>
+            {barWorkData.length === 0 ? (
+              <div className="h-40 flex flex-col items-center justify-center text-gray-400">
+                <Minus size={24} className="mb-2" />
+                <p className="text-sm">Tidak ada jam kerja hari ini</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={barWorkData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-25} textAnchor="end" interval={0} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="hours" name="Jam Kerja" fill="#3b82f6" radius={[4, 4, 0, 0]} isAnimationActive={!isExporting} />
+                </BarChart>
+              </ResponsiveContainer>
             )}
           </div>
         </div>

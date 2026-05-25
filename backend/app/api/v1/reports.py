@@ -37,6 +37,7 @@ class FuelByEquipmentItem(BaseModel):
     equipment_name: str
     equipment_type: str
     total_liters: float
+    total_cost: float
     refuel_count: int
 
 
@@ -47,6 +48,9 @@ class WorkLogDetailItem(BaseModel):
     operator_name: Optional[str]
     work_date: Optional[str]
     total_hours: float
+    rental_discount_hours: float
+    payable_rental_hours: float
+    total_rental_cost: float
     work_description: Optional[str]
 
 
@@ -55,6 +59,9 @@ class WorkLogByEquipmentItem(BaseModel):
     equipment_name: str
     equipment_type: str
     total_hours: float
+    total_discount_hours: float
+    total_payable_hours: float
+    total_rental_cost: float
     log_count: int
 
 
@@ -68,7 +75,8 @@ class AttendanceEmployeeItem(BaseModel):
     total_work_hours: float
     total_overtime_hours: float
     daily_salary: float
-    estimated_salary: float  # present_days * daily_salary
+    operator_bonus: float
+    estimated_salary: float  # present_days * daily_salary + bonus
 
 
 class MaterialSaleItem(BaseModel):
@@ -88,6 +96,7 @@ class ReportSummary(BaseModel):
     total_fuel_expense: float
     total_fuel_liters: float
     total_work_hours: float
+    total_equipment_rental_expense: float
     total_payroll_expense: float
     total_material_sales: float
     net_balance: float
@@ -175,95 +184,161 @@ def get_range_report(
             catatan=fp.notes,
         ))
 
-    # ── 2. BBM per Alat ──────────────────────────────────────────────────────
+    # ── 2. BBM per Alat & FIFO Calculation ──────────────────────────────────
+    # FIFO Calculation over history
+    all_fuel_purchases = db.query(FuelPrice).filter(
+        FuelPrice.approval_status == "approved"
+    ).order_by(FuelPrice.effective_date.asc()).all()
+    all_fuel_logs = db.query(FuelLog).order_by(FuelLog.refuel_date.asc()).all()
+
+    events = []
+    for fp in all_fuel_purchases:
+        events.append({"type": "purchase", "date": fp.effective_date, "data": fp})
+    for fl in all_fuel_logs:
+        events.append({"type": "consume", "date": fl.refuel_date, "data": fl})
+        
+    events.sort(key=lambda x: x["date"])
+    
+    inventory = []
+    log_costs = {}
+    
+    for ev in events:
+        if ev["type"] == "purchase":
+            fp = ev["data"]
+            if fp.liters and fp.liters > 0:
+                inventory.append({
+                    "price": float(fp.price_per_liter),
+                    "remaining_liters": float(fp.liters)
+                })
+        else:
+            fl = ev["data"]
+            liters_needed = float(fl.liters_filled or 0)
+            cost = 0.0
+            
+            while liters_needed > 0 and inventory:
+                batch = inventory[0]
+                if batch["remaining_liters"] <= liters_needed:
+                    cost += batch["remaining_liters"] * batch["price"]
+                    liters_needed -= batch["remaining_liters"]
+                    inventory.pop(0)
+                else:
+                    cost += liters_needed * batch["price"]
+                    batch["remaining_liters"] -= liters_needed
+                    liters_needed = 0
+                    
+            if liters_needed > 0:
+                fallback_price = all_fuel_purchases[-1].price_per_liter if all_fuel_purchases else 0
+                cost += liters_needed * float(fallback_price)
+                
+            log_costs[fl.id] = cost
+
     fuel_log_rows = (
-        db.query(
-            FuelLog.equipment_id,
-            func.coalesce(func.sum(FuelLog.liters_filled), 0).label("total_liters"),
-            func.count(FuelLog.id).label("refuel_count"),
-        )
+        db.query(FuelLog)
         .filter(
             cast(FuelLog.refuel_date, Date) >= start_date,
             cast(FuelLog.refuel_date, Date) <= end_date,
         )
-        .group_by(FuelLog.equipment_id)
         .all()
     )
 
-    eq_ids = [r.equipment_id for r in fuel_log_rows if r.equipment_id]
+    fuel_by_eq_dict = defaultdict(lambda: {"liters": 0.0, "count": 0, "cost": 0.0})
+    eq_ids = set()
+    for fl in fuel_log_rows:
+        eq_id = fl.equipment_id
+        if eq_id:
+            eq_ids.add(eq_id)
+            fuel_by_eq_dict[eq_id]["liters"] += float(fl.liters_filled or 0)
+            fuel_by_eq_dict[eq_id]["count"] += 1
+            fuel_by_eq_dict[eq_id]["cost"] += log_costs.get(fl.id, 0.0)
+
     if eq_ids:
-        for e in db.query(Equipment).filter(Equipment.id.in_(eq_ids)).all():
+        for e in db.query(Equipment).filter(Equipment.id.in_(list(eq_ids))).all():
             equipment_map[e.id] = e
 
     fuel_by_equipment: List[FuelByEquipmentItem] = []
-    for row in fuel_log_rows:
-        eq = equipment_map.get(row.equipment_id)
+    for eq_id, stats in fuel_by_eq_dict.items():
+        eq = equipment_map.get(eq_id)
         fuel_by_equipment.append(FuelByEquipmentItem(
-            equipment_id=row.equipment_id or 0,
-            equipment_name=eq.name if eq else f"Alat #{row.equipment_id}",
+            equipment_id=eq_id,
+            equipment_name=eq.name if eq else f"Alat #{eq_id}",
             equipment_type=eq.type if eq else "-",
-            total_liters=round(float(row.total_liters), 2),
-            refuel_count=int(row.refuel_count),
+            total_liters=round(stats["liters"], 2),
+            total_cost=round(stats["cost"], 2),
+            refuel_count=stats["count"],
         ))
     fuel_by_equipment.sort(key=lambda x: x.equipment_name)
 
     # ── 3. Jam Kerja Alat ────────────────────────────────────────────────────
-    wl_summary_rows = (
-        db.query(
-            WorkLog.equipment_id,
-            func.coalesce(func.sum(WorkLog.total_hours), 0).label("total_hours"),
-            func.count(WorkLog.id).label("log_count"),
-        )
-        .filter(
-            cast(WorkLog.work_date, Date) >= start_date,
-            cast(WorkLog.work_date, Date) <= end_date,
-        )
-        .group_by(WorkLog.equipment_id)
-        .all()
-    )
-
-    wl_eq_ids = [r.equipment_id for r in wl_summary_rows if r.equipment_id]
-    if wl_eq_ids:
-        for e in db.query(Equipment).filter(Equipment.id.in_(wl_eq_ids)).all():
-            equipment_map[e.id] = e
-
-    work_logs_by_equipment: List[WorkLogByEquipmentItem] = []
-    total_work_hours = 0.0
-    for row in wl_summary_rows:
-        eq = equipment_map.get(row.equipment_id)
-        hrs = round(float(row.total_hours), 2)
-        total_work_hours += hrs
-        work_logs_by_equipment.append(WorkLogByEquipmentItem(
-            equipment_id=row.equipment_id or 0,
-            equipment_name=eq.name if eq else f"Alat #{row.equipment_id}",
-            equipment_type=eq.type if eq else "-",
-            total_hours=hrs,
-            log_count=int(row.log_count),
-        ))
-    work_logs_by_equipment.sort(key=lambda x: x.equipment_name)
-
     wl_detail_rows = (
         db.query(WorkLog)
+        .join(Equipment, WorkLog.equipment_id == Equipment.id)
         .filter(
             cast(WorkLog.work_date, Date) >= start_date,
             cast(WorkLog.work_date, Date) <= end_date,
+            Equipment.ownership_status == 'rental'
         )
         .order_by(WorkLog.work_date.asc())
         .all()
     )
 
+    wl_eq_ids = list({wl.equipment_id for wl in wl_detail_rows if wl.equipment_id})
+    if wl_eq_ids:
+        for e in db.query(Equipment).filter(Equipment.id.in_(wl_eq_ids)).all():
+            equipment_map[e.id] = e
+
     work_logs_detail: List[WorkLogDetailItem] = []
+    wl_by_eq_dict = defaultdict(lambda: {"total_hours": 0.0, "discount_hours": 0.0, "payable_hours": 0.0, "rental_cost": 0.0, "count": 0})
+    operator_bonus_dict = defaultdict(float)
+    total_work_hours = 0.0
+
     for wl in wl_detail_rows:
         eq = equipment_map.get(wl.equipment_id)
+        t_hours = float(wl.total_hours or 0)
+        d_hours = float(wl.rental_discount_hours or 0)
+        p_hours = t_hours - d_hours
+        
+        rental_rate = float(eq.rental_rate_per_hour or 0) if eq else 0
+        rental_cost = p_hours * rental_rate
+        
+        eq_id = wl.equipment_id
+        if eq_id:
+            wl_by_eq_dict[eq_id]["total_hours"] += t_hours
+            wl_by_eq_dict[eq_id]["discount_hours"] += d_hours
+            wl_by_eq_dict[eq_id]["payable_hours"] += p_hours
+            wl_by_eq_dict[eq_id]["rental_cost"] += rental_cost
+            wl_by_eq_dict[eq_id]["count"] += 1
+            total_work_hours += t_hours
+
         work_logs_detail.append(WorkLogDetailItem(
             id=wl.id,
             equipment_name=eq.name if eq else f"Alat #{wl.equipment_id}",
             equipment_type=eq.type if eq else "-",
             operator_name=wl.operator_name,
             work_date=_fmt_date(wl.work_date),
-            total_hours=round(float(wl.total_hours), 2),
+            total_hours=round(t_hours, 2),
+            rental_discount_hours=round(d_hours, 2),
+            payable_rental_hours=round(p_hours, 2),
+            total_rental_cost=round(rental_cost, 2),
             work_description=wl.work_description,
         ))
+
+        if wl.operator_name and d_hours > 0:
+            operator_bonus_dict[wl.operator_name.strip().lower()] += d_hours * 150000.0
+
+    work_logs_by_equipment: List[WorkLogByEquipmentItem] = []
+    for eq_id, stats in wl_by_eq_dict.items():
+        eq = equipment_map.get(eq_id)
+        work_logs_by_equipment.append(WorkLogByEquipmentItem(
+            equipment_id=eq_id,
+            equipment_name=eq.name if eq else f"Alat #{eq_id}",
+            equipment_type=eq.type if eq else "-",
+            total_hours=round(stats["total_hours"], 2),
+            total_discount_hours=round(stats["discount_hours"], 2),
+            total_payable_hours=round(stats["payable_hours"], 2),
+            total_rental_cost=round(stats["rental_cost"], 2),
+            log_count=stats["count"],
+        ))
+    work_logs_by_equipment.sort(key=lambda x: x.equipment_name)
 
     # ── 4. Estimasi Gaji berdasarkan Absensi ─────────────────────────────────
     att_rows = (
@@ -303,7 +378,11 @@ def get_range_report(
     for emp_id, stats in agg.items():
         emp = emp_map.get(emp_id)
         daily = float(emp.daily_salary if emp else 0)
-        estimated = stats["present"] * daily
+        
+        emp_name_lower = emp.name.strip().lower() if emp else ""
+        bonus = operator_bonus_dict.get(emp_name_lower, 0.0)
+        
+        estimated = (stats["present"] * daily) + bonus
         total_payroll_expense += estimated
         total_present_global += stats["present"]
         attendance_summary.append(AttendanceEmployeeItem(
@@ -316,6 +395,7 @@ def get_range_report(
             total_work_hours=round(stats["work_hours"], 1),
             total_overtime_hours=round(stats["ot_hours"], 1),
             daily_salary=daily,
+            operator_bonus=round(bonus, 2),
             estimated_salary=estimated,
         ))
     attendance_summary.sort(key=lambda x: x.employee_name)
@@ -361,9 +441,9 @@ def get_range_report(
             description=ir.description,
         ))
 
-    # Pemasukan Material = Total Final Amount dari semua Invoice yang diterbitkan di range ini
+    # Pemasukan Material = Total nominal dari semua surat jalan (IncomeRecord) di range ini
     invoices_in_range = [inv for inv in invoices_all if start_date <= inv.invoice_date <= end_date]
-    total_material_sales = sum(float(inv.final_amount if inv.final_amount is not None else (inv.total_amount or 0)) for inv in invoices_in_range)
+    total_material_sales = sum(float(ir.amount or 0) for ir in material_rows)
 
     # ── Expense calculation (Paid vs Unpaid) ──
     from ...models.expense import Expense
@@ -393,8 +473,11 @@ def get_range_report(
     payroll_paid = sum(float(r.net_salary or 0) for r in payroll_rows if r.payment_status == "paid")
     payroll_unpaid = sum(float(r.net_salary or 0) for r in payroll_rows if r.payment_status == "pending")
     
+    # Rental cost expense
+    total_equipment_rental_expense = sum(wb.total_rental_cost for wb in work_logs_by_equipment)
+    
     total_expense_paid = expense_paid + fuel_paid + payroll_paid
-    total_expense_unpaid = expense_unpaid + fuel_unpaid + payroll_unpaid
+    total_expense_unpaid = expense_unpaid + fuel_unpaid + payroll_unpaid + total_equipment_rental_expense
     total_expense_actual = total_expense_paid + total_expense_unpaid
 
     # ── Income calculation (Paid vs Unpaid) ──
@@ -406,11 +489,23 @@ def get_range_report(
     ).all()
     total_project_sales = sum(float(r.amount or 0) for r in project_rows)
     
-    # Unpaid material sales (from invoices)
-    # Note: If an invoice covers a period, its total_amount is unpaid income.
-    # To keep it simple for the range, we look at invoices dated in this range.
-    unpaid_invoices = [inv for inv in invoices_in_range if inv.status == "unpaid"]
-    total_income_unpaid = sum(float(inv.final_amount if inv.final_amount is not None else (inv.total_amount or 0)) for inv in unpaid_invoices)
+    # Calculate unpaid material sales based on IncomeRecord
+    material_unpaid = 0.0
+    for ir in material_rows:
+        ir_amount = float(ir.amount or 0)
+        # Find covering invoice
+        covering_inv = None
+        for inv in invoices_all:
+            if inv.customer_name == ir.customer_name and inv.start_date <= ir.income_date <= inv.end_date:
+                covering_inv = inv
+                break
+        
+        if not covering_inv:
+            material_unpaid += ir_amount
+        elif covering_inv.status == "unpaid":
+            material_unpaid += ir_amount
+            
+    total_income_unpaid = material_unpaid
     
     total_income_all = total_material_sales + total_project_sales
     total_income_paid = total_income_all - total_income_unpaid
@@ -426,6 +521,7 @@ def get_range_report(
             total_fuel_expense=round(total_fuel_expense, 2),
             total_fuel_liters=round(total_fuel_liters_purchased, 2),
             total_work_hours=round(total_work_hours, 2),
+            total_equipment_rental_expense=round(total_equipment_rental_expense, 2),
             total_payroll_expense=round(total_payroll_expense, 2),
             total_material_sales=round(total_material_sales, 2),
             net_balance=round(net_balance, 2),

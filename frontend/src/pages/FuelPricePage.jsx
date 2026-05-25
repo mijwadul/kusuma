@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Fuel, Save, History, AlertCircle, CheckCircle, Package, XCircle, Trash2, Info } from 'lucide-react';
+import { Fuel, Save, History, AlertCircle, CheckCircle, Package, XCircle, Trash2, Info, Edit, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import AlertModal from '../components/AlertModal';
 
@@ -17,6 +17,8 @@ const FuelPricePage = () => {
   const [liters, setLiters] = useState('');
   const [totalPrice, setTotalPrice] = useState('');
   const [pricePerLiter, setPricePerLiter] = useState('');
+  const [vendorName, setVendorName] = useState('');
+  const [vendorList, setVendorList] = useState([]);
   const [notes, setNotes] = useState('');
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
   const [purchases, setPurchases] = useState([]);
@@ -27,6 +29,16 @@ const FuelPricePage = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  const [editForm, setEditForm] = useState({
+    liters: '',
+    totalPrice: '',
+    pricePerLiter: '',
+    vendorName: '',
+    purchaseDate: '',
+    notes: ''
+  });
 
   // Filter tanggal riwayat pembelian
   const today = new Date().toISOString().split('T')[0];
@@ -42,8 +54,24 @@ const FuelPricePage = () => {
     if (currentUser) {
       fetchPurchases();
       fetchStockInfo();
+      fetchVendors();
     }
   }, [currentUser]);
+
+  const fetchVendors = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/v1/fuel/vendors', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setVendorList(data);
+      }
+    } catch (error) {
+      console.error('Error fetching vendors:', error);
+    }
+  };
 
   const fetchCurrentUser = async () => {
     try {
@@ -135,6 +163,7 @@ const FuelPricePage = () => {
           effective_date: effectiveDate,
           liters: litersNum,
           total_price: totalPriceNum,
+          vendor_name: vendorName,
           notes: notes
         })
       });
@@ -143,6 +172,7 @@ const FuelPricePage = () => {
         setLiters('');
         setTotalPrice('');
         setPricePerLiter('');
+        setVendorName('');
         setNotes('');
         setPurchaseDate(new Date().toISOString().split('T')[0]);
         fetchPurchases();
@@ -198,6 +228,101 @@ const FuelPricePage = () => {
     }
   };
 
+  const deletePurchase = async (priceId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/v1/fuel/price/${priceId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        toast.success('Data pembelian berhasil dihapus');
+        setIsDeleteModalOpen(false);
+        fetchPurchases();
+        fetchStockInfo();
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'Gagal menghapus pembelian');
+      }
+    } catch (error) {
+      console.error('Error deleting purchase:', error);
+      toast.error('Terjadi kesalahan saat menghapus pembelian');
+    }
+  };
+
+  const handleEditClick = (purchase, e) => {
+    e.stopPropagation();
+    setSelectedPurchase(purchase);
+    setEditForm({
+      liters: purchase.liters || '',
+      totalPrice: purchase.total_price || '',
+      pricePerLiter: purchase.price_per_liter || '',
+      vendorName: purchase.vendor_name || '',
+      purchaseDate: purchase.effective_date ? purchase.effective_date.split('T')[0] : '',
+      notes: purchase.notes || ''
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const submitEditPurchase = async () => {
+    if (!editForm.liters || (!editForm.totalPrice && !editForm.pricePerLiter)) {
+      toast.error('Masukkan jumlah liter dan setidaknya salah satu harga');
+      return;
+    }
+    if (!editForm.purchaseDate) {
+      toast.error('Pilih tanggal pembelian');
+      return;
+    }
+
+    const litersNum = parseFloat(editForm.liters);
+    let totalPriceNum = parseFloat(editForm.totalPrice);
+    let pricePerLiterNum = parseFloat(editForm.pricePerLiter);
+
+    if (!editForm.totalPrice && editForm.pricePerLiter) {
+      totalPriceNum = litersNum * pricePerLiterNum;
+    } else if (!editForm.pricePerLiter && editForm.totalPrice) {
+      pricePerLiterNum = totalPriceNum / litersNum;
+    } else {
+      pricePerLiterNum = totalPriceNum / litersNum;
+    }
+
+    const effectiveDate = editForm.purchaseDate + 'T12:00:00.000Z';
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/v1/fuel/price/${selectedPurchase.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          price_per_liter: pricePerLiterNum,
+          liters: litersNum,
+          total_price: totalPriceNum,
+          effective_date: effectiveDate,
+          vendor_name: editForm.vendorName,
+          notes: editForm.notes
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Pembelian BBM berhasil diperbarui');
+        setIsEditModalOpen(false);
+        fetchPurchases();
+        fetchStockInfo();
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'Gagal memperbarui pembelian');
+      }
+    } catch (error) {
+      console.error('Error updating purchase:', error);
+      toast.error('Terjadi kesalahan saat memperbarui');
+    }
+  };
+
+  const isGM = currentUser?.role === 'gm' || currentUser?.role === 'admin' || currentUser?.is_superuser || currentUser?.is_admin;
   const handleApprove = (id) => handleAction(id, 'approve');
   const handleReject = (id) => handleAction(id, 'reject');
   const handleDelete = (id) => handleAction(id, 'delete');
@@ -364,12 +489,29 @@ const FuelPricePage = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Catatan / Supplier</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Vendor / Penjual</label>
+                <input
+                  type="text"
+                  list="vendor-list"
+                  value={vendorName}
+                  onChange={(e) => setVendorName(e.target.value)}
+                  placeholder="Ketik manual atau pilih dari daftar"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
+                />
+                <datalist id="vendor-list">
+                  {vendorList.map((v, idx) => (
+                    <option key={idx} value={v} />
+                  ))}
+                </datalist>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
                 <input
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Misal: PT Pertamina / PO-123"
+                  placeholder="Misal: PO-123 / Supir Budi"
                   className="w-full px-3 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
                 />
               </div>
@@ -439,6 +581,7 @@ const FuelPricePage = () => {
                 <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                   <tr>
                     <th className="px-4 py-3 text-left whitespace-nowrap">Tanggal</th>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">Vendor</th>
                     <th className="px-4 py-3 text-right whitespace-nowrap">Liter</th>
                     <th className="px-4 py-3 text-right whitespace-nowrap">Harga/Liter</th>
                     <th className="px-4 py-3 text-right whitespace-nowrap">Total Harga</th>
@@ -457,6 +600,9 @@ const FuelPricePage = () => {
                         {purchase.effective_date
                           ? new Date(purchase.effective_date).toLocaleDateString('id-ID')
                           : new Date(purchase.created_at).toLocaleDateString('id-ID')}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
+                        {purchase.vendor_name || '-'}
                       </td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-900 text-right whitespace-nowrap">
                         {purchase.liters?.toLocaleString('id-ID') || '-'} L
@@ -483,8 +629,27 @@ const FuelPricePage = () => {
                         )}
                       </td>
                       <td className="px-4 py-3 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); openDetail(purchase); }}
+                            className="text-xs text-blue-500 hover:text-blue-700 border border-blue-200 px-2 py-1 rounded bg-blue-50 flex items-center gap-1"
+                            title="Detail"
+                          >
+                            <Eye size={14} /> Detail
+                          </button>
+                          
+                          {(isGM || purchase.approval_status === 'pending') && (
+                            <button
+                              onClick={(e) => handleEditClick(purchase, e)}
+                              className="text-xs text-amber-500 hover:text-amber-700 border border-amber-200 px-2 py-1 rounded bg-amber-50 flex items-center gap-1"
+                              title="Edit"
+                            >
+                              <Edit size={14} /> Edit
+                            </button>
+                          )}
+
                         {purchase.approval_status === 'pending' && isGM && (
-                          <div className="flex items-center justify-center gap-2">
+                          <>
                             <button
                               onClick={() => handleApprove(purchase.id)}
                               className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded"
@@ -500,7 +665,7 @@ const FuelPricePage = () => {
                             >
                               Tolak
                             </button>
-                          </div>
+                          </>
                         )}
                         {purchase.approval_status === 'pending' && !isGM && (
                           <span className="text-xs text-gray-400">Menunggu</span>
@@ -511,11 +676,13 @@ const FuelPricePage = () => {
                                setSelectedPurchase(purchase);
                                setIsDeleteModalOpen(true);
                              }}
-                             className="text-xs text-red-500 hover:text-red-700 border border-red-200 px-2 py-1 rounded bg-red-50"
+                             className="text-xs text-red-500 hover:text-red-700 border border-red-200 px-2 py-1 rounded bg-red-50 flex items-center gap-1"
+                             title="Hapus"
                            >
-                             Hapus
+                             <Trash2 size={14} /> Hapus
                            </button>
                         )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -578,9 +745,15 @@ const FuelPricePage = () => {
                   <p className="text-xs text-amber-600 mb-1">Total Harga</p>
                   <p className="font-bold text-amber-700 text-lg">Rp {selectedPurchase.total_price?.toLocaleString('id-ID')}</p>
                 </div>
+                {selectedPurchase.vendor_name && (
+                  <div className="bg-gray-50 p-3 rounded-lg col-span-2">
+                    <p className="text-xs text-gray-500 mb-1">Vendor / Penjual</p>
+                    <p className="font-medium text-gray-800">{selectedPurchase.vendor_name}</p>
+                  </div>
+                )}
                 {selectedPurchase.notes && (
                   <div className="bg-gray-50 p-3 rounded-lg col-span-2">
-                    <p className="text-xs text-gray-500 mb-1">Catatan / Supplier</p>
+                    <p className="text-xs text-gray-500 mb-1">Catatan</p>
                     <p className="font-medium text-gray-800">{selectedPurchase.notes}</p>
                   </div>
                 )}
@@ -621,6 +794,130 @@ const FuelPricePage = () => {
                   Hapus Data
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {isEditModalOpen && selectedPurchase && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl">
+            <div className="flex justify-between items-center border-b pb-4 mb-4">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center">
+                <Edit className="w-5 h-5 mr-2 text-amber-500" />
+                Edit Pembelian BBM
+              </h3>
+              <button onClick={() => setIsEditModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                &times;
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Tanggal Pembelian <span className="text-red-500">*</span></label>
+                  <input
+                    type="date"
+                    value={editForm.purchaseDate}
+                    onChange={(e) => setEditForm({...editForm, purchaseDate: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Vendor / Penjual</label>
+                  <input
+                    type="text"
+                    list="edit-vendor-list"
+                    value={editForm.vendorName}
+                    onChange={(e) => setEditForm({...editForm, vendorName: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                    placeholder="Contoh: Pertamina SPBU 14..."
+                  />
+                  <datalist id="edit-vendor-list">
+                    {vendorList.map((vendor, index) => (
+                      <option key={index} value={vendor} />
+                    ))}
+                  </datalist>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Jumlah Liter <span className="text-red-500">*</span></label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={editForm.liters}
+                    onChange={(e) => setEditForm({...editForm, liters: e.target.value})}
+                    className="w-full border border-gray-300 rounded-lg pl-3 pr-10 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                    placeholder="0"
+                  />
+                  <span className="absolute right-3 top-2 text-gray-500 text-sm">L</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Harga per Liter</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2 text-gray-500 text-sm">Rp</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editForm.pricePerLiter}
+                      onChange={(e) => setEditForm({...editForm, pricePerLiter: e.target.value})}
+                      className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Total Harga</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2 text-gray-500 text-sm">Rp</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editForm.totalPrice}
+                      onChange={(e) => setEditForm({...editForm, totalPrice: e.target.value})}
+                      className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              </div>
+              <p className="text-[10px] text-amber-600 -mt-2 bg-amber-50 p-1.5 rounded border border-amber-100">
+                Tip: Isi Total Harga saja atau Harga per Liter saja, sistem akan menghitung otomatis.
+              </p>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Catatan Tambahan</label>
+                <textarea
+                  rows="2"
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({...editForm, notes: e.target.value})}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  placeholder="Opsional..."
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3 pt-4 border-t">
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                Batal
+              </button>
+              <button
+                onClick={submitEditPurchase}
+                className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium flex items-center"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Simpan Perubahan
+              </button>
             </div>
           </div>
         </div>

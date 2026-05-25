@@ -20,6 +20,8 @@ export default function VendorManagement({ userRole }) {
   const [editingTopup, setEditingTopup] = useState(null);
   const [editTopupData, setEditTopupData] = useState({ amount: "", notes: "" });
 
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
+
   const isGM = userRole === "gm" || userRole === "admin";
   const canManage = ["gm", "finance", "admin"].includes(userRole);
 
@@ -75,21 +77,29 @@ export default function VendorManagement({ userRole }) {
   };
 
   const handleDeleteVendor = async (id) => {
-    if (!window.confirm("Hapus vendor ini? Pastikan tidak ada alat yang terikat!")) return;
-    try {
-      const res = await fetch(`${API_URL}/vendors/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
-      if (res.ok) {
-        toast.success("Vendor dihapus");
-        fetchVendors();
-      } else {
-        toast.error("Gagal menghapus");
+    setConfirmModal({
+      isOpen: true,
+      title: "Hapus Vendor",
+      message: "Hapus vendor ini? Pastikan tidak ada alat yang terikat!",
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${API_URL}/vendors/${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${getToken()}` }
+          });
+          if (res.ok) {
+            toast.success("Vendor dihapus");
+            fetchVendors();
+          } else {
+            toast.error("Gagal menghapus");
+          }
+        } catch (err) {
+          toast.error("Error jaringan");
+        } finally {
+          setConfirmModal({ isOpen: false, title: "", message: "", onConfirm: null });
+        }
       }
-    } catch (err) {
-      toast.error("Error jaringan");
-    }
+    });
   };
 
   const handleTopupSubmit = async (e) => {
@@ -163,22 +173,30 @@ export default function VendorManagement({ userRole }) {
   };
 
   const handleDeleteTopup = async (id) => {
-    if (!window.confirm("Hapus data Top-Up Deposit ini? Saldo vendor akan otomatis diperbarui.")) return;
-    try {
-      const res = await fetch(`${API_URL}/vendors/topups/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
-      if (res.ok) {
-        toast.success("Data deposit dihapus");
-        fetchVendors();
-        fetchTopups();
-      } else {
-        toast.error("Gagal menghapus deposit");
+    setConfirmModal({
+      isOpen: true,
+      title: "Hapus Deposit",
+      message: "Hapus data Top-Up Deposit ini? Saldo vendor akan otomatis diperbarui.",
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${API_URL}/vendors/topups/${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${getToken()}` }
+          });
+          if (res.ok) {
+            toast.success("Data deposit dihapus");
+            fetchVendors();
+            fetchTopups();
+          } else {
+            toast.error("Gagal menghapus deposit");
+          }
+        } catch (err) {
+          toast.error("Error jaringan");
+        } finally {
+          setConfirmModal({ isOpen: false, title: "", message: "", onConfirm: null });
+        }
       }
-    } catch (err) {
-      toast.error("Error jaringan");
-    }
+    });
   };
 
   if (!canManage) return null;
@@ -388,6 +406,30 @@ export default function VendorManagement({ userRole }) {
                 <button type="submit" className="px-4 py-2 bg-amber-500 text-white font-bold rounded">Kirim {isGM ? "Top-Up" : "Pengajuan"}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-xl text-center">
+            <h3 className="text-lg font-bold mb-2 text-gray-900">{confirmModal.title}</h3>
+            <p className="text-sm text-gray-600 mb-6">{confirmModal.message}</p>
+            <div className="flex justify-center gap-3">
+              <button 
+                onClick={() => setConfirmModal({ isOpen: false, title: "", message: "", onConfirm: null })} 
+                className="px-5 py-2.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={confirmModal.onConfirm} 
+                className="px-5 py-2.5 bg-red-600 text-white hover:bg-red-700 rounded-lg font-bold transition-colors"
+              >
+                Ya, Lanjutkan
+              </button>
+            </div>
           </div>
         </div>
       )}

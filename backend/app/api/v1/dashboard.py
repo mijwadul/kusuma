@@ -528,7 +528,7 @@ def get_finance_summary(
     ).order_by(FuelPrice.effective_date.desc()).all()
     unpaid_fuel_amount = sum(float(f.total_price or 0) for f in unpaid_fuel_list)
     unpaid_fuel = [
-        {"id": f.id, "date": str(f.effective_date), "liters": float(f.liters or 0), "amount": float(f.total_price or 0), "notes": f.notes}
+        {"id": f.id, "date": str(f.effective_date), "liters": float(f.liters or 0), "amount": float(f.total_price or 0), "notes": f.notes, "vendor_name": f.vendor_name}
         for f in unpaid_fuel_list
     ]
 
@@ -567,7 +567,8 @@ def get_finance_summary(
             "effective_date": str(f.effective_date),
             "liters": float(f.liters) if f.liters else 0,
             "total_price": float(f.total_price) if f.total_price else 0,
-            "notes": f.notes
+            "notes": f.notes,
+            "vendor_name": f.vendor_name
         }
         for f in recent_pending_fuel_list
     ]

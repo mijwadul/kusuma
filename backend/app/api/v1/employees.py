@@ -29,6 +29,7 @@ from ...models import (
     PayrollRecord,
     User,
 )
+from ...models.work_log import WorkLog
 from ...schemas import (
     AttendanceCreate,
     AttendanceResponse,
@@ -134,10 +135,28 @@ def calculate_payroll(
 
     absent_days = work_days - present_days
 
+    # Calculate automatic operator bonus
+    auto_operator_bonus = 0
+    if employee.position and employee.position.lower() == "operator" and db:
+        work_logs = (
+            db.query(WorkLog)
+            .filter(
+                func.lower(WorkLog.operator_name) == func.lower(employee.name),
+                WorkLog.work_date >= period_start,
+                WorkLog.work_date <= period_end,
+            )
+            .all()
+        )
+        total_discount_hours = sum(float(wl.rental_discount_hours or 0) for wl in work_logs)
+        auto_operator_bonus = total_discount_hours * 150000.0
+
+    # Combine manual bonus and auto operator bonus
+    total_bonus = bonus + auto_operator_bonus
+
     # Calculate income
     overtime_amount = hourly_overtime_rate * total_overtime_hours
 
-    total_income = basic_salary + overtime_amount + bonus + allowance
+    total_income = basic_salary + overtime_amount + total_bonus + allowance
 
     # Calculate deductions
     if loan_deduction is not None:
@@ -183,7 +202,7 @@ def calculate_payroll(
         basic_salary=basic_salary,
         overtime_hours=total_overtime_hours,
         overtime_amount=overtime_amount,
-        bonus=bonus,
+        bonus=total_bonus,
         allowance=allowance,
         total_income=total_income,
         loan_deduction=actual_loan_deduction,

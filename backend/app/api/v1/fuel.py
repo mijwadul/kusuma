@@ -376,6 +376,20 @@ def delete_fuel_log(
     return None
 
 
+@router.get("/vendors", response_model=List[str])
+def get_fuel_vendors(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Ambil daftar nama vendor BBM unik yang pernah dicatat"""
+    vendors = db.query(FuelPrice.vendor_name).filter(
+        FuelPrice.vendor_name != None,
+        FuelPrice.vendor_name != ""
+    ).distinct().all()
+    
+    return [v[0] for v in vendors]
+
+
 @router.get("/price", response_model=List[FuelPriceSchema])
 def get_fuel_prices(
     fuel_type: Optional[str] = None,
@@ -417,6 +431,7 @@ def create_fuel_price(
         liters=price_data.liters,
         total_price=price_data.total_price,
         notes=price_data.notes,
+        vendor_name=price_data.vendor_name,
         approval_status="approved" if is_gm else "pending",
         approved_by=current_user.id if is_gm else None,
         approved_at=datetime.now() if is_gm else None,
