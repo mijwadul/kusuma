@@ -185,10 +185,6 @@ def update_work_log(
     for key, value in update_data.items():
         setattr(work_log, key, value)
         
-    if vendor and old_costs is not None:
-        new_costs = _calculate_rental_costs(work_log, equipment)
-        vendor.balance_deposit = Decimal(str(vendor.balance_deposit or 0)) - new_costs["rental_cost_total"]
-    
     db.commit()
     db.refresh(work_log)
     
