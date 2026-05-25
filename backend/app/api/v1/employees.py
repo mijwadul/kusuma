@@ -531,7 +531,7 @@ def create_payroll(
         overtime_hours=calc_result.overtime_hours,
         overtime_amount=calc_result.overtime_amount,
         basic_salary=calc_result.basic_salary,
-        bonus=payroll.bonus or 0,
+        bonus=calc_result.bonus,
         allowance=payroll.allowance or 0,
         total_income=calc_result.total_income,
         loan_deduction=calc_result.loan_deduction,

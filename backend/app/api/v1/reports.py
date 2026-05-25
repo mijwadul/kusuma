@@ -50,6 +50,7 @@ class WorkLogDetailItem(BaseModel):
     total_hours: float
     rental_discount_hours: float
     payable_rental_hours: float
+    rental_rate_per_hour: float
     total_rental_cost: float
     work_description: Optional[str]
 
@@ -61,6 +62,7 @@ class WorkLogByEquipmentItem(BaseModel):
     total_hours: float
     total_discount_hours: float
     total_payable_hours: float
+    rental_rate_per_hour: float
     total_rental_cost: float
     log_count: int
 
@@ -293,7 +295,7 @@ def get_range_report(
             equipment_map[e.id] = e
 
     work_logs_detail: List[WorkLogDetailItem] = []
-    wl_by_eq_dict = defaultdict(lambda: {"total_hours": 0.0, "discount_hours": 0.0, "payable_hours": 0.0, "rental_cost": 0.0, "count": 0})
+    wl_by_eq_dict = defaultdict(lambda: {"total_hours": 0.0, "discount_hours": 0.0, "payable_hours": 0.0, "rental_rate_per_hour": 0.0, "rental_cost": 0.0, "count": 0})
     operator_bonus_dict = defaultdict(float)
     total_work_hours = 0.0
 
@@ -311,6 +313,7 @@ def get_range_report(
             wl_by_eq_dict[eq_id]["total_hours"] += t_hours
             wl_by_eq_dict[eq_id]["discount_hours"] += d_hours
             wl_by_eq_dict[eq_id]["payable_hours"] += p_hours
+            wl_by_eq_dict[eq_id]["rental_rate_per_hour"] = rental_rate
             wl_by_eq_dict[eq_id]["rental_cost"] += rental_cost
             wl_by_eq_dict[eq_id]["count"] += 1
             total_work_hours += t_hours
@@ -324,6 +327,7 @@ def get_range_report(
             total_hours=round(t_hours, 2),
             rental_discount_hours=round(d_hours, 2),
             payable_rental_hours=round(p_hours, 2),
+            rental_rate_per_hour=rental_rate,
             total_rental_cost=round(rental_cost, 2),
             work_description=wl.work_description,
         ))
@@ -341,6 +345,7 @@ def get_range_report(
             total_hours=round(stats["total_hours"], 2),
             total_discount_hours=round(stats["discount_hours"], 2),
             total_payable_hours=round(stats["payable_hours"], 2),
+            rental_rate_per_hour=stats["rental_rate_per_hour"],
             total_rental_cost=round(stats["rental_cost"], 2),
             log_count=stats["count"],
         ))
@@ -363,19 +368,34 @@ def get_range_report(
 
     agg: dict = defaultdict(lambda: {
         "present": 0, "absent": 0, "late": 0,
-        "work_hours": 0.0, "ot_hours": 0.0
+        "work_hours": 0.0, "ot_hours": 0.0,
+        "basic_salary_acc": 0.0
     })
     for a in att_rows:
+        emp = emp_map.get(a.employee_id)
+        daily_salary = float(emp.daily_salary) if emp and emp.daily_salary else 0.0
+        
         d = agg[a.employee_id]
         status = (a.status or "present").lower()
         if status in ("present", "late"):
             d["present"] += 1
             if status == "late":
                 d["late"] += 1
+                
+            w_hours = float(a.work_hours or 0)
+            if w_hours < 6:
+                d["basic_salary_acc"] += (daily_salary * 0.5)
+            else:
+                d["basic_salary_acc"] += daily_salary
         else:
             d["absent"] += 1
         d["work_hours"] += float(a.work_hours or 0)
-        d["ot_hours"] += float(a.overtime_hours or 0)
+        
+        w_hours = float(a.work_hours or 0)
+        ot_hours = float(a.overtime_hours or 0)
+        if w_hours > 12:
+            ot_hours += (w_hours - 12)
+        d["ot_hours"] += ot_hours
 
     attendance_summary: List[AttendanceEmployeeItem] = []
     total_payroll_expense = 0.0
@@ -388,11 +408,10 @@ def get_range_report(
         emp_name_lower = emp.name.strip().lower() if emp else ""
         bonus = operator_bonus_dict.get(emp_name_lower, 0.0)
         
-        # Calculate overtime pay using employee's specific rate
         overtime_rate = float(emp.hourly_overtime_rate if emp and emp.hourly_overtime_rate else 0)
         overtime_amount = stats["ot_hours"] * overtime_rate
         
-        estimated = (stats["present"] * daily) + bonus + overtime_amount
+        estimated = stats["basic_salary_acc"] + bonus + overtime_amount
         total_payroll_expense += estimated
         total_present_global += stats["present"]
         attendance_summary.append(AttendanceEmployeeItem(
@@ -422,22 +441,11 @@ def get_range_report(
         .all()
     )
 
-    # Find uninvoiced material sales
-    from ...models.invoice import Invoice
-    invoices_all = db.query(Invoice).all() # Load all to check if invoiced
-    uninvoiced_material_sales = []
-    
     material_items: List[MaterialSaleItem] = []
+    total_material_sales = 0.0
     for ir in material_rows:
-        is_invoiced = False
-        for inv in invoices_all:
-            if inv.customer_name == ir.customer_name and inv.start_date <= ir.income_date <= inv.end_date:
-                is_invoiced = True
-                break
-        
-        if not is_invoiced:
-            uninvoiced_material_sales.append(ir)
-            
+        amt = float(ir.amount or 0)
+        total_material_sales += amt
         material_items.append(MaterialSaleItem(
             id=ir.id,
             tanggal=_fmt_date(ir.income_date),
@@ -445,98 +453,24 @@ def get_range_report(
             quantity=ir.quantity,
             unit=ir.unit,
             unit_price=ir.unit_price,
-            amount=float(ir.amount or 0),
+            amount=amt,
             customer_name=ir.customer_name,
             payment_method=ir.payment_method,
             description=ir.description,
         ))
 
-    # Calculate Material Sales properly (handling invoices with discounts)
-    invoices_in_range = [inv for inv in invoices_all if start_date <= inv.invoice_date <= end_date]
-    
-    total_invoiced_material = sum(
-        float(inv.final_amount if inv.final_amount is not None else (inv.total_amount or 0)) 
-        for inv in invoices_in_range
-    )
-    total_uninvoiced_material = sum(float(ir.amount or 0) for ir in uninvoiced_material_sales)
-    
-    total_material_sales = total_invoiced_material + total_uninvoiced_material
-
-    # ── Expense calculation (Paid vs Unpaid) ──
-    from ...models.expense import Expense
-    from ...models.payroll import PayrollRecord
-    from ...models.invoice import Invoice
-    
-    # Other expenses
-    other_expenses = db.query(Expense).filter(
-        Expense.expense_date >= start_date,
-        Expense.expense_date <= end_date,
-        Expense.approval_status == "approved"
-    ).all()
-    expense_paid = sum(float(e.amount or 0) for e in other_expenses if e.payment_status == "paid")
-    expense_unpaid = sum(float(e.amount or 0) for e in other_expenses if e.payment_status == "unpaid")
-    
-    # Fuel expenses
-    # fuel_purchases_rows already fetched (approved)
-    fuel_paid = sum(float(fp.total_price or 0) for fp in fuel_purchases_rows if getattr(fp, "payment_status", "unpaid") == "paid")
-    fuel_unpaid = sum(float(fp.total_price or 0) for fp in fuel_purchases_rows if getattr(fp, "payment_status", "unpaid") == "unpaid")
-    
-    # Payroll expenses
-    # Calculate for the period using PayrollRecord
-    payroll_rows = db.query(PayrollRecord).filter(
-        PayrollRecord.payment_date >= start_date,
-        PayrollRecord.payment_date <= end_date
-    ).all()
-    payroll_paid = sum(float(r.net_salary or 0) for r in payroll_rows if r.payment_status == "paid")
-    payroll_unpaid = sum(float(r.net_salary or 0) for r in payroll_rows if r.payment_status == "pending")
-    
-    # Rental cost expense
+    # ── Summary Calculation (Only Operational Page Data) ──
     total_equipment_rental_expense = sum(wb.total_rental_cost for wb in work_logs_by_equipment)
     
-    # Fuel consumed cost (For information only, not for cash flow net balance)
-    total_fuel_consumed_cost = sum(log_costs[fl.id] for fl in fuel_log_rows)
-    
-    total_expense_paid = expense_paid + fuel_paid + payroll_paid
-    total_expense_unpaid = expense_unpaid + fuel_unpaid + payroll_unpaid + total_equipment_rental_expense
-    
-    # Net Balance matches UI math (Cash/Accrual Hybrid based on Paid + Unpaid)
-    total_expense_actual = total_expense_paid + total_expense_unpaid
-
-    # ── Income calculation (Paid vs Unpaid) ──
-    # Project payments (all paid)
-    project_rows = db.query(IncomeRecord).filter(
-        IncomeRecord.income_date >= start_date,
-        IncomeRecord.income_date <= end_date,
-        IncomeRecord.income_type == "project_payment",
-    ).all()
-    total_project_sales = sum(float(r.amount or 0) for r in project_rows)
-    
-    # Calculate unpaid material sales accurately
-    material_unpaid = 0.0
-    
-    # 1. Unpaid invoices
-    for inv in invoices_in_range:
-        if inv.status == "unpaid":
-            material_unpaid += float(inv.final_amount if inv.final_amount is not None else (inv.total_amount or 0))
-            
-    # 2. Uninvoiced material sales are implicitly unpaid
-    for ir in uninvoiced_material_sales:
-        material_unpaid += float(ir.amount or 0)
-            
-    total_income_unpaid = material_unpaid
-    
-    total_income_all = total_material_sales + total_project_sales
-    total_income_paid = total_income_all - total_income_unpaid
-    if total_income_paid < 0:
-        total_income_paid = 0
-
-    net_balance = total_income_all - total_expense_actual
+    # Net Balance matches UI math
+    total_expense_actual = total_fuel_expense + total_equipment_rental_expense + total_payroll_expense
+    net_balance = total_material_sales - total_expense_actual
 
     return RangeReport(
         period_start=str(start_date),
         period_end=str(end_date),
         summary=ReportSummary(
-            total_fuel_expense=round(fuel_paid + fuel_unpaid, 2),
+            total_fuel_expense=round(total_fuel_expense, 2),
             total_fuel_liters=round(total_fuel_liters_purchased, 2),
             total_work_hours=round(total_work_hours, 2),
             total_equipment_rental_expense=round(total_equipment_rental_expense, 2),
@@ -545,17 +479,17 @@ def get_range_report(
             net_balance=round(net_balance, 2),
             total_present_days=total_present_global,
             total_employees=len(attendance_summary),
-            total_income_paid=round(total_income_paid, 2),
-            total_income_unpaid=round(total_income_unpaid, 2),
-            total_expense_paid=round(total_expense_paid, 2),
-            total_expense_unpaid=round(total_expense_unpaid, 2),
-            fuel_paid=round(fuel_paid, 2),
-            fuel_unpaid=round(fuel_unpaid, 2),
-            payroll_paid=round(payroll_paid, 2),
-            payroll_unpaid=round(payroll_unpaid, 2),
-            other_expense_paid=round(expense_paid, 2),
-            other_expense_unpaid=round(expense_unpaid, 2),
-            uninvoiced_material_total=round(sum(float(ir.amount or 0) for ir in uninvoiced_material_sales), 2),
+            total_income_paid=round(total_material_sales, 2),
+            total_income_unpaid=0.0,
+            total_expense_paid=round(total_expense_actual, 2),
+            total_expense_unpaid=0.0,
+            fuel_paid=round(total_fuel_expense, 2),
+            fuel_unpaid=0.0,
+            payroll_paid=round(total_payroll_expense, 2),
+            payroll_unpaid=0.0,
+            other_expense_paid=0.0,
+            other_expense_unpaid=0.0,
+            uninvoiced_material_total=0.0,
         ),
         fuel_purchases=fuel_purchases,
         fuel_by_equipment=fuel_by_equipment,

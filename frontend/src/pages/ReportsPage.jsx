@@ -597,7 +597,8 @@ export default function ReportsPage() {
                         <Th right>Total Jam</Th>
                         <Th right>Jam Diskon</Th>
                         <Th right>Jam Dibayar</Th>
-                        <Th right>Biaya Sewa Alat</Th>
+                        <Th right>Rate Sewa/Jam</Th>
+                        <Th right>Total Biaya Sewa</Th>
                         <Th right>Jml Log</Th>
                       </tr>
                     </thead>
@@ -610,6 +611,7 @@ export default function ReportsPage() {
                           <Td right>{formatNum(wb.total_hours)}</Td>
                           <Td right className="text-red-500">{formatNum(wb.total_discount_hours)}</Td>
                           <Td right bold className="text-blue-700">{formatNum(wb.total_payable_hours)}</Td>
+                          <Td right className="text-gray-500">{formatRupiah(wb.rental_rate_per_hour)}</Td>
                           <Td right bold className="text-amber-700">{formatRupiah(wb.total_rental_cost)}</Td>
                           <Td right>{wb.log_count}×</Td>
                         </tr>
@@ -628,6 +630,9 @@ export default function ReportsPage() {
                         </td>
                         <td className="px-4 py-3 text-right font-bold text-blue-700 border-t border-gray-200">
                           {formatNum(report.work_logs_by_equipment.reduce((s, r) => s + r.total_payable_hours, 0))}
+                        </td>
+                        <td className="px-4 py-3 text-right font-bold text-gray-400 border-t border-gray-200">
+                          -
                         </td>
                         <td className="px-4 py-3 text-right font-bold text-amber-700 border-t border-gray-200">
                           {formatRupiah(report.work_logs_by_equipment.reduce((s, r) => s + r.total_rental_cost, 0))}
@@ -653,7 +658,8 @@ export default function ReportsPage() {
                             <Th right>Total Jam</Th>
                             <Th right>Diskon</Th>
                             <Th right>Dibayar</Th>
-                            <Th right>Biaya Sewa Alat</Th>
+                            <Th right>Rate Sewa</Th>
+                            <Th right>Total Biaya Sewa</Th>
                             <Th>Deskripsi</Th>
                           </tr>
                         </thead>
@@ -669,6 +675,7 @@ export default function ReportsPage() {
                                 {formatNum(wd.rental_discount_hours)}
                               </Td>
                               <Td right bold className="text-blue-700">{formatNum(wd.payable_rental_hours)}</Td>
+                              <Td right className="text-gray-500">{formatRupiah(wd.rental_rate_per_hour)}</Td>
                               <Td right bold className="text-amber-700">{formatRupiah(wd.total_rental_cost)}</Td>
                               <Td muted>{wd.work_description || "-"}</Td>
                             </tr>
@@ -798,69 +805,40 @@ export default function ReportsPage() {
 
             {/* ── Net Balance Summary ───────────────────────────────── */}
             <div className="mt-6 bg-gray-50 rounded-2xl border border-gray-200 p-5">
-              <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wide mb-4">Ringkasan Keuangan (Paid vs Unpaid)</h3>
+              <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wide mb-4">Ringkasan Keuangan Operasional</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-4">
                 {/* Kolom Pemasukan */}
                 <div className="space-y-2">
                   <h4 className="text-xs font-semibold text-emerald-700 uppercase tracking-wider border-b border-emerald-200 pb-1 mb-2">Total Pemasukan</h4>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Pemasukan Terbayar (Paid)</span>
-                    <span className="font-semibold text-emerald-700">{formatRupiah(report.summary.total_income_paid)}</span>
+                    <span className="text-gray-500">Penjualan Material</span>
+                    <span className="font-semibold text-emerald-700">{formatRupiah(report.summary.total_material_sales)}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Pemasukan Belum Terbayar (Unpaid)</span>
-                    <span className="font-semibold text-amber-600">{formatRupiah(report.summary.total_income_unpaid)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm font-bold pt-1">
-                    <span className="text-gray-800">Total Akumulasi Pemasukan</span>
-                    <span className="text-emerald-800">{formatRupiah(report.summary.total_income_paid + report.summary.total_income_unpaid)}</span>
+                  <div className="flex justify-between text-sm font-bold pt-2 border-t border-emerald-100 mt-2">
+                    <span className="text-gray-800">Total Pemasukan</span>
+                    <span className="text-emerald-800">{formatRupiah(report.summary.total_material_sales)}</span>
                   </div>
                 </div>
 
                 {/* Kolom Pengeluaran */}
                 <div className="space-y-2">
                   <h4 className="text-xs font-semibold text-red-700 uppercase tracking-wider border-b border-red-200 pb-1 mb-2">Total Pengeluaran</h4>
-                  <div className="flex justify-between text-sm mt-2 border-t border-red-50 pt-2">
-                    <span className="text-gray-500">Pengeluaran Terbayar (Paid)</span>
-                    <span className="font-semibold text-red-600">{formatRupiah(report.summary.total_expense_paid)}</span>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Pembelian BBM</span>
+                    <span className="font-semibold text-red-600/90">{formatRupiah(report.summary.total_fuel_expense)}</span>
                   </div>
-                  <div className="flex justify-between text-xs pb-0">
-                    <span className="text-gray-400 pl-2">├ Pembelian BBM</span>
-                    <span className="font-medium text-red-600/70">{formatRupiah(report.summary.fuel_paid)}</span>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Estimasi Gaji Karyawan</span>
+                    <span className="font-semibold text-red-600/90">{formatRupiah(report.summary.total_payroll_expense)}</span>
                   </div>
-                  <div className="flex justify-between text-xs pb-0">
-                    <span className="text-gray-400 pl-2">├ Gaji Karyawan Aktual</span>
-                    <span className="font-medium text-red-600/70">{formatRupiah(report.summary.payroll_paid)}</span>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Biaya Sewa Alat</span>
+                    <span className="font-semibold text-red-600/90">{formatRupiah(report.summary.total_equipment_rental_expense)}</span>
                   </div>
-                  <div className="flex justify-between text-xs pb-1">
-                    <span className="text-gray-400 pl-2">└ Pengeluaran Lainnya</span>
-                    <span className="font-medium text-red-600/70">{formatRupiah(report.summary.other_expense_paid)}</span>
-                  </div>
-
-                  <div className="flex justify-between text-sm mt-2 border-t border-red-50 pt-2">
-                    <span className="text-gray-500">Pengeluaran Belum Terbayar (Unpaid)</span>
-                    <span className="font-semibold text-amber-600">{formatRupiah(report.summary.total_expense_unpaid)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs pb-0">
-                    <span className="text-gray-400 pl-2">├ Pembelian BBM</span>
-                    <span className="font-medium text-amber-600/70">{formatRupiah(report.summary.fuel_unpaid)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs pb-0">
-                    <span className="text-gray-400 pl-2">├ Gaji Karyawan Aktual</span>
-                    <span className="font-medium text-amber-600/70">{formatRupiah(report.summary.payroll_unpaid)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs pb-0">
-                    <span className="text-gray-400 pl-2">├ Pengeluaran Lainnya</span>
-                    <span className="font-medium text-amber-600/70">{formatRupiah(report.summary.other_expense_unpaid)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs pb-1">
-                    <span className="text-gray-400 pl-2">└ Biaya Sewa Alat</span>
-                    <span className="font-medium text-amber-600/70">{formatRupiah(report.summary.total_equipment_rental_expense)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm font-bold pt-1">
-                    <span className="text-gray-800">Total Akumulasi Pengeluaran</span>
-                    <span className="text-red-800">{formatRupiah(report.summary.total_expense_paid + report.summary.total_expense_unpaid)}</span>
+                  <div className="flex justify-between text-sm font-bold pt-2 border-t border-red-100 mt-2">
+                    <span className="text-gray-800">Total Pengeluaran</span>
+                    <span className="text-red-800">{formatRupiah(report.summary.total_fuel_expense + report.summary.total_payroll_expense + report.summary.total_equipment_rental_expense)}</span>
                   </div>
                 </div>
               </div>
