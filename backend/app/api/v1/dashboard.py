@@ -231,7 +231,7 @@ def get_daily_report(
     work_logs_today = (
         db.query(WorkLog, Equipment)
         .join(Equipment, WorkLog.equipment_id == Equipment.id)
-        .filter(WorkLog.work_date == report_date, Equipment.ownership_status == 'rental')
+        .filter(func.date(WorkLog.work_date) == report_date, Equipment.ownership_status == 'rental')
         .all()
     )
     

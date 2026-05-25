@@ -441,9 +441,16 @@ def get_range_report(
             description=ir.description,
         ))
 
-    # Pemasukan Material = Total nominal dari semua surat jalan (IncomeRecord) di range ini
+    # Calculate Material Sales properly (handling invoices with discounts)
     invoices_in_range = [inv for inv in invoices_all if start_date <= inv.invoice_date <= end_date]
-    total_material_sales = sum(float(ir.amount or 0) for ir in material_rows)
+    
+    total_invoiced_material = sum(
+        float(inv.final_amount if inv.final_amount is not None else (inv.total_amount or 0)) 
+        for inv in invoices_in_range
+    )
+    total_uninvoiced_material = sum(float(ir.amount or 0) for ir in uninvoiced_material_sales)
+    
+    total_material_sales = total_invoiced_material + total_uninvoiced_material
 
     # ── Expense calculation (Paid vs Unpaid) ──
     from ...models.expense import Expense
@@ -476,9 +483,14 @@ def get_range_report(
     # Rental cost expense
     total_equipment_rental_expense = sum(wb.total_rental_cost for wb in work_logs_by_equipment)
     
+    # Fuel consumed cost (Operational Expense)
+    total_fuel_consumed_cost = sum(log_costs[fl.id] for fl in fuel_log_rows)
+    
     total_expense_paid = expense_paid + fuel_paid + payroll_paid
     total_expense_unpaid = expense_unpaid + fuel_unpaid + payroll_unpaid + total_equipment_rental_expense
-    total_expense_actual = total_expense_paid + total_expense_unpaid
+    
+    # Net Balance should use OPERATIONAL expense (Fuel Consumed, not Purchases)
+    total_expense_actual = expense_paid + expense_unpaid + payroll_paid + payroll_unpaid + total_fuel_consumed_cost + total_equipment_rental_expense
 
     # ── Income calculation (Paid vs Unpaid) ──
     # Project payments (all paid)
@@ -518,7 +530,7 @@ def get_range_report(
         period_start=str(start_date),
         period_end=str(end_date),
         summary=ReportSummary(
-            total_fuel_expense=round(total_fuel_expense, 2),
+            total_fuel_expense=round(total_fuel_consumed_cost, 2),
             total_fuel_liters=round(total_fuel_liters_purchased, 2),
             total_work_hours=round(total_work_hours, 2),
             total_equipment_rental_expense=round(total_equipment_rental_expense, 2),
