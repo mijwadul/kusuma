@@ -334,7 +334,6 @@ const FuelPricePage = () => {
 
   // Check access
   const isFinance = currentUser?.role === 'finance';
-  const isGM = currentUser?.role === 'gm' || currentUser?.role === 'admin';
   const hasAccess = isFinance || isGM || currentUser?.is_superuser;
 
   if (!hasAccess && !loading) {
