@@ -821,16 +821,41 @@ export default function ReportsPage() {
                 {/* Kolom Pengeluaran */}
                 <div className="space-y-2">
                   <h4 className="text-xs font-semibold text-red-700 uppercase tracking-wider border-b border-red-200 pb-1 mb-2">Total Pengeluaran</h4>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-sm mt-2 border-t border-red-50 pt-2">
                     <span className="text-gray-500">Pengeluaran Terbayar (Paid)</span>
                     <span className="font-semibold text-red-600">{formatRupiah(report.summary.total_expense_paid)}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-xs pb-0">
+                    <span className="text-gray-400 pl-2">├ Pembelian BBM</span>
+                    <span className="font-medium text-red-600/70">{formatRupiah(report.summary.fuel_paid)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs pb-0">
+                    <span className="text-gray-400 pl-2">├ Gaji Karyawan Aktual</span>
+                    <span className="font-medium text-red-600/70">{formatRupiah(report.summary.payroll_paid)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs pb-1">
+                    <span className="text-gray-400 pl-2">└ Pengeluaran Lainnya</span>
+                    <span className="font-medium text-red-600/70">{formatRupiah(report.summary.other_expense_paid)}</span>
+                  </div>
+
+                  <div className="flex justify-between text-sm mt-2 border-t border-red-50 pt-2">
                     <span className="text-gray-500">Pengeluaran Belum Terbayar (Unpaid)</span>
                     <span className="font-semibold text-amber-600">{formatRupiah(report.summary.total_expense_unpaid)}</span>
                   </div>
+                  <div className="flex justify-between text-xs pb-0">
+                    <span className="text-gray-400 pl-2">├ Pembelian BBM</span>
+                    <span className="font-medium text-amber-600/70">{formatRupiah(report.summary.fuel_unpaid)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs pb-0">
+                    <span className="text-gray-400 pl-2">├ Gaji Karyawan Aktual</span>
+                    <span className="font-medium text-amber-600/70">{formatRupiah(report.summary.payroll_unpaid)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs pb-0">
+                    <span className="text-gray-400 pl-2">├ Pengeluaran Lainnya</span>
+                    <span className="font-medium text-amber-600/70">{formatRupiah(report.summary.other_expense_unpaid)}</span>
+                  </div>
                   <div className="flex justify-between text-xs pb-1">
-                    <span className="text-gray-400 pl-2">└ Termasuk Biaya Sewa Alat</span>
+                    <span className="text-gray-400 pl-2">└ Biaya Sewa Alat</span>
                     <span className="font-medium text-amber-600/70">{formatRupiah(report.summary.total_equipment_rental_expense)}</span>
                   </div>
                   <div className="flex justify-between text-sm font-bold pt-1">

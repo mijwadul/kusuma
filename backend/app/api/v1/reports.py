@@ -106,6 +106,12 @@ class ReportSummary(BaseModel):
     total_income_unpaid: float
     total_expense_paid: float
     total_expense_unpaid: float
+    fuel_paid: float
+    fuel_unpaid: float
+    payroll_paid: float
+    payroll_unpaid: float
+    other_expense_paid: float
+    other_expense_unpaid: float
     uninvoiced_material_total: Optional[float] = 0.0
 
 
@@ -382,7 +388,11 @@ def get_range_report(
         emp_name_lower = emp.name.strip().lower() if emp else ""
         bonus = operator_bonus_dict.get(emp_name_lower, 0.0)
         
-        estimated = (stats["present"] * daily) + bonus
+        # Calculate overtime pay using employee's specific rate
+        overtime_rate = float(emp.hourly_overtime_rate if emp and emp.hourly_overtime_rate else 0)
+        overtime_amount = stats["ot_hours"] * overtime_rate
+        
+        estimated = (stats["present"] * daily) + bonus + overtime_amount
         total_payroll_expense += estimated
         total_present_global += stats["present"]
         attendance_summary.append(AttendanceEmployeeItem(
@@ -539,6 +549,12 @@ def get_range_report(
             total_income_unpaid=round(total_income_unpaid, 2),
             total_expense_paid=round(total_expense_paid, 2),
             total_expense_unpaid=round(total_expense_unpaid, 2),
+            fuel_paid=round(fuel_paid, 2),
+            fuel_unpaid=round(fuel_unpaid, 2),
+            payroll_paid=round(payroll_paid, 2),
+            payroll_unpaid=round(payroll_unpaid, 2),
+            other_expense_paid=round(expense_paid, 2),
+            other_expense_unpaid=round(expense_unpaid, 2),
             uninvoiced_material_total=round(sum(float(ir.amount or 0) for ir in uninvoiced_material_sales), 2),
         ),
         fuel_purchases=fuel_purchases,
