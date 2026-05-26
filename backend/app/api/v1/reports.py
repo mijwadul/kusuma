@@ -174,13 +174,13 @@ def get_range_report(
     )
 
     fuel_purchases: List[FuelPurchaseItem] = []
-    total_fuel_expense = 0.0
+    total_fuel_purchase_cost = 0.0
     total_fuel_liters_purchased = 0.0
 
     for fp in fuel_purchases_rows:
         total_price = float(fp.total_price or 0)
         liters = float(fp.liters or 0)
-        total_fuel_expense += total_price
+        total_fuel_purchase_cost += total_price
         total_fuel_liters_purchased += liters
         fuel_purchases.append(FuelPurchaseItem(
             id=fp.id,
@@ -192,53 +192,10 @@ def get_range_report(
             catatan=fp.notes,
         ))
 
+    from .utils import calculate_fifo_fuel_costs, calculate_material_sales_income
+    
     # ── 2. BBM per Alat & FIFO Calculation ──────────────────────────────────
-    # FIFO Calculation over history
-    all_fuel_purchases = db.query(FuelPrice).filter(
-        FuelPrice.approval_status == "approved"
-    ).order_by(FuelPrice.effective_date.asc()).all()
-    all_fuel_logs = db.query(FuelLog).order_by(FuelLog.refuel_date.asc()).all()
-
-    events = []
-    for fp in all_fuel_purchases:
-        events.append({"type": "purchase", "date": fp.effective_date, "data": fp})
-    for fl in all_fuel_logs:
-        events.append({"type": "consume", "date": fl.refuel_date, "data": fl})
-        
-    events.sort(key=lambda x: x["date"])
-    
-    inventory = []
-    log_costs = {}
-    
-    for ev in events:
-        if ev["type"] == "purchase":
-            fp = ev["data"]
-            if fp.liters and fp.liters > 0:
-                inventory.append({
-                    "price": float(fp.price_per_liter),
-                    "remaining_liters": float(fp.liters)
-                })
-        else:
-            fl = ev["data"]
-            liters_needed = float(fl.liters_filled or 0)
-            cost = 0.0
-            
-            while liters_needed > 0 and inventory:
-                batch = inventory[0]
-                if batch["remaining_liters"] <= liters_needed:
-                    cost += batch["remaining_liters"] * batch["price"]
-                    liters_needed -= batch["remaining_liters"]
-                    inventory.pop(0)
-                else:
-                    cost += liters_needed * batch["price"]
-                    batch["remaining_liters"] -= liters_needed
-                    liters_needed = 0
-                    
-            if liters_needed > 0:
-                fallback_price = all_fuel_purchases[-1].price_per_liter if all_fuel_purchases else 0
-                cost += liters_needed * float(fallback_price)
-                
-            log_costs[fl.id] = cost
+    log_costs = calculate_fifo_fuel_costs(db)
 
     fuel_log_rows = (
         db.query(FuelLog)
@@ -251,13 +208,22 @@ def get_range_report(
 
     fuel_by_eq_dict = defaultdict(lambda: {"liters": 0.0, "count": 0, "cost": 0.0})
     eq_ids = set()
+    total_fuel_usage_cost = 0.0
+    total_fuel_liters_used = 0.0
+    
     for fl in fuel_log_rows:
         eq_id = fl.equipment_id
+        cost = log_costs.get(fl.id, 0.0)
+        liters = float(fl.liters_filled or 0)
+        
+        total_fuel_usage_cost += cost
+        total_fuel_liters_used += liters
+        
         if eq_id:
             eq_ids.add(eq_id)
-            fuel_by_eq_dict[eq_id]["liters"] += float(fl.liters_filled or 0)
+            fuel_by_eq_dict[eq_id]["liters"] += liters
             fuel_by_eq_dict[eq_id]["count"] += 1
-            fuel_by_eq_dict[eq_id]["cost"] += log_costs.get(fl.id, 0.0)
+            fuel_by_eq_dict[eq_id]["cost"] += cost
 
     if eq_ids:
         for e in db.query(Equipment).filter(Equipment.id.in_(list(eq_ids))).all():
@@ -442,10 +408,8 @@ def get_range_report(
     )
 
     material_items: List[MaterialSaleItem] = []
-    total_material_sales = 0.0
     for ir in material_rows:
         amt = float(ir.amount or 0)
-        total_material_sales += amt
         material_items.append(MaterialSaleItem(
             id=ir.id,
             tanggal=_fmt_date(ir.income_date),
@@ -458,20 +422,22 @@ def get_range_report(
             payment_method=ir.payment_method,
             description=ir.description,
         ))
+        
+    total_material_sales, _ = calculate_material_sales_income(db, start_date, end_date)
 
     # ── Summary Calculation (Only Operational Page Data) ──
     total_equipment_rental_expense = sum(wb.total_rental_cost for wb in work_logs_by_equipment)
     
     # Net Balance matches UI math
-    total_expense_actual = total_fuel_expense + total_equipment_rental_expense + total_payroll_expense
+    total_expense_actual = total_fuel_usage_cost + total_equipment_rental_expense + total_payroll_expense
     net_balance = total_material_sales - total_expense_actual
 
     return RangeReport(
         period_start=str(start_date),
         period_end=str(end_date),
         summary=ReportSummary(
-            total_fuel_expense=round(total_fuel_expense, 2),
-            total_fuel_liters=round(total_fuel_liters_purchased, 2),
+            total_fuel_expense=round(total_fuel_usage_cost, 2),
+            total_fuel_liters=round(total_fuel_liters_used, 2),
             total_work_hours=round(total_work_hours, 2),
             total_equipment_rental_expense=round(total_equipment_rental_expense, 2),
             total_payroll_expense=round(total_payroll_expense, 2),
@@ -483,7 +449,7 @@ def get_range_report(
             total_income_unpaid=0.0,
             total_expense_paid=round(total_expense_actual, 2),
             total_expense_unpaid=0.0,
-            fuel_paid=round(total_fuel_expense, 2),
+            fuel_paid=round(total_fuel_usage_cost, 2),
             fuel_unpaid=0.0,
             payroll_paid=round(total_payroll_expense, 2),
             payroll_unpaid=0.0,

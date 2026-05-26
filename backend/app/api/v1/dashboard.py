@@ -165,15 +165,10 @@ def get_daily_report(
     )
     payroll_total = sum(float(r.net_salary or 0) for r in payroll_records)
 
-    # 2. BBM — ambil harga BBM efektif pada tanggal itu (paling baru sebelum/pada tanggal itu) yang sudah diapprove
-    fuel_price_obj = (
-        db.query(FuelPrice)
-        .filter(func.date(FuelPrice.effective_date) <= report_date, FuelPrice.approval_status == 'approved')
-        .order_by(FuelPrice.effective_date.desc())
-        .first()
-    )
-    price_per_liter = float(fuel_price_obj.price_per_liter) if fuel_price_obj else 0.0
-
+    from .utils import calculate_fifo_fuel_costs, calculate_material_sales_income
+    
+    # 2. BBM — menggunakan FIFO 
+    log_costs = calculate_fifo_fuel_costs(db)
     fuel_rows = (
         db.query(FuelLog, Equipment.name.label("equipment_name"))
         .join(Equipment, FuelLog.equipment_id == Equipment.id)
@@ -181,7 +176,8 @@ def get_daily_report(
         .all()
     )
     total_liters = sum(float(row.FuelLog.liters_filled or 0) for row in fuel_rows)
-    fuel_total = total_liters * price_per_liter
+    fuel_total = sum(log_costs.get(row.FuelLog.id, 0.0) for row in fuel_rows)
+    price_per_liter = fuel_total / total_liters if total_liters > 0 else 0.0
 
     # 3. Pengeluaran lain-lain dari tabel expenses (hanya yang sudah diapprove)
     from sqlalchemy import or_
@@ -199,31 +195,15 @@ def get_daily_report(
         expenses_by_cat[cat] = expenses_by_cat.get(cat, 0) + float(exp.amount or 0)
     other_expenses_total = sum(float(e.amount or 0) for e in other_expenses)
 
-    # 4. Pemasukan
+    # Pemasukan
     income_records = (
         db.query(IncomeRecord).filter(IncomeRecord.income_date == report_date).all()
     )
     project_income = [r for r in income_records if r.income_type == "project_payment"]
     project_income_total = sum(float(r.amount or 0) for r in project_income)
     
-    # b. Material Sales (Hanya dari Invoice yang diterbitkan hari ini)
-    from ...models.invoice import Invoice
-    invoices_today = db.query(Invoice).filter(Invoice.invoice_date == report_date).all()
-    material_income_total = sum(float(inv.final_amount if inv.final_amount is not None else (inv.total_amount or 0)) for inv in invoices_today)
-
-    # c. Material Sales yang BELUM di-invoice (Informasi Tambahan)
-    material_sales_today = [r for r in income_records if r.income_type == "material_sale"]
-    invoices_all = db.query(Invoice).all() # Load all to check if invoiced
-    uninvoiced_material_sales = []
-    for ms in material_sales_today:
-        is_invoiced = False
-        for inv in invoices_all:
-            if inv.customer_name == ms.customer_name and inv.start_date <= ms.income_date <= inv.end_date:
-                is_invoiced = True
-                break
-        if not is_invoiced:
-            uninvoiced_material_sales.append(ms)
-    
+    # b. Material Sales
+    material_income_total, uninvoiced_material_sales = calculate_material_sales_income(db, report_date, report_date)
     uninvoiced_material_total = sum(float(r.amount or 0) for r in uninvoiced_material_sales)
 
 
@@ -280,6 +260,12 @@ def get_daily_report(
     payroll_unpaid = 0 
     
     # Fuel Paid/Unpaid (FuelPrice on this date)
+    fuel_price_obj = (
+        db.query(FuelPrice)
+        .filter(func.date(FuelPrice.effective_date) <= report_date, FuelPrice.approval_status == 'approved')
+        .order_by(FuelPrice.effective_date.desc())
+        .first()
+    )
     fuel_paid = float(fuel_price_obj.total_price or 0) if fuel_price_obj and getattr(fuel_price_obj, "payment_status", "unpaid") == "paid" else 0
     fuel_unpaid = fuel_total - fuel_paid if fuel_total > fuel_paid else fuel_total # simple fallback
     
@@ -297,7 +283,10 @@ def get_daily_report(
     # Income Paid/Unpaid
     # Project Payments are assumed paid
     project_paid = project_income_total
-    # Unpaid material sales (Invoices created today)
+    
+    # Invoices Today are still calculated just for the paid/unpaid split logic
+    from ...models.invoice import Invoice
+    invoices_today = db.query(Invoice).filter(Invoice.invoice_date == report_date).all()
     unpaid_invoices_today = [inv for inv in invoices_today if inv.status == "unpaid"]
     material_unpaid = sum(float(inv.final_amount if inv.final_amount is not None else (inv.total_amount or 0)) for inv in unpaid_invoices_today)
     material_paid = material_income_total - material_unpaid if material_income_total > material_unpaid else material_income_total
@@ -333,7 +322,7 @@ def get_daily_report(
                         "id": row.FuelLog.id,
                         "equipment_name": row.equipment_name,
                         "liters": float(row.FuelLog.liters_filled or 0),
-                        "cost": float(row.FuelLog.liters_filled or 0) * price_per_liter,
+                        "cost": log_costs.get(row.FuelLog.id, 0.0),
                         "location": row.FuelLog.location,
                         "notes": row.FuelLog.notes,
                     }
@@ -429,6 +418,9 @@ def get_daily_report_history(
 
     today = date_type.today()
     result = []
+    
+    from .utils import calculate_fifo_fuel_costs, calculate_material_sales_income
+    log_costs = calculate_fifo_fuel_costs(db)
 
     for i in range(days - 1, -1, -1):  # dari paling lama ke hari ini
         d = today - timedelta(days=i)
@@ -444,19 +436,8 @@ def get_daily_report_history(
         )
 
         # Fuel cost
-        fuel_price_obj = (
-            db.query(FuelPrice)
-            .filter(func.date(FuelPrice.effective_date) <= d, FuelPrice.approval_status == 'approved')
-            .order_by(FuelPrice.effective_date.desc())
-            .first()
-        )
-        ppl = float(fuel_price_obj.price_per_liter) if fuel_price_obj else 0.0
-        liters = (
-            db.query(func.coalesce(func.sum(FuelLog.liters_filled), 0))
-            .filter(func.date(FuelLog.refuel_date) == d)
-            .scalar()
-        )
-        fuel_cost = float(liters or 0) * ppl
+        fuel_rows = db.query(FuelLog).filter(func.date(FuelLog.refuel_date) == d).all()
+        fuel_cost = sum(log_costs.get(fl.id, 0.0) for fl in fuel_rows)
 
         # Other expenses
         from sqlalchemy import or_
@@ -473,14 +454,15 @@ def get_daily_report_history(
         )
 
         # Income
-        income = (
+        project_income = (
             db.query(func.coalesce(func.sum(IncomeRecord.amount), 0))
-            .filter(IncomeRecord.income_date == d)
+            .filter(IncomeRecord.income_date == d, IncomeRecord.income_type == "project_payment")
             .scalar()
         )
+        material_income, _ = calculate_material_sales_income(db, d, d)
+        total_inc = float(project_income or 0) + material_income
 
         total_exp = float(p_total or 0) + fuel_cost + float(other or 0)
-        total_inc = float(income or 0)
 
         result.append(
             {

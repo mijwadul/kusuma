@@ -491,49 +491,8 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            {/* ── 1. Pembelian BBM ──────────────────────────────────── */}
-            <Section title="1. Pembelian BBM (Approved)">
-              {report.fuel_purchases.length === 0 ? (
-                <p className="text-sm text-gray-400 italic py-3">Tidak ada data pembelian BBM pada periode ini.</p>
-              ) : (
-                <TableWrapper>
-                  <thead>
-                    <tr>
-                      <Th>No</Th>
-                      <Th>Tanggal</Th>
-                      <Th>Jenis BBM</Th>
-                      <Th right>Liter</Th>
-                      <Th right>Harga/Liter</Th>
-                      <Th right>Total</Th>
-                      <Th>Catatan</Th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {report.fuel_purchases.map((fp, idx) => (
-                      <tr key={fp.id} className="hover:bg-gray-50">
-                        <Td muted>{idx + 1}</Td>
-                        <Td>{formatDate(fp.tanggal)}</Td>
-                        <Td bold>{fp.jenis_bbm}</Td>
-                        <Td right>{fp.liter != null ? formatNum(fp.liter) : "-"}</Td>
-                        <Td right>{formatRupiah(fp.harga_per_liter)}</Td>
-                        <Td right bold>{fp.total_harga != null ? formatRupiah(fp.total_harga) : "-"}</Td>
-                        <Td muted>{fp.catatan || "-"}</Td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <TotalRow
-                      cols={7}
-                      label={`Total (${formatNum(report.summary.total_fuel_liters)} Liter)`}
-                      value={formatRupiah(report.summary.total_fuel_expense)}
-                    />
-                  </tfoot>
-                </TableWrapper>
-              )}
-            </Section>
-
-            {/* ── 2. BBM per Alat ──────────────────────────────────── */}
-            <Section title="2. Penggunaan BBM per Alat">
+            {/* ── 1. BBM per Alat ──────────────────────────────────── */}
+            <Section title="1. Penggunaan BBM per Alat (FIFO)">
               {report.fuel_by_equipment.length === 0 ? (
                 <p className="text-sm text-gray-400 italic py-3">Tidak ada data pengisian BBM pada periode ini.</p>
               ) : (
@@ -825,7 +784,7 @@ export default function ReportsPage() {
                 <div className="space-y-2">
                   <h4 className="text-xs font-semibold text-red-700 uppercase tracking-wider border-b border-red-200 pb-1 mb-2">Total Pengeluaran</h4>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Pembelian BBM</span>
+                    <span className="text-gray-500">Pemakaian BBM (FIFO)</span>
                     <span className="font-semibold text-red-600/90">{formatRupiah(report.summary.total_fuel_expense)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
