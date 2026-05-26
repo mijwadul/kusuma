@@ -374,7 +374,7 @@ const EquipmentPage = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {equipment.map((item) => {
+            {[...equipment].sort((a, b) => a.name.localeCompare(b.name)).map((item) => {
               const report =
                 fuelReport.find((row) => row.equipment_id === item.id) || {};
               const lph = report.liter_per_hour;

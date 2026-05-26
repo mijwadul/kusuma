@@ -180,14 +180,10 @@ def get_daily_report(
     price_per_liter = fuel_total / total_liters if total_liters > 0 else 0.0
 
     # 3. Pengeluaran lain-lain dari tabel expenses (hanya yang sudah diapprove)
-    from sqlalchemy import or_
     other_expenses = db.query(Expense).filter(
         Expense.approval_status == "approved",
         Expense.category != "deposit",
-        or_(
-            Expense.expense_date == report_date,
-            func.date(Expense.paid_at) == report_date
-        )
+        Expense.expense_date == report_date
     ).all()
     expenses_by_cat: dict = {}
     for exp in other_expenses:
@@ -440,15 +436,11 @@ def get_daily_report_history(
         fuel_cost = sum(log_costs.get(fl.id, 0.0) for fl in fuel_rows)
 
         # Other expenses
-        from sqlalchemy import or_
         other = (
             db.query(func.coalesce(func.sum(Expense.amount), 0))
             .filter(
                 Expense.approval_status == "approved",
-                or_(
-                    Expense.expense_date == d,
-                    func.date(Expense.paid_at) == d
-                )
+                Expense.expense_date == d
             )
             .scalar()
         )

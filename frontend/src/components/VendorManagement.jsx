@@ -141,7 +141,7 @@ export default function VendorManagement({ userRole }) {
     setTopupData({
       amount: "",
       notes: "",
-      topup_date: new Date().toISOString().slice(0, 16),
+      topup_date: new Date().toISOString().slice(0, 10),
       equipment_id: eqs.length === 1 ? String(eqs[0].id) : ""
     });
     setShowTopupForm(true);
@@ -206,7 +206,7 @@ export default function VendorManagement({ userRole }) {
     setEditTopupData({
       amount: t.amount,
       notes: t.notes || "",
-      topup_date: t.topup_date ? new Date(t.topup_date).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
+      topup_date: t.topup_date ? new Date(t.topup_date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
       equipment_id: t.equipment_id ? String(t.equipment_id) : ""
     });
   };
@@ -309,7 +309,7 @@ export default function VendorManagement({ userRole }) {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {vendors.map(v => {
+            {[...vendors].sort((a, b) => a.name.localeCompare(b.name)).map(v => {
               const vEquipBalances = equipmentBalances.filter(b => b.vendor_id === v.id);
               const isExpanded = expandedVendors[v.id];
               const hasLowBalance = vEquipBalances.some(b => b.balance <= 5000000);
@@ -404,7 +404,7 @@ export default function VendorManagement({ userRole }) {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {topups.map(t => {
+                {[...topups].sort((a, b) => new Date(b.topup_date) - new Date(a.topup_date)).map(t => {
                   const v = vendors.find(x => x.id === t.vendor_id);
                   return (
                     <tr key={t.id}>
@@ -507,7 +507,7 @@ export default function VendorManagement({ userRole }) {
               <div>
                 <label className="block text-sm text-gray-700">Tanggal Top-Up</label>
                 <input
-                  type="datetime-local"
+                  type="date"
                   value={editTopupData.topup_date}
                   onChange={e => setEditTopupData({ ...editTopupData, topup_date: e.target.value })}
                   className="mt-1 w-full border rounded p-2"
@@ -590,7 +590,7 @@ export default function VendorManagement({ userRole }) {
                 )}
               </div>
               <div><label className="block text-sm text-gray-700">Nominal Rp</label><input type="number" required min="1" value={topupData.amount} onChange={e=>setTopupData({...topupData, amount: e.target.value})} className="mt-1 w-full border rounded p-2" /></div>
-              <div><label className="block text-sm text-gray-700">Tanggal Top-Up</label><input type="datetime-local" value={topupData.topup_date} onChange={e=>setTopupData({...topupData, topup_date: e.target.value})} className="mt-1 w-full border rounded p-2" /></div>
+              <div><label className="block text-sm text-gray-700">Tanggal Top-Up</label><input type="date" value={topupData.topup_date} onChange={e=>setTopupData({...topupData, topup_date: e.target.value})} className="mt-1 w-full border rounded p-2" /></div>
               <div><label className="block text-sm text-gray-700">Catatan/Keterangan</label><input value={topupData.notes} onChange={e=>setTopupData({...topupData, notes: e.target.value})} className="mt-1 w-full border rounded p-2" placeholder="Cth: Transfer BCA 20 Mei" /></div>
               <div className="flex justify-end gap-2 mt-6">
                 <button type="button" onClick={() => setShowTopupForm(false)} className="px-4 py-2 bg-gray-200 rounded">Batal</button>
