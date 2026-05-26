@@ -32,6 +32,7 @@ class VendorResponse(VendorBase):
 # -- Top Up Schema --
 class VendorTopUpCreate(BaseModel):
     vendor_id: int
+    equipment_id: int  # Wajib: deposit harus terkait ke alat berat tertentu
     amount: Decimal
     topup_date: Optional[datetime] = None
     notes: Optional[str] = None
@@ -39,6 +40,8 @@ class VendorTopUpCreate(BaseModel):
 class VendorTopUpResponse(BaseModel):
     id: int
     vendor_id: int
+    equipment_id: Optional[int] = None
+    equipment_name: Optional[str] = None  # Nama alat berat (dari join)
     amount: Decimal
     topup_date: datetime
     notes: Optional[str] = None
@@ -48,3 +51,4 @@ class VendorTopUpResponse(BaseModel):
     approved_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+

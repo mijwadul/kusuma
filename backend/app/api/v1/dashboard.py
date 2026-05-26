@@ -576,12 +576,46 @@ def get_finance_summary(
                 "amount": float(ms.amount or 0)
             })
     
-    # 7. Vendors Deposit Alert
-    vendors = db.query(Vendor).all()
-    vendor_deposits = [
-        {"id": v.id, "name": v.name, "balance_deposit": float(v.balance_deposit or 0)}
-        for v in vendors
-    ]
+    # 7. Equipment Deposit Alert (per alat berat, bukan per vendor)
+    from ...models.vendor import VendorTopUp
+    from .work_logs import _calculate_rental_costs
+    
+    rental_equipments = db.query(Equipment).filter(
+        Equipment.vendor_id != None,
+        Equipment.ownership_status == "rental"
+    ).order_by(Equipment.name).all()
+    
+    equipment_balances = []
+    for eq in rental_equipments:
+        vendor_obj = db.query(Vendor).filter(Vendor.id == eq.vendor_id).first()
+        
+        # Total topup approved untuk alat ini
+        topups_eq = db.query(VendorTopUp).filter(
+            VendorTopUp.equipment_id == eq.id,
+            VendorTopUp.status == "approved"
+        ).all()
+        from decimal import Decimal as D
+        total_topup = sum((t.amount for t in topups_eq), D("0"))
+        
+        # Total biaya rental alat ini
+        from ...models.work_log import WorkLog
+        work_logs_eq = db.query(WorkLog).filter(WorkLog.equipment_id == eq.id).all()
+        total_rental = D("0")
+        for wl in work_logs_eq:
+            costs = _calculate_rental_costs(wl, eq)
+            total_rental += costs["rental_cost_total"]
+        
+        balance = float(total_topup - total_rental)
+        equipment_balances.append({
+            "equipment_id": eq.id,
+            "equipment_name": eq.name,
+            "equipment_type": eq.type,
+            "vendor_id": eq.vendor_id,
+            "vendor_name": vendor_obj.name if vendor_obj else "-",
+            "total_topup": float(total_topup),
+            "total_rental_cost": float(total_rental),
+            "balance": balance,
+        })
     
     return {
         "unpaid_bills_amount": total_unpaid_bills_amount,
@@ -597,5 +631,8 @@ def get_finance_summary(
         "pending_fuel_purchases": pending_fuel_purchases,
         "pending_expenses": pending_expenses,
         "recent_pending_fuel": recent_pending_fuel,
-        "vendor_deposits": vendor_deposits
+        "equipment_balances": equipment_balances,
+        # backward compat: vendor_deposits masih ada tapi sekarang pakai data per alat berat
+        "vendor_deposits": equipment_balances,
     }
+

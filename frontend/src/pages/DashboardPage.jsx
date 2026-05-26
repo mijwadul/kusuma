@@ -645,24 +645,40 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {financeSummary.vendor_deposits && financeSummary.vendor_deposits.filter(v => v.balance_deposit <= 5000000).length > 0 && (
+          {(financeSummary.equipment_balances ?? financeSummary.vendor_deposits ?? []).filter(b => (b.balance ?? b.balance_deposit ?? 0) <= 5000000).length > 0 && (
             <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
               <AlertTriangle className="w-6 h-6 text-red-500 shrink-0 mt-0.5 animate-pulse" />
-              <div>
-                <h3 className="text-sm font-bold text-red-800">Deposit Vendor Menipis / Minus</h3>
-                <p className="text-xs text-red-700 mt-1">
-                  {financeSummary.vendor_deposits.filter(v => v.balance_deposit <= 5000000).map(v => (
-                    <span key={v.id} className="block mt-1">
-                      • {v.name}: <span className="font-bold">Rp {Number(v.balance_deposit).toLocaleString('id-ID')}</span>
-                    </span>
-                  ))}
-                </p>
-                <button onClick={() => navigate('/equipment')} className="mt-2 text-xs font-bold text-red-700 underline hover:text-red-900">
-                  Top-Up Sekarang di Menu Equipment
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-red-800">Deposit Alat Berat Menipis / Minus</h3>
+                <p className="text-xs text-red-600 mt-1 mb-2">Alat berat berikut membutuhkan top-up deposit segera:</p>
+                <div className="space-y-1">
+                  {(financeSummary.equipment_balances ?? financeSummary.vendor_deposits ?? [])
+                    .filter(b => (b.balance ?? b.balance_deposit ?? 0) <= 5000000)
+                    .sort((a, b) => (a.balance ?? a.balance_deposit ?? 0) - (b.balance ?? b.balance_deposit ?? 0))
+                    .map((b, idx) => {
+                      const balance = b.balance ?? b.balance_deposit ?? 0;
+                      const eqName = b.equipment_name ?? b.name ?? "-";
+                      const vendorName = b.vendor_name;
+                      return (
+                        <div key={idx} className="flex items-center justify-between bg-white/70 rounded-lg px-3 py-1.5 border border-red-100">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-gray-700">{eqName}</span>
+                            {vendorName && <span className="text-xs text-gray-400">({vendorName})</span>}
+                          </div>
+                          <span className={`text-xs font-bold tabular-nums ${balance < 0 ? "text-red-700" : "text-amber-700"}`}>
+                            {balance < 0 ? "⚠️ " : "⚡ "}{formatIDR(balance)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                </div>
+                <button onClick={() => navigate('/equipment')} className="mt-3 text-xs font-bold text-red-700 underline hover:text-red-900">
+                  → Top-Up Sekarang di Menu Equipment
                 </button>
               </div>
             </div>
           )}
+
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard

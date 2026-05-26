@@ -1,24 +1,32 @@
 import React, { useState, useEffect } from "react";
 import { API_URL } from "../api/auth";
 import { toast } from "sonner";
-import { Building2, Plus, Edit, Trash2, CheckCircle, XCircle, Pencil } from "lucide-react";
+import { Building2, Plus, Edit, Trash2, CheckCircle, XCircle, Pencil, Truck, ChevronDown, ChevronRight, AlertTriangle } from "lucide-react";
+
+const formatIDR = (v) =>
+  Number(v ?? 0).toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 });
 
 export default function VendorManagement({ userRole }) {
   const [vendors, setVendors] = useState([]);
   const [topups, setTopups] = useState([]);
+  const [allEquipment, setAllEquipment] = useState([]); // semua alat berat
+  const [equipmentBalances, setEquipmentBalances] = useState([]); // saldo per alat
   const [loading, setLoading] = useState(true);
-  
+  const [expandedVendors, setExpandedVendors] = useState({}); // vendor id → boolean
+
   const [showVendorForm, setShowVendorForm] = useState(false);
   const [editingVendor, setEditingVendor] = useState(null);
   const [vendorData, setVendorData] = useState({ name: "", contact_person: "", phone: "", address: "" });
 
   const [showTopupForm, setShowTopupForm] = useState(false);
   const [selectedVendorForTopup, setSelectedVendorForTopup] = useState(null);
-  const [topupData, setTopupData] = useState({ amount: "", notes: "" });
+  const [vendorEquipments, setVendorEquipments] = useState([]); // alat berat milik vendor yang dipilih
+  const [topupData, setTopupData] = useState({ amount: "", notes: "", topup_date: "", equipment_id: "" });
 
   // Edit topup state
   const [editingTopup, setEditingTopup] = useState(null);
-  const [editTopupData, setEditTopupData] = useState({ amount: "", notes: "" });
+  const [editTopupData, setEditTopupData] = useState({ amount: "", notes: "", topup_date: "", equipment_id: "" });
+  const [editVendorEquipments, setEditVendorEquipments] = useState([]);
 
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
@@ -29,6 +37,8 @@ export default function VendorManagement({ userRole }) {
     if (canManage) {
       fetchVendors();
       fetchTopups();
+      fetchAllEquipment();
+      fetchEquipmentBalances();
     }
   }, [userRole, canManage]);
 
@@ -53,6 +63,28 @@ export default function VendorManagement({ userRole }) {
       console.error(err);
     }
   };
+
+  const fetchAllEquipment = async () => {
+    try {
+      const res = await fetch(`${API_URL}/equipment`, { headers: { Authorization: `Bearer ${getToken()}` } });
+      if (res.ok) setAllEquipment(await res.json());
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchEquipmentBalances = async () => {
+    try {
+      const res = await fetch(`${API_URL}/vendors/equipment-balances/all`, { headers: { Authorization: `Bearer ${getToken()}` } });
+      if (res.ok) setEquipmentBalances(await res.json());
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Filter alat berat milik vendor tertentu (rental only)
+  const getVendorEquipments = (vendorId) =>
+    allEquipment.filter(eq => eq.vendor_id === vendorId && eq.ownership_status === "rental");
 
   const handleVendorSubmit = async (e) => {
     e.preventDefault();
@@ -102,14 +134,32 @@ export default function VendorManagement({ userRole }) {
     });
   };
 
+  const openTopupForm = (vendor) => {
+    const eqs = getVendorEquipments(vendor.id);
+    setSelectedVendorForTopup(vendor);
+    setVendorEquipments(eqs);
+    setTopupData({
+      amount: "",
+      notes: "",
+      topup_date: new Date().toISOString().slice(0, 16),
+      equipment_id: eqs.length === 1 ? String(eqs[0].id) : ""
+    });
+    setShowTopupForm(true);
+  };
+
   const handleTopupSubmit = async (e) => {
     e.preventDefault();
+    if (!topupData.equipment_id) {
+      toast.error("Pilih alat berat terlebih dahulu!");
+      return;
+    }
     try {
       const res = await fetch(`${API_URL}/vendors/topups`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({
           vendor_id: selectedVendorForTopup.id,
+          equipment_id: parseInt(topupData.equipment_id),
           amount: parseFloat(topupData.amount),
           topup_date: topupData.topup_date ? new Date(topupData.topup_date).toISOString() : undefined,
           notes: topupData.notes
@@ -120,8 +170,10 @@ export default function VendorManagement({ userRole }) {
         setShowTopupForm(false);
         fetchVendors();
         fetchTopups();
+        fetchEquipmentBalances();
       } else {
-        toast.error("Gagal mengajukan top up");
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.detail || "Gagal mengajukan top up");
       }
     } catch (err) {
       toast.error("Error jaringan");
@@ -138,6 +190,7 @@ export default function VendorManagement({ userRole }) {
         toast.success(`Top Up ${status === 'approved' ? 'Disetujui' : 'Ditolak'}`);
         fetchVendors();
         fetchTopups();
+        fetchEquipmentBalances();
       } else {
         toast.error("Gagal merespon top up");
       }
@@ -146,14 +199,31 @@ export default function VendorManagement({ userRole }) {
     }
   };
 
+  const openEditTopup = (t) => {
+    const eqs = getVendorEquipments(t.vendor_id);
+    setEditVendorEquipments(eqs);
+    setEditingTopup(t);
+    setEditTopupData({
+      amount: t.amount,
+      notes: t.notes || "",
+      topup_date: t.topup_date ? new Date(t.topup_date).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
+      equipment_id: t.equipment_id ? String(t.equipment_id) : ""
+    });
+  };
+
   const handleEditTopupSubmit = async (e) => {
     e.preventDefault();
+    if (!editTopupData.equipment_id) {
+      toast.error("Pilih alat berat terlebih dahulu!");
+      return;
+    }
     try {
       const res = await fetch(`${API_URL}/vendors/topups/${editingTopup.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({
           vendor_id: editingTopup.vendor_id,
+          equipment_id: parseInt(editTopupData.equipment_id),
           amount: parseFloat(editTopupData.amount),
           topup_date: editTopupData.topup_date ? new Date(editTopupData.topup_date).toISOString() : undefined,
           notes: editTopupData.notes
@@ -164,8 +234,10 @@ export default function VendorManagement({ userRole }) {
         setEditingTopup(null);
         fetchVendors();
         fetchTopups();
+        fetchEquipmentBalances();
       } else {
-        toast.error("Gagal memperbarui deposit");
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.detail || "Gagal memperbarui deposit");
       }
     } catch (err) {
       toast.error("Error jaringan");
@@ -176,7 +248,7 @@ export default function VendorManagement({ userRole }) {
     setConfirmModal({
       isOpen: true,
       title: "Hapus Deposit",
-      message: "Hapus data Top-Up Deposit ini? Saldo vendor akan otomatis diperbarui.",
+      message: "Hapus data Top-Up Deposit ini? Saldo alat berat akan otomatis diperbarui.",
       onConfirm: async () => {
         try {
           const res = await fetch(`${API_URL}/vendors/topups/${id}`, {
@@ -187,6 +259,7 @@ export default function VendorManagement({ userRole }) {
             toast.success("Data deposit dihapus");
             fetchVendors();
             fetchTopups();
+            fetchEquipmentBalances();
           } else {
             toast.error("Gagal menghapus deposit");
           }
@@ -197,6 +270,10 @@ export default function VendorManagement({ userRole }) {
         }
       }
     });
+  };
+
+  const toggleVendorExpand = (vendorId) => {
+    setExpandedVendors(prev => ({ ...prev, [vendorId]: !prev[vendorId] }));
   };
 
   if (!canManage) return null;
@@ -219,6 +296,7 @@ export default function VendorManagement({ userRole }) {
         </button>
       </div>
 
+      {/* ── Tabel Vendor + Saldo per Alat Berat ── */}
       <div className="overflow-x-auto mb-8 border border-gray-100 rounded-lg">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -226,51 +304,103 @@ export default function VendorManagement({ userRole }) {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Perusahaan</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kontak</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sisa Deposit</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Saldo per Alat Berat</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {vendors.map(v => (
-              <tr key={v.id} className="hover:bg-blue-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">#{v.id}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{v.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{v.contact_person || "-"} <br/> {v.phone}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 rounded text-sm font-bold ${v.balance_deposit < 0 ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'}`}>
-                    {v.balance_deposit < 0 ? '⚠️ Hutang: ' : ''}Rp {Number(v.balance_deposit).toLocaleString("id-ID")}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                  <button 
-                    onClick={() => { setSelectedVendorForTopup(v); setTopupData({ amount: "", notes: "", topup_date: new Date().toISOString().slice(0, 16) }); setShowTopupForm(true); }}
-                    className="text-white bg-amber-500 hover:bg-amber-600 px-3 py-1.5 rounded font-medium"
-                  >
-                    Top Up
-                  </button>
-                  <button onClick={() => { setEditingVendor(v); setVendorData(v); setShowVendorForm(true); }} className="text-indigo-600 hover:text-indigo-900 px-2"><Edit size={16}/></button>
-                  {isGM && <button onClick={() => handleDeleteVendor(v.id)} className="text-red-600 hover:text-red-900 px-2"><Trash2 size={16}/></button>}
-                </td>
-              </tr>
-            ))}
+            {vendors.map(v => {
+              const vEquipBalances = equipmentBalances.filter(b => b.vendor_id === v.id);
+              const isExpanded = expandedVendors[v.id];
+              const hasLowBalance = vEquipBalances.some(b => b.balance <= 5000000);
+              return (
+                <React.Fragment key={v.id}>
+                  <tr className="hover:bg-blue-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">#{v.id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{v.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{v.contact_person || "-"} <br/> {v.phone}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {vEquipBalances.length === 0 ? (
+                        <span className="text-xs text-gray-400 italic">Belum ada alat berat rental</span>
+                      ) : (
+                        <button
+                          onClick={() => toggleVendorExpand(v.id)}
+                          className={`flex items-center gap-1.5 text-sm font-semibold px-2 py-1 rounded transition-colors ${
+                            hasLowBalance
+                              ? "text-red-700 bg-red-50 hover:bg-red-100"
+                              : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+                          }`}
+                        >
+                          {hasLowBalance && <AlertTriangle size={14} className="text-red-500" />}
+                          <Truck size={14} />
+                          {vEquipBalances.length} Alat Berat
+                          {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                      <button
+                        onClick={() => openTopupForm(v)}
+                        className="text-white bg-amber-500 hover:bg-amber-600 px-3 py-1.5 rounded font-medium"
+                      >
+                        Top Up
+                      </button>
+                      <button onClick={() => { setEditingVendor(v); setVendorData(v); setShowVendorForm(true); }} className="text-indigo-600 hover:text-indigo-900 px-2"><Edit size={16}/></button>
+                      {isGM && <button onClick={() => handleDeleteVendor(v.id)} className="text-red-600 hover:text-red-900 px-2"><Trash2 size={16}/></button>}
+                    </td>
+                  </tr>
+                  {/* Expanded: saldo per alat berat */}
+                  {isExpanded && vEquipBalances.map(b => (
+                    <tr key={`eq-${b.equipment_id}`} className="bg-slate-50 border-t border-slate-100">
+                      <td className="pl-12 pr-4 py-2" colSpan={2}>
+                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                          <Truck size={13} className="text-gray-400 flex-shrink-0" />
+                          <span className="font-medium">{b.equipment_name}</span>
+                          <span className="text-xs text-gray-400">({b.equipment_type})</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2 text-xs text-gray-500">
+                        <div>Deposit masuk: <span className="font-medium text-emerald-700">{formatIDR(b.total_topup)}</span></div>
+                        <div>Biaya rental: <span className="font-medium text-red-600">-{formatIDR(b.total_rental_cost)}</span></div>
+                      </td>
+                      <td className="px-4 py-2" colSpan={2}>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-sm font-bold ${
+                          b.balance < 0
+                            ? "bg-red-100 text-red-800"
+                            : b.balance <= 5000000
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-emerald-100 text-emerald-800"
+                        }`}>
+                          {b.balance < 0 && <AlertTriangle size={12} />}
+                          {b.balance < 0 ? "⚠️ Minus: " : b.balance <= 5000000 ? "⚡ Menipis: " : ""}
+                          {formatIDR(b.balance)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </React.Fragment>
+              );
+            })}
             {vendors.length === 0 && <tr><td colSpan="5" className="text-center py-4 text-gray-500">Belum ada data vendor.</td></tr>}
           </tbody>
         </table>
       </div>
 
+      {/* ── Riwayat Top-Up ── */}
       {topups.length > 0 && (
         <>
           <h3 className="text-lg font-bold text-gray-800 mb-4">Riwayat Top-Up Deposit</h3>
           <div className="overflow-x-auto border border-gray-100 rounded-lg max-h-96">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nominal</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catatan</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  {isGM && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi GM</th>}
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alat Berat</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nominal</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catatan</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  {isGM && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi GM</th>}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -278,17 +408,31 @@ export default function VendorManagement({ userRole }) {
                   const v = vendors.find(x => x.id === t.vendor_id);
                   return (
                     <tr key={t.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(t.topup_date).toLocaleString('id-ID')}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{v?.name || `Vendor #${t.vendor_id}`}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-emerald-600">Rp {Number(t.amount).toLocaleString('id-ID')}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{t.notes || "-"}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 text-xs rounded-full font-semibold ${t.status === 'approved' ? 'bg-green-100 text-green-800' : t.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{new Date(t.topup_date).toLocaleString('id-ID')}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">{v?.name || `Vendor #${t.vendor_id}`}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {t.equipment_name ? (
+                          <span className="inline-flex items-center gap-1 text-sm text-gray-700">
+                            <Truck size={13} className="text-gray-400" />
+                            {t.equipment_name}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-emerald-600">{formatIDR(t.amount)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{t.notes || "-"}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`px-2 py-1 text-xs rounded-full font-semibold ${
+                          t.status === 'approved' ? 'bg-green-100 text-green-800'
+                          : t.status === 'rejected' ? 'bg-red-100 text-red-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                        }`}>
                           {t.status.toUpperCase()}
                         </span>
                       </td>
                       {isGM && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm">
                           <div className="flex gap-2 items-center">
                             {t.status === 'pending' && (
                               <>
@@ -296,9 +440,8 @@ export default function VendorManagement({ userRole }) {
                                 <button onClick={() => handleApproveTopup(t.id, 'rejected')} className="text-red-600 hover:text-red-800" title="Tolak"><XCircle size={18}/></button>
                               </>
                             )}
-                            {/* Edit & Delete selalu muncul untuk GM */}
                             <button
-                              onClick={() => { setEditingTopup(t); setEditTopupData({ amount: t.amount, notes: t.notes || "", topup_date: t.topup_date ? new Date(t.topup_date).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16) }); }}
+                              onClick={() => openEditTopup(t)}
                               className="text-indigo-600 hover:text-indigo-800"
                               title="Edit Deposit"
                             >
@@ -315,7 +458,7 @@ export default function VendorManagement({ userRole }) {
                         </td>
                       )}
                     </tr>
-                  )
+                  );
                 })}
               </tbody>
             </table>
@@ -323,7 +466,7 @@ export default function VendorManagement({ userRole }) {
         </>
       )}
 
-      {/* Edit Topup Modal */}
+      {/* ── Modal Edit Topup ── */}
       {editingTopup && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-xl">
@@ -333,6 +476,25 @@ export default function VendorManagement({ userRole }) {
               Status: <span className={`font-semibold ${editingTopup.status === 'approved' ? 'text-green-600' : 'text-yellow-600'}`}>{editingTopup.status.toUpperCase()}</span>
             </p>
             <form onSubmit={handleEditTopupSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Alat Berat <span className="text-red-500">*</span>
+                </label>
+                <select
+                  required
+                  value={editTopupData.equipment_id}
+                  onChange={e => setEditTopupData({ ...editTopupData, equipment_id: e.target.value })}
+                  className="mt-1 w-full border rounded p-2 text-sm focus:ring-2 focus:ring-indigo-300"
+                >
+                  <option value="">-- Pilih Alat Berat --</option>
+                  {editVendorEquipments.map(eq => (
+                    <option key={eq.id} value={eq.id}>{eq.name} ({eq.type})</option>
+                  ))}
+                </select>
+                {editVendorEquipments.length === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">⚠️ Vendor ini belum memiliki alat berat rental terdaftar.</p>
+                )}
+              </div>
               <div>
                 <label className="block text-sm text-gray-700">Nominal Rp</label>
                 <input
@@ -369,7 +531,7 @@ export default function VendorManagement({ userRole }) {
         </div>
       )}
 
-      {/* Forms */}
+      {/* ── Modal Tambah Vendor ── */}
       {showVendorForm && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-xl">
@@ -388,43 +550,78 @@ export default function VendorManagement({ userRole }) {
         </div>
       )}
 
+      {/* ── Modal Top Up ── */}
       {showTopupForm && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-xl">
-            <h3 className="text-lg font-bold mb-4">Top-Up Deposit: {selectedVendorForTopup?.name}</h3>
+            <h3 className="text-lg font-bold mb-2">Top-Up Deposit: {selectedVendorForTopup?.name}</h3>
             {isGM ? (
               <div className="bg-green-50 text-green-700 p-3 rounded mb-4 text-sm font-medium">Anda login sebagai GM. Top-Up akan langsung lunas dan tercatat.</div>
             ) : (
               <div className="bg-yellow-50 text-yellow-700 p-3 rounded mb-4 text-sm font-medium">Pengajuan Top-Up memerlukan Approval dari GM.</div>
             )}
             <form onSubmit={handleTopupSubmit} className="space-y-4">
+              {/* Dropdown Alat Berat — WAJIB */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Alat Berat <span className="text-red-500">*</span>
+                </label>
+                {vendorEquipments.length === 0 ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded p-3 text-sm text-amber-700">
+                    ⚠️ Vendor ini belum memiliki alat berat rental yang terdaftar di sistem. Daftarkan alat berat terlebih dahulu di menu Equipment.
+                  </div>
+                ) : (
+                  <select
+                    required
+                    value={topupData.equipment_id}
+                    onChange={e => setTopupData({ ...topupData, equipment_id: e.target.value })}
+                    className="mt-1 w-full border border-gray-300 rounded p-2 text-sm focus:ring-2 focus:ring-amber-300"
+                  >
+                    <option value="">-- Pilih Alat Berat --</option>
+                    {vendorEquipments.map(eq => {
+                      const bal = equipmentBalances.find(b => b.equipment_id === eq.id);
+                      return (
+                        <option key={eq.id} value={eq.id}>
+                          {eq.name} ({eq.type}){bal ? ` — Saldo: ${formatIDR(bal.balance)}` : ""}
+                        </option>
+                      );
+                    })}
+                  </select>
+                )}
+              </div>
               <div><label className="block text-sm text-gray-700">Nominal Rp</label><input type="number" required min="1" value={topupData.amount} onChange={e=>setTopupData({...topupData, amount: e.target.value})} className="mt-1 w-full border rounded p-2" /></div>
               <div><label className="block text-sm text-gray-700">Tanggal Top-Up</label><input type="datetime-local" value={topupData.topup_date} onChange={e=>setTopupData({...topupData, topup_date: e.target.value})} className="mt-1 w-full border rounded p-2" /></div>
               <div><label className="block text-sm text-gray-700">Catatan/Keterangan</label><input value={topupData.notes} onChange={e=>setTopupData({...topupData, notes: e.target.value})} className="mt-1 w-full border rounded p-2" placeholder="Cth: Transfer BCA 20 Mei" /></div>
               <div className="flex justify-end gap-2 mt-6">
                 <button type="button" onClick={() => setShowTopupForm(false)} className="px-4 py-2 bg-gray-200 rounded">Batal</button>
-                <button type="submit" className="px-4 py-2 bg-amber-500 text-white font-bold rounded">Kirim {isGM ? "Top-Up" : "Pengajuan"}</button>
+                <button
+                  type="submit"
+                  disabled={vendorEquipments.length === 0}
+                  className="px-4 py-2 bg-amber-500 text-white font-bold rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Kirim {isGM ? "Top-Up" : "Pengajuan"}
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Confirmation Modal */}
+      {/* ── Confirmation Modal ── */}
       {confirmModal.isOpen && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-xl text-center">
             <h3 className="text-lg font-bold mb-2 text-gray-900">{confirmModal.title}</h3>
             <p className="text-sm text-gray-600 mb-6">{confirmModal.message}</p>
             <div className="flex justify-center gap-3">
-              <button 
-                onClick={() => setConfirmModal({ isOpen: false, title: "", message: "", onConfirm: null })} 
+              <button
+                onClick={() => setConfirmModal({ isOpen: false, title: "", message: "", onConfirm: null })}
                 className="px-5 py-2.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg font-medium transition-colors"
               >
                 Batal
               </button>
-              <button 
-                onClick={confirmModal.onConfirm} 
+              <button
+                onClick={confirmModal.onConfirm}
                 className="px-5 py-2.5 bg-red-600 text-white hover:bg-red-700 rounded-lg font-bold transition-colors"
               >
                 Ya, Lanjutkan

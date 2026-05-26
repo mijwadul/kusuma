@@ -28,12 +28,15 @@ class Vendor(Base):
 
 class VendorTopUp(Base):
     """
-    Catatan Top-Up Deposit ke Vendor
+    Catatan Top-Up Deposit ke Vendor, dikaitkan ke alat berat tertentu
     """
     __tablename__ = "vendor_topups"
 
     id = Column(Integer, primary_key=True, index=True)
     vendor_id = Column(Integer, ForeignKey("vendors.id"), nullable=False)
+    
+    # Deposit dikaitkan ke alat berat spesifik
+    equipment_id = Column(Integer, ForeignKey("equipment.id"), nullable=True)
     
     amount = Column(DECIMAL(15, 2), nullable=False)
     topup_date = Column(DateTime(timezone=True), default=func.now())
@@ -44,3 +47,6 @@ class VendorTopUp(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     approved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     approved_at = Column(DateTime(timezone=True), nullable=True)
+    
+    # Relationship ke Equipment untuk mengambil nama alat
+    equipment = relationship("Equipment", foreign_keys=[equipment_id])
