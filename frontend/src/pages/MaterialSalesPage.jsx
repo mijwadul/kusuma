@@ -39,7 +39,13 @@ const authFetch = async (url, options = {}) => {
   });
   if (!res.ok) {
     const t = await res.text();
-    throw new Error(t || `HTTP ${res.status}`);
+    try {
+      const j = JSON.parse(t);
+      throw new Error(j.detail || t);
+    } catch (e) {
+      if (e.message !== "Unexpected token" && !e.message.includes("JSON")) throw e;
+      throw new Error(t || `HTTP ${res.status}`);
+    }
   }
   if (res.status === 204) return null;
   return res.json();
@@ -72,13 +78,20 @@ const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment 
     license_plate: editData?.license_plate || "",
     driver_name: editData?.driver_name || "",
     vehicle_type: editData?.vehicle_type || "Colt Diesel",
-    material_type: editData?.material_type || meta?.material_types?.[0] || "",
-    unit: editData?.unit || (meta?.material_units?.[meta?.material_types?.[0]]?.[0]) || "ton",
-    quantity: editData?.quantity || "",
+    material_type: editData?.material_type || "Limestone (urugan)",
+    unit: editData?.unit || "ritase",
+    quantity: editData?.quantity || "1",
     unit_price: editData?.unit_price || "",
     amount: editData?.amount || "",
     payment_method: editData?.payment_method || "transfer",
     notes: editData?.notes || "",
+    sj_length: editData?.sj_length || "",
+    sj_width: editData?.sj_width || "",
+    sj_height: editData?.sj_height || "",
+    sj_volume_minus: editData?.sj_volume_minus || "",
+    sj_gross_weight: editData?.sj_gross_weight || "",
+    sj_tare_weight: editData?.sj_tare_weight || "",
+    sj_weight_minus: editData?.sj_weight_minus || "",
   });
   const [saving, setSaving] = useState(false);
   const [priceHint, setPriceHint] = useState(null);
@@ -95,6 +108,28 @@ const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment 
     return !hasTruck;
   }, [currentCust, form.license_plate]);
 
+
+  // Auto calculate quantity based on Surat Jalan fields
+  useEffect(() => {
+    if (form.unit === "m3") {
+      const p = parseFloat(form.sj_length) || 0;
+      const l = parseFloat(form.sj_width) || 0;
+      const t = parseFloat(form.sj_height) || 0;
+      const m = parseFloat(form.sj_volume_minus) || 0;
+      if (p > 0 && l > 0 && t > 0) {
+        setForm(prev => ({ ...prev, quantity: (p * l * (t - m)).toString() }));
+      }
+    } else if (form.unit === "ton") {
+      const gross = parseFloat(form.sj_gross_weight) || 0;
+      const tare = parseFloat(form.sj_tare_weight) || 0;
+      const m = parseFloat(form.sj_weight_minus) || 0;
+      if (gross > 0) {
+        setForm(prev => ({ ...prev, quantity: (gross - tare - m).toString() }));
+      }
+    } else {
+      setForm(prev => ({ ...prev, quantity: "1" })); // Default 1 ritase
+    }
+  }, [form.unit, form.sj_length, form.sj_width, form.sj_height, form.sj_volume_minus, form.sj_gross_weight, form.sj_tare_weight, form.sj_weight_minus]);
 
   // Auto calculate amount
   useEffect(() => {
@@ -143,15 +178,6 @@ const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment 
       let finalUnit = form.unit;
       let finalPrice = form.unit_price;
 
-      if (currentCust) {
-        const pref = currentCust.material_preferences?.find(m => m.vehicle_type === form.vehicle_type) || currentCust.material_preferences?.[0];
-        if (pref) {
-          finalMat = pref.material_type;
-          finalUnit = pref.unit;
-          if (pref.unit_price) finalPrice = pref.unit_price;
-        }
-      }
-
       const payload = {
         income_date: form.income_date,
         income_type: "material_sale",
@@ -161,11 +187,18 @@ const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment 
         driver_name: form.driver_name,
         vehicle_type: form.vehicle_type,
         material_type: finalMat || meta?.material_types?.[0] || "Unknown",
-        quantity: 1, // Otomatis selalu 1
-        unit: finalUnit || "ritase", // Default ritase
+        quantity: parseFloat(form.quantity) || 1,
+        unit: finalUnit || "ritase",
         unit_price: parseFloat(finalPrice) || 0,
         payment_method: form.payment_method || "transfer",
-        notes: form.notes
+        notes: form.notes,
+        sj_length: form.sj_length ? parseFloat(form.sj_length) : null,
+        sj_width: form.sj_width ? parseFloat(form.sj_width) : null,
+        sj_height: form.sj_height ? parseFloat(form.sj_height) : null,
+        sj_volume_minus: form.sj_volume_minus ? parseFloat(form.sj_volume_minus) : null,
+        sj_gross_weight: form.sj_gross_weight ? parseFloat(form.sj_gross_weight) : null,
+        sj_tare_weight: form.sj_tare_weight ? parseFloat(form.sj_tare_weight) : null,
+        sj_weight_minus: form.sj_weight_minus ? parseFloat(form.sj_weight_minus) : null,
       };
       
       payload.amount = payload.quantity * payload.unit_price;
@@ -255,9 +288,8 @@ const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment 
                           const pref = cust.material_preferences?.find(m => m.vehicle_type === newForm.vehicle_type) || cust.material_preferences?.[0];
                           if (pref) {
                             newForm.material_type = pref.material_type;
-                            newForm.unit = pref.unit;
-                            if (pref.unit_price) newForm.unit_price = pref.unit_price;
                           }
+                          newForm.unit = "ritase";
                           newForm.quantity = "1";
                           
                           break;
@@ -271,7 +303,9 @@ const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment 
                 className={inputCls} 
               />
               <datalist id="trucks-list">
-                {customers.flatMap(c => (c.trucks || []).map(t => <option key={t.license_plate} value={t.license_plate}>{t.license_plate} - {c.name}</option>))}
+                {currentCust ? (currentCust.trucks || []).map(t => (
+                  <option key={t.license_plate} value={t.license_plate}>{t.license_plate}</option>
+                )) : null}
               </datalist>
             </div>
             <div>
@@ -313,7 +347,16 @@ const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment 
             </div>
           )}
 
-          {/* Input Material, Kuantitas, Harga disembunyikan sesuai permintaan karena terisi otomatis */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Material</label>
+              <select value={form.material_type} onChange={e => setForm(p => ({...p, material_type: e.target.value}))} className={inputCls} required>
+                {["Limestone (urugan)", "Dolomite", "Boulder", "Clay"].map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+          </div>
 
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={onClose} className="flex-1 py-2.5 border rounded-xl text-sm font-medium">Batal</button>
@@ -330,8 +373,8 @@ const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment 
 
 const PriceFormModal = ({ editData, onClose, onSaved, meta }) => {
   const [form, setForm] = useState({
-    material_type: editData?.material_type || meta?.material_types?.[0] || "",
-    unit: editData?.unit || meta?.material_units?.[meta?.material_types?.[0]]?.[0] || "ton",
+    material_type: editData?.material_type || "Limestone (urugan)",
+    unit: editData?.unit || "ton",
     price_per_unit: editData?.price_per_unit ?? "",
     is_active: editData?.is_active ?? true,
     notes: editData?.notes || "",
@@ -375,7 +418,7 @@ const PriceFormModal = ({ editData, onClose, onSaved, meta }) => {
               const m = e.target.value;
               setForm(p => ({...p, material_type: m, unit: meta?.material_units?.[m]?.[0] || "ton"}));
             }} className={inputCls}>
-              {meta?.material_types?.map((m) => <option key={m} value={m}>{m}</option>)}
+              {["Limestone (urugan)", "Dolomite", "Boulder", "Clay"].map((m) => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-3">

@@ -17,6 +17,9 @@ import {
 import { API_URL } from "../api/auth";
 import AlertModal from "../components/AlertModal";
 import InvoiceGenerator from "../components/InvoiceGenerator";
+import SuratJalanManagerModal from "../components/SuratJalanManagerModal";
+import { Truck } from "lucide-react";
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const formatIDR = (v) =>
   Number(v ?? 0).toLocaleString("id-ID", {
@@ -75,7 +78,13 @@ const authFetchHelper = async (url, options = {}) => {
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(text || `HTTP ${res.status}`);
+    try {
+      const j = JSON.parse(text);
+      throw new Error(j.detail || text);
+    } catch (e) {
+      if (e.message !== "Unexpected token" && !e.message.includes("JSON")) throw e;
+      throw new Error(text || `HTTP ${res.status}`);
+    }
   }
   if (res.status === 204) return null;
   return res.json();
@@ -108,13 +117,20 @@ const defaultMaterialForm = () => ({
   income_date: todayStr(),
   customer_name: "",
   material_type: MATERIAL_TYPES[0],
-  quantity: "",
-  unit: MATERIAL_UNITS[MATERIAL_TYPES[0]][0],
+  quantity: "1",
+  unit: "ritase",
   unit_price: "",
   amount: "",
   payment_method: "transfer",
   description: "",
   notes: "",
+  sj_length: "",
+  sj_width: "",
+  sj_height: "",
+  sj_volume_minus: "",
+  sj_gross_weight: "",
+  sj_tare_weight: "",
+  sj_weight_minus: "",
 });
 
 // ── MAIN COMPONENT ───────────────────────────────────────────────────────────
@@ -135,6 +151,7 @@ const IncomePage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [showSuratJalanModal, setShowSuratJalanModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [customers, setCustomers] = useState([]);
 
@@ -213,6 +230,28 @@ const IncomePage = () => {
     }));
   }, [projectForm.project_id, projectForm.payment_term, projects]);
 
+  // Auto calculate quantity based on Surat Jalan fields
+  useEffect(() => {
+    if (materialForm.unit === "m3") {
+      const p = parseFloat(materialForm.sj_length) || 0;
+      const l = parseFloat(materialForm.sj_width) || 0;
+      const t = parseFloat(materialForm.sj_height) || 0;
+      const m = parseFloat(materialForm.sj_volume_minus) || 0;
+      if (p > 0 && l > 0 && t > 0) {
+        setMaterialForm(prev => ({ ...prev, quantity: (p * l * (t - m)).toString() }));
+      }
+    } else if (materialForm.unit === "ton") {
+      const gross = parseFloat(materialForm.sj_gross_weight) || 0;
+      const tare = parseFloat(materialForm.sj_tare_weight) || 0;
+      const m = parseFloat(materialForm.sj_weight_minus) || 0;
+      if (gross > 0) {
+        setMaterialForm(prev => ({ ...prev, quantity: (gross - tare - m).toString() }));
+      }
+    } else {
+      setMaterialForm(prev => ({ ...prev, quantity: "1" })); // Default 1 ritase
+    }
+  }, [materialForm.unit, materialForm.sj_length, materialForm.sj_width, materialForm.sj_height, materialForm.sj_volume_minus, materialForm.sj_gross_weight, materialForm.sj_tare_weight, materialForm.sj_weight_minus]);
+
   // Auto-calculate amount = qty × unit_price
   useEffect(() => {
     const qty = parseFloat(materialForm.quantity);
@@ -290,13 +329,20 @@ const IncomePage = () => {
         income_date: r.income_date ?? todayStr(),
         customer_name: r.customer_name ?? "",
         material_type: r.material_type ?? "",
-        quantity: String(r.quantity ?? ""),
-        unit: r.unit ?? "m3",
+        quantity: String(r.quantity ?? "1"),
+        unit: r.unit ?? "ritase",
         unit_price: String(r.unit_price ?? ""),
         amount: String(r.amount ?? ""),
         payment_method: r.payment_method ?? "transfer",
         description: r.description ?? "",
         notes: r.notes ?? "",
+        sj_length: String(r.sj_length ?? ""),
+        sj_width: String(r.sj_width ?? ""),
+        sj_height: String(r.sj_height ?? ""),
+        sj_volume_minus: String(r.sj_volume_minus ?? ""),
+        sj_gross_weight: String(r.sj_gross_weight ?? ""),
+        sj_tare_weight: String(r.sj_tare_weight ?? ""),
+        sj_weight_minus: String(r.sj_weight_minus ?? ""),
       });
     }
     setPriceHint(null);
@@ -333,6 +379,13 @@ const IncomePage = () => {
           payment_method: materialForm.payment_method,
           description: materialForm.description,
           ...(materialForm.notes ? { notes: materialForm.notes } : {}),
+          sj_length: materialForm.sj_length ? parseFloat(materialForm.sj_length) : undefined,
+          sj_width: materialForm.sj_width ? parseFloat(materialForm.sj_width) : undefined,
+          sj_height: materialForm.sj_height ? parseFloat(materialForm.sj_height) : undefined,
+          sj_volume_minus: materialForm.sj_volume_minus ? parseFloat(materialForm.sj_volume_minus) : undefined,
+          sj_gross_weight: materialForm.sj_gross_weight ? parseFloat(materialForm.sj_gross_weight) : undefined,
+          sj_tare_weight: materialForm.sj_tare_weight ? parseFloat(materialForm.sj_tare_weight) : undefined,
+          sj_weight_minus: materialForm.sj_weight_minus ? parseFloat(materialForm.sj_weight_minus) : undefined,
         };
       }
 
@@ -479,6 +532,12 @@ const IncomePage = () => {
           </p>
         </div>
         <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2">
+          <button
+            onClick={() => setShowSuratJalanModal(true)}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-medium text-sm transition-colors shadow-sm"
+          >
+            <Truck className="w-4 h-4" /> Manajemen Surat Jalan
+          </button>
           <button
             onClick={() => setShowInvoiceModal(true)}
             className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium text-sm transition-colors shadow-sm"
@@ -1105,11 +1164,11 @@ const IncomePage = () => {
                       value={materialForm.material_type}
                       onChange={(e) => {
                         const mat = e.target.value;
-                        const units = MATERIAL_UNITS[mat] || [];
                         setMaterialForm((p) => ({
                           ...p,
                           material_type: mat,
-                          unit: units[0] || "ton",
+                          unit: "ritase",
+                          quantity: "1",
                           unit_price: "",
                         }));
                         setPriceHint(null);
@@ -1121,90 +1180,18 @@ const IncomePage = () => {
                       ))}
                     </select>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Kuantitas
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={materialForm.quantity}
-                        onChange={(e) =>
-                          setMaterialForm((p) => ({
-                            ...p,
-                            quantity: e.target.value,
-                          }))
-                        }
-                        placeholder="100"
-                        className={inputCls("emerald")}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Satuan
-                      </label>
-                      <select
-                        value={materialForm.unit}
-                        onChange={(e) =>
-                          setMaterialForm((p) => ({
-                            ...p,
-                            unit: e.target.value,
-                            unit_price: "",
-                          }))
-                        }
-                        className={inputCls("emerald")}
-                      >
-                        {(MATERIAL_UNITS[materialForm.material_type] || ALL_UNITS).map((u) => (
-                          <option key={u} value={u}>{u}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                      Harga Satuan (Rp)
-                      {priceHint && (
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                          priceHint.is_custom
-                            ? "bg-blue-100 text-blue-600"
-                            : "bg-emerald-100 text-emerald-600"
-                        }`}>
-                          {priceHint.is_custom ? "✓ harga customer" : "✓ harga default"}
-                        </span>
-                      )}
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={materialForm.unit_price}
-                      onChange={(e) =>
-                        setMaterialForm((p) => ({
-                          ...p,
-                          unit_price: e.target.value,
-                        }))
-                      }
-                      placeholder="50000"
-                      className={inputCls("emerald")}
-                    />
-                    {materialForm.unit_price && (
-                      <p className="text-xs text-gray-400 mt-1">
-                        {formatIDR(materialForm.unit_price)} / {materialForm.unit}
-                      </p>
-                    )}
-                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Total (Rp) <span className="text-red-500">*</span>
                       <span className="text-xs text-gray-400 ml-1 font-normal">
-                        auto = qty × harga satuan
+                        (Otomatis berdasarkan harga default)
                       </span>
                     </label>
                     <input
                       type="number"
                       required
                       min="0"
+                      readOnly
                       value={materialForm.amount}
                       onChange={(e) =>
                         setMaterialForm((p) => ({
@@ -1326,6 +1313,18 @@ const IncomePage = () => {
         customers={customers} 
         existingInvoice={selectedInvoice}
       />
+      {showSuratJalanModal && (
+        <SuratJalanManagerModal
+          onClose={() => setShowSuratJalanModal(false)}
+          API_URL={API_URL}
+          authFetchHelper={authFetchHelper}
+          customers={customers}
+          onSaved={() => {
+            setShowSuratJalanModal(false);
+            fetchRecords();
+          }}
+        />
+      )}
     </div>
   );
 };

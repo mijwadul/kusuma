@@ -128,8 +128,19 @@ export default function ProjectsPage() {
     if (p) {
       setProjForm({
         ...p,
+        name: p.name || "",
+        client_name: p.client_name || "",
+        description: p.description || "",
+        location: p.location || "",
+        start_date: p.start_date || "",
+        end_date: p.end_date || "",
         budget: p.budget || "",
-        material_items: p.material_items.map(m => ({ ...m }))
+        notes: p.notes || "",
+        material_items: p.material_items.map(m => {
+          const validUnits = meta?.material_units?.[m.material_type] || meta?.all_units || [];
+          const unit = validUnits.includes(m.unit) ? m.unit : validUnits[0] || "ton";
+          return { ...m, unit };
+        })
       });
     } else {
       setProjForm({
@@ -167,10 +178,14 @@ export default function ProjectsPage() {
   };
 
   const addProjMaterial = () => {
-    setProjForm(prev => ({
-      ...prev,
-      material_items: [...prev.material_items, { material_type: meta?.material_types[0] || "", unit: "ton", target_quantity: "", unit_price: "" }]
-    }));
+    setProjForm(prev => {
+      const defaultMat = meta?.material_types[0] || "";
+      const defaultUnit = (meta?.material_units?.[defaultMat] || ["ton"])[0];
+      return {
+        ...prev,
+        material_items: [...prev.material_items, { material_type: defaultMat, unit: defaultUnit, target_quantity: "", unit_price: "" }]
+      };
+    });
   };
   const updateProjMaterial = (idx, field, val) => {
     const arr = [...projForm.material_items];
@@ -191,7 +206,18 @@ export default function ProjectsPage() {
     if (c) {
       setCustForm({
         ...c,
-        material_preferences: c.material_preferences.map(m => ({ ...m })),
+        name: c.name || "",
+        company: c.company || "",
+        contact_person: c.contact_person || "",
+        phone: c.phone || "",
+        email: c.email || "",
+        address: c.address || "",
+        notes: c.notes || "",
+        material_preferences: c.material_preferences.map(m => {
+          const validUnits = meta?.material_units?.[m.material_type] || meta?.all_units || [];
+          const unit = validUnits.includes(m.unit) ? m.unit : validUnits[0] || "ton";
+          return { ...m, unit };
+        }),
         trucks: c.trucks ? c.trucks.map(t => ({ ...t })) : []
       });
     } else {
@@ -220,10 +246,14 @@ export default function ProjectsPage() {
   };
 
   const addCustMaterial = () => {
-    setCustForm(prev => ({
-      ...prev,
-      material_preferences: [...prev.material_preferences, { material_type: meta?.material_types[0] || "", unit: "ton", vehicle_type: "Tronton" }]
-    }));
+    setCustForm(prev => {
+      const defaultMat = meta?.material_types[0] || "";
+      const defaultUnit = (meta?.material_units?.[defaultMat] || ["ton"])[0];
+      return {
+        ...prev,
+        material_preferences: [...prev.material_preferences, { material_type: defaultMat, unit: defaultUnit, vehicle_type: "Tronton" }]
+      };
+    });
   };
   const updateCustMaterial = (idx, field, val) => {
     const arr = [...custForm.material_preferences];

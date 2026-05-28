@@ -47,9 +47,17 @@ def _lookup_price(
             try:
                 prefs = json.loads(cust.materials_json)
                 for p in prefs:
-                    if p.get("material_type") == material_type and p.get("unit") == unit:
+                    # Bersihkan spasi dan jadikan lowercase untuk pencocokan yang lebih baik
+                    pref_mat = str(p.get("material_type") or "").strip().lower()
+                    rec_mat = str(material_type or "").strip().lower()
+                    pref_unit = str(p.get("unit") or "").strip().lower()
+                    rec_unit = str(unit or "").strip().lower()
+                    
+                    if pref_mat == rec_mat and pref_unit == rec_unit:
                         if p.get("vehicle_type") and vehicle_type:
-                            if p.get("vehicle_type").lower() != vehicle_type.lower():
+                            pref_veh = str(p.get("vehicle_type")).strip().lower()
+                            rec_veh = str(vehicle_type).strip().lower()
+                            if pref_veh != rec_veh:
                                 continue
                         if p.get("unit_price"):
                             return {

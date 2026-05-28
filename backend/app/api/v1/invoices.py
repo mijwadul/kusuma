@@ -94,16 +94,34 @@ def preview_invoice(
     total = 0.0
     for r in records:
         amt = float(r.amount or 0)
+        
+        desc = r.description or "-"
+        unit_val = r.unit or "ritase"
+        qty_val = float(r.quantity or 1)
+        price_val = float(r.unit_price or 0)
+
+        has_sj_m3 = (unit_val == "m3" and r.sj_length is not None)
+        has_sj_ton = (unit_val == "ton" and r.sj_gross_weight is not None)
+
+        if has_sj_m3:
+            sj_info = f"[P:{r.sj_length} L:{r.sj_width} T:{r.sj_height} M:{r.sj_volume_minus}]"
+            desc = f"{desc} {sj_info}"
+        elif has_sj_ton:
+            sj_info = f"[B1:{r.sj_gross_weight} B2:{r.sj_tare_weight} M:{r.sj_weight_minus}]"
+            desc = f"{desc} {sj_info}"
+        else:
+            unit_val = "ritase"
+
         items.append(
             InvoicePreviewItem(
                 id=r.id,
                 income_date=r.income_date,
                 material_type=r.material_type or "-",
-                quantity=float(r.quantity or 0),
-                unit=r.unit or "-",
-                unit_price=float(r.unit_price or 0),
+                quantity=qty_val,
+                unit=unit_val,
+                unit_price=price_val,
                 amount=amt,
-                description=r.description or "-",
+                description=desc,
                 license_plate=r.license_plate,
                 driver_name=r.driver_name,
             )

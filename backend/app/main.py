@@ -25,6 +25,26 @@ from .models import Base, User
 def bootstrap_database():
     """Ensure tables exist and seed default admin on fresh setup."""
     Base.metadata.create_all(bind=engine)
+    
+    # Auto-migrate new columns for income_records
+    try:
+        from sqlalchemy import text
+        with engine.begin() as conn:
+            for col in [
+                "sj_length FLOAT",
+                "sj_width FLOAT",
+                "sj_height FLOAT",
+                "sj_volume_minus FLOAT",
+                "sj_gross_weight FLOAT",
+                "sj_tare_weight FLOAT",
+                "sj_weight_minus FLOAT"
+            ]:
+                try:
+                    conn.execute(text(f"ALTER TABLE income_records ADD COLUMN {col};"))
+                except Exception:
+                    pass # column already exists
+    except Exception as e:
+        print("Migration error:", e)
 
     default_admin_email = settings.DEFAULT_ADMIN_EMAIL.strip().lower()
     default_admin_password = settings.DEFAULT_ADMIN_PASSWORD

@@ -25,6 +25,16 @@ class IncomeRecord(Base):
     license_plate = Column(String(50), nullable=True)
     driver_name = Column(String(100), nullable=True)
     vehicle_type = Column(String(50), nullable=True)  # Colt Diesel, Tronton
+    
+    # Manajemen Surat Jalan
+    sj_length = Column(Float, nullable=True)         # Panjang
+    sj_width = Column(Float, nullable=True)          # Lebar
+    sj_height = Column(Float, nullable=True)         # Tinggi
+    sj_volume_minus = Column(Float, nullable=True)   # Minus volume (dikurangi dari tinggi)
+    sj_gross_weight = Column(Float, nullable=True)   # Berat 1 (Bruto)
+    sj_tare_weight = Column(Float, nullable=True)    # Berat 2 (Tara)
+    sj_weight_minus = Column(Float, nullable=True)   # Minus berat
+    
     notes = Column(Text, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

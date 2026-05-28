@@ -100,11 +100,17 @@ class CustomerTruck(BaseModel):
     license_plate: str
     driver_name: Optional[str] = None
     vehicle_type: str = "Tronton"
+    length: Optional[float] = None
+    width: Optional[float] = None
+    height: Optional[float] = None
 
 class AddTruckRequest(BaseModel):
     license_plate: str
     driver_name: Optional[str] = None
     vehicle_type: str = "Colt Diesel"
+    length: Optional[float] = None
+    width: Optional[float] = None
+    height: Optional[float] = None
 
 class CustomerCreate(BaseModel):
     name: str
@@ -538,14 +544,26 @@ def add_customer_truck(
         except Exception:
             pass
             
-    # Check if already exists
-    if any(t.license_plate.upper() == data.license_plate.upper() for t in trucks):
-        return {"message": "Truck already exists"}
+    # Check if already exists and update
+    for i, t in enumerate(trucks):
+        if t.license_plate.upper() == data.license_plate.upper():
+            if data.length is not None: trucks[i].length = data.length
+            if data.width is not None: trucks[i].width = data.width
+            if data.height is not None: trucks[i].height = data.height
+            if data.driver_name: trucks[i].driver_name = data.driver_name
+            if data.vehicle_type: trucks[i].vehicle_type = data.vehicle_type
+            
+            cust.trucks_json = json.dumps([tk.model_dump() for tk in trucks])
+            db.commit()
+            return {"message": "Truck updated successfully"}
         
     trucks.append(CustomerTruck(
         license_plate=data.license_plate.upper(),
         driver_name=data.driver_name,
-        vehicle_type=data.vehicle_type
+        vehicle_type=data.vehicle_type,
+        length=data.length,
+        width=data.width,
+        height=data.height
     ))
     
     cust.trucks_json = json.dumps([t.model_dump() for t in trucks])
