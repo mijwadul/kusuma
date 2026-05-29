@@ -9,6 +9,7 @@ from ..models.material_price import MATERIAL_TYPES, ALL_UNITS
 class MaterialPriceBase(BaseModel):
     material_type: str
     customer_name: Optional[str] = None   # None = harga default
+    vehicle_type: Optional[str] = None    # None = semua kendaraan
     unit: str
     price_per_unit: float
     is_active: bool = True
@@ -43,6 +44,7 @@ class MaterialPriceCreate(MaterialPriceBase):
 class MaterialPriceUpdate(BaseModel):
     material_type: Optional[str] = None
     customer_name: Optional[str] = None
+    vehicle_type: Optional[str] = None
     unit: Optional[str] = None
     price_per_unit: Optional[float] = None
     is_active: Optional[bool] = None

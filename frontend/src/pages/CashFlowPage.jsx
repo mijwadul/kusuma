@@ -172,16 +172,23 @@ export default function CashFlowPage() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-gray-500">Project</label>
+            <label className="text-xs font-medium text-gray-500">Filter Kategori</label>
             <select
               value={selectedProject}
               onChange={(e) => setSelectedProject(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             >
-              <option value="all">Semua Project & General</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
+              <optgroup label="Kategori Umum">
+                <option value="all">🌐 Semua (General + Project)</option>
+                <option value="general">🏢 General (Tanpa Project)</option>
+              </optgroup>
+              {projects.length > 0 && (
+                <optgroup label="Per Project">
+                  {projects.map((p) => (
+                    <option key={p.id} value={String(p.id)}>{p.name}</option>
+                  ))}
+                </optgroup>
+              )}
             </select>
           </div>
           <button

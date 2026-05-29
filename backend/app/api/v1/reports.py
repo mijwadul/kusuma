@@ -497,10 +497,18 @@ def get_range_report(
 def get_cash_flow_report(
     start_date: date,
     end_date: date,
-    project_id: Optional[int] = None,
+    project_id: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    # project_id bisa: None (semua), 'general' (tanpa project), atau angka (project spesifik)
+    filter_general = project_id == 'general'
+    filter_project_id: Optional[int] = None
+    if project_id and project_id != 'general':
+        try:
+            filter_project_id = int(project_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="project_id tidak valid")
     from ...models.project import Project
     from ...models.expense import Expense
     from ...models.payroll import PayrollRecord
@@ -518,8 +526,10 @@ def get_cash_flow_report(
         IncomeRecord.income_date >= start_date,
         IncomeRecord.income_date <= end_date
     )
-    if project_id:
-        income_q = income_q.filter(IncomeRecord.project_id == project_id)
+    if filter_general:
+        income_q = income_q.filter(IncomeRecord.project_id == None)
+    elif filter_project_id:
+        income_q = income_q.filter(IncomeRecord.project_id == filter_project_id)
         
     for inc in income_q.all():
         incomes.append(CashFlowIncome(
@@ -539,8 +549,10 @@ def get_cash_flow_report(
         Expense.expense_date <= end_date,
         Expense.payment_status == 'paid'
     )
-    if project_id:
-        exp_q = exp_q.filter(Expense.project_id == project_id)
+    if filter_general:
+        exp_q = exp_q.filter(Expense.project_id == None)
+    elif filter_project_id:
+        exp_q = exp_q.filter(Expense.project_id == filter_project_id)
     for exp in exp_q.all():
         expense_type = "Equipment Deposit" if exp.category == "deposit" else "Other Expense"
         expenses.append(CashFlowExpense(
@@ -559,8 +571,10 @@ def get_cash_flow_report(
         cast(FuelPrice.effective_date, Date) <= end_date,
         FuelPrice.payment_status == 'paid'
     )
-    if project_id:
-        fuel_q = fuel_q.filter(FuelPrice.project_id == project_id)
+    if filter_general:
+        fuel_q = fuel_q.filter(FuelPrice.project_id == None)
+    elif filter_project_id:
+        fuel_q = fuel_q.filter(FuelPrice.project_id == filter_project_id)
     for fuel in fuel_q.all():
         expenses.append(CashFlowExpense(
             id=f"fuel_{fuel.id}",
@@ -578,8 +592,10 @@ def get_cash_flow_report(
         PayrollRecord.payment_date <= end_date,
         PayrollRecord.payment_status == 'paid'
     )
-    if project_id:
-        payroll_q = payroll_q.filter(PayrollRecord.project_id == project_id)
+    if filter_general:
+        payroll_q = payroll_q.filter(PayrollRecord.project_id == None)
+    elif filter_project_id:
+        payroll_q = payroll_q.filter(PayrollRecord.project_id == filter_project_id)
     for pay in payroll_q.all():
         expenses.append(CashFlowExpense(
             id=f"pay_{pay.id}",
@@ -601,7 +617,7 @@ def get_cash_flow_report(
     return CashFlowReport(
         period_start=str(start_date),
         period_end=str(end_date),
-        project_id=project_id,
+        project_id=filter_project_id,
         total_income=total_income,
         total_expense=total_expense,
         net_balance=total_income - total_expense,

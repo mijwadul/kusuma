@@ -6,16 +6,13 @@ from .base import Base
 # Jenis material yang didukung
 MATERIAL_TYPES = ["Limestone (urugan)", "Dolomite", "Boulder", "Clay"]
 
-# Satuan yang valid per material:
-#   Limestone : m3, ritase
-#   Dolomite  : ton, ritase
-#   Boulder   : ton
-#   Clay      : ton, ritase
+# Satuan yang valid per material — semua material mendukung 3 satuan:
+#   m3 (kubikasi), ton (tonase), ritase
 MATERIAL_UNITS = {
-    "Limestone (urugan)": ["m3", "ritase"],
-    "Dolomite": ["ton", "ritase"],
-    "Boulder": ["ton"],
-    "Clay": ["ton", "ritase"],
+    "Limestone (urugan)": ["m3", "ton", "ritase"],
+    "Dolomite": ["m3", "ton", "ritase"],
+    "Boulder": ["m3", "ton", "ritase"],
+    "Clay": ["m3", "ton", "ritase"],
 }
 
 ALL_UNITS = ["m3", "ton", "ritase"]
@@ -35,6 +32,7 @@ class MaterialPrice(Base):
 
     material_type = Column(String(100), nullable=False)   # Limestone, Dolomite, Boulder, Clay
     customer_name = Column(String(200), nullable=True)    # NULL = harga default semua customer
+    vehicle_type = Column(String(50), nullable=True)      # NULL = berlaku semua kendaraan, atau "Tronton" / "Colt Diesel"
     unit = Column(String(20), nullable=False)             # m3 | ton | ritase
     price_per_unit = Column(Float, nullable=False)
 

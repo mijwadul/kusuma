@@ -53,6 +53,10 @@ const authFetch = async (url, options = {}) => {
 
 const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300";
 
+const MATERIAL_TYPES = ["Limestone (urugan)", "Dolomite", "Boulder", "Clay"];
+const VEHICLE_TYPES = ["Colt Diesel", "Tronton"];
+const UNITS = ["ritase", "m3", "ton"];
+
 // ── Components ─────────────────────────────────────────────────────────────────
 const MaterialBadge = ({ type, meta }) => {
   // Simple color hashing based on name if meta colors not provided
@@ -71,7 +75,7 @@ const MaterialBadge = ({ type, meta }) => {
 };
 
 // ── Modals ─────────────────────────────────────────────────────────────────────
-const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment }) => {
+const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment, projects }) => {
   const [form, setForm] = useState({
     income_date: editData?.income_date || todayStr(),
     customer_name: editData?.customer_name || "",
@@ -85,6 +89,7 @@ const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment 
     amount: editData?.amount || "",
     payment_method: editData?.payment_method || "transfer",
     notes: editData?.notes || "",
+    project_id: editData?.project_id ? String(editData.project_id) : "",
     sj_length: editData?.sj_length || "",
     sj_width: editData?.sj_width || "",
     sj_height: editData?.sj_height || "",
@@ -192,6 +197,7 @@ const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment 
         unit_price: parseFloat(finalPrice) || 0,
         payment_method: form.payment_method || "transfer",
         notes: form.notes,
+        project_id: form.project_id ? parseInt(form.project_id) : null,
         sj_length: form.sj_length ? parseFloat(form.sj_length) : null,
         sj_width: form.sj_width ? parseFloat(form.sj_width) : null,
         sj_height: form.sj_height ? parseFloat(form.sj_height) : null,
@@ -321,8 +327,9 @@ const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Jenis Kendaraan</label>
               <select value={form.vehicle_type} onChange={e => setForm(p => ({...p, vehicle_type: e.target.value}))} className={inputCls} required>
-                <option value="Colt Diesel">Colt Diesel</option>
-                <option value="Tronton">Tronton</option>
+                {VEHICLE_TYPES.map(v => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -351,8 +358,38 @@ const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Material</label>
               <select value={form.material_type} onChange={e => setForm(p => ({...p, material_type: e.target.value}))} className={inputCls} required>
-                {["Limestone (urugan)", "Dolomite", "Boulder", "Clay"].map(m => (
+                {MATERIAL_TYPES.map(m => (
                   <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Satuan <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={form.unit}
+                onChange={e => setForm(p => ({ ...p, unit: e.target.value, quantity: e.target.value === 'ritase' ? '1' : p.quantity }))}
+                className={inputCls}
+                required
+              >
+                {UNITS.map(u => (
+                  <option key={u} value={u}>{u === 'm3' ? 'Kubikasi (m³)' : u === 'ton' ? 'Tonase (ton)' : 'Ritase'}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Project <span className="text-xs font-normal text-gray-400">(opsional)</span></label>
+              <select
+                value={form.project_id}
+                onChange={e => setForm(p => ({...p, project_id: e.target.value}))}
+                className={inputCls}
+              >
+                <option value="">-- Tanpa Project (General) --</option>
+                {(projects || []).map(p => (
+                  <option key={p.id} value={String(p.id)}>{p.name}</option>
                 ))}
               </select>
             </div>
@@ -374,7 +411,8 @@ const SaleFormModal = ({ editData, onClose, onSaved, meta, customers, equipment 
 const PriceFormModal = ({ editData, onClose, onSaved, meta }) => {
   const [form, setForm] = useState({
     material_type: editData?.material_type || "Limestone (urugan)",
-    unit: editData?.unit || "ton",
+    unit: editData?.unit || "ritase",
+    vehicle_type: editData?.vehicle_type || "",
     price_per_unit: editData?.price_per_unit ?? "",
     is_active: editData?.is_active ?? true,
     notes: editData?.notes || "",
@@ -387,6 +425,7 @@ const PriceFormModal = ({ editData, onClose, onSaved, meta }) => {
     try {
       const body = {
         ...form,
+        vehicle_type: form.vehicle_type === "" ? null : form.vehicle_type,
         customer_name: null, // Always Default
         price_per_unit: parseFloat(form.price_per_unit),
       };
@@ -412,34 +451,58 @@ const PriceFormModal = ({ editData, onClose, onSaved, meta }) => {
           <button onClick={onClose} className="p-2"><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-          <div>
-            <label className="block text-sm mb-1.5">Material</label>
-            <select value={form.material_type} onChange={(e) => {
-              const m = e.target.value;
-              setForm(p => ({...p, material_type: m, unit: meta?.material_units?.[m]?.[0] || "ton"}));
-            }} className={inputCls}>
-              {["Limestone (urugan)", "Dolomite", "Boulder", "Clay"].map((m) => <option key={m} value={m}>{m}</option>)}
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm mb-1.5">Satuan</label>
-              <select value={form.unit} onChange={(e) => setForm(p => ({ ...p, unit: e.target.value }))} className={inputCls}>
-                {(meta?.material_units?.[form.material_type] || meta?.all_units || []).map((u) => <option key={u} value={u}>{u}</option>)}
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Material</label>
+              <select value={form.material_type} onChange={(e) => {
+                const m = e.target.value;
+                setForm(p => ({...p, material_type: m, unit: "ritase"}));
+              }} className={inputCls}>
+                {MATERIAL_TYPES.map((m) => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm mb-1.5">Harga / Satuan</label>
-              <input type="number" required min={0} value={form.price_per_unit} onChange={(e) => setForm(p => ({ ...p, price_per_unit: e.target.value }))} className={inputCls} />
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Jenis Kendaraan</label>
+              <select value={form.vehicle_type} onChange={e => setForm(p => ({...p, vehicle_type: e.target.value}))} className={inputCls}>
+                <option value="">Semua Kendaraan</option>
+                {VEHICLE_TYPES.map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Satuan</label>
+              <select value={form.unit} onChange={(e) => setForm(p => ({ ...p, unit: e.target.value }))} className={inputCls}>
+                <option value="ritase">Ritase</option>
+                <option value="m3">Kubikasi (m³)</option>
+                <option value="ton">Tonase (ton)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Harga / Satuan (Rp)</label>
+              <input
+                type="number"
+                required
+                min={0}
+                placeholder="Contoh: 150000"
+                value={form.price_per_unit}
+                onChange={(e) => setForm(p => ({ ...p, price_per_unit: e.target.value }))}
+                className={inputCls}
+              />
+            </div>
+          </div>
+          {form.price_per_unit && (
+            <p className="text-xs text-gray-400 -mt-2">
+              {form.unit === 'm3' ? 'Kubikasi' : form.unit === 'ton' ? 'Tonase' : 'Ritase'}: {Number(form.price_per_unit).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 })}
+            </p>
+          )}
           <div className="flex items-center gap-2">
             <input type="checkbox" id="is_active" checked={form.is_active} onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))} className="w-4 h-4 rounded text-emerald-600" />
             <label htmlFor="is_active" className="text-sm">Aktif</label>
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 py-2 border rounded-xl text-sm">Batal</button>
-            <button type="submit" disabled={saving} className="flex-1 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold flex justify-center">{saving ? <Loader2 className="animate-spin" size={20}/> : "Simpan Harga"}</button>
+            <button type="submit" disabled={saving} className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold flex justify-center transition-colors">{saving ? <Loader2 className="animate-spin" size={20}/> : "Simpan Harga"}</button>
           </div>
         </form>
       </div>
@@ -523,6 +586,7 @@ export default function MaterialSalesPage() {
   
   const [customers, setCustomers] = useState([]);
   const [equipment, setEquipment] = useState([]);
+  const [projects, setProjects] = useState([]);
   
   const [loading, setLoading] = useState(false);
   const [showSaleModal, setShowSaleModal] = useState(false);
@@ -539,11 +603,13 @@ export default function MaterialSalesPage() {
     Promise.all([
       authFetch("/api/v1/projects-data/meta").catch(() => null),
       authFetch("/api/v1/projects-data/customers").catch(() => []),
-      authFetch("/api/v1/dashboard/equipment").catch(() => [])
-    ]).then(([m, c, e]) => {
+      authFetch("/api/v1/dashboard/equipment").catch(() => []),
+      authFetch("/api/v1/projects-data/projects").catch(() => [])
+    ]).then(([m, c, e, proj]) => {
       if (m) setMeta(m);
       if (c) setCustomers(c);
       if (e) setEquipment(e);
+      if (proj) setProjects(proj);
     });
   }, []);
 
@@ -666,6 +732,7 @@ export default function MaterialSalesPage() {
               <thead className="bg-indigo-50 border-b whitespace-nowrap">
                 <tr>
                   <th className="px-4 py-3 text-left whitespace-nowrap">Material</th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap">Kendaraan</th>
                   <th className="px-4 py-3 text-left whitespace-nowrap">Tipe Harga</th>
                   <th className="px-4 py-3 text-left whitespace-nowrap">Satuan</th>
                   <th className="px-4 py-3 text-right whitespace-nowrap">Harga</th>
@@ -677,10 +744,19 @@ export default function MaterialSalesPage() {
                 {prices.map(p => (
                   <tr key={p.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 whitespace-nowrap"><MaterialBadge type={p.material_type} meta={meta} /></td>
+                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{p.vehicle_type ? <span className="px-2 py-0.5 bg-gray-100 rounded text-xs font-medium">{p.vehicle_type}</span> : <span className="text-gray-400 italic text-xs">Semua</span>}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className="text-emerald-600 text-xs font-bold bg-emerald-50 px-2 py-1 rounded">Harga Default</span>
                     </td>
-                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{p.unit}</td>
+                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                        p.unit === 'm3' ? 'bg-blue-50 text-blue-700' :
+                        p.unit === 'ton' ? 'bg-orange-50 text-orange-700' :
+                        'bg-purple-50 text-purple-700'
+                      }`}>
+                        {p.unit === 'm3' ? '📐 Kubikasi (m³)' : p.unit === 'ton' ? '⚖️ Tonase (ton)' : '🚚 Ritase'}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-right font-bold text-gray-800 whitespace-nowrap">{formatIDR(p.price_per_unit)}</td>
                     <td className="px-4 py-3 text-center whitespace-nowrap">
                       {p.is_active ? <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">Aktif</span> : <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs">Nonaktif</span>}
@@ -699,7 +775,7 @@ export default function MaterialSalesPage() {
         )}
       </div>
 
-      {showSaleModal && <SaleFormModal editData={editData} onClose={() => setShowSaleModal(false)} onSaved={() => { setShowSaleModal(false); fetchData(); }} meta={meta} customers={customers} equipment={equipment} />}
+      {showSaleModal && <SaleFormModal editData={editData} onClose={() => setShowSaleModal(false)} onSaved={() => { setShowSaleModal(false); fetchData(); }} meta={meta} customers={customers} equipment={equipment} projects={projects} />}
       {showPriceModal && <PriceFormModal editData={editData} onClose={() => setShowPriceModal(false)} onSaved={() => { setShowPriceModal(false); fetchData(); }} meta={meta} />}
 
       {/* Sale Detail Modal */}

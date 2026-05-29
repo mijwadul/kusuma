@@ -40,7 +40,8 @@ const FuelPricePage = () => {
     pricePerLiter: '',
     vendorName: '',
     purchaseDate: '',
-    notes: ''
+    notes: '',
+    projectId: ''
   });
 
   // Filter tanggal riwayat pembelian
@@ -281,7 +282,8 @@ const FuelPricePage = () => {
       pricePerLiter: purchase.price_per_liter || '',
       vendorName: purchase.vendor_name || '',
       purchaseDate: purchase.effective_date ? purchase.effective_date.split('T')[0] : '',
-      notes: purchase.notes || ''
+      notes: purchase.notes || '',
+      projectId: purchase.project_id ? String(purchase.project_id) : ''
     });
     setIsEditModalOpen(true);
   };
@@ -324,7 +326,8 @@ const FuelPricePage = () => {
           total_price: totalPriceNum,
           effective_date: effectiveDate,
           vendor_name: editForm.vendorName,
-          notes: editForm.notes
+          notes: editForm.notes,
+          project_id: editForm.projectId ? parseInt(editForm.projectId) : null
         })
       });
 
@@ -1069,6 +1072,20 @@ const FuelPricePage = () => {
               <p className="text-[10px] text-amber-600 -mt-2 bg-amber-50 p-1.5 rounded border border-amber-100">
                 Tip: Isi Total Harga saja atau Harga per Liter saja, sistem akan menghitung otomatis.
               </p>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Project <span className="font-normal text-gray-400">(opsional)</span></label>
+                <select
+                  value={editForm.projectId}
+                  onChange={(e) => setEditForm({...editForm, projectId: e.target.value})}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                >
+                  <option value="">-- Tanpa Project (General) --</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={String(p.id)}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
 
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Catatan Tambahan</label>

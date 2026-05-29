@@ -31,6 +31,7 @@ def alter_db():
         ("fuel_prices", "project_id", "INTEGER"),
         ("payroll_records", "project_id", "INTEGER"),
         ("vendor_topups", "project_id", "INTEGER"),
+        ("material_prices", "vehicle_type", "VARCHAR(50)"),
     ]
 
     with engine.begin() as conn:

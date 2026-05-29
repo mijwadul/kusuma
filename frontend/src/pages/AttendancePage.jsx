@@ -181,20 +181,11 @@ const AttendancePage = () => {
     };
 
     if (formData.check_in) {
-      payload.check_in = `${finalDate}T${formData.check_in}:00`;
+      payload.check_in = formData.check_in.length === 16 ? `${formData.check_in}:00` : formData.check_in;
     }
 
     if (formData.check_out) {
-      let checkoutDateStr = finalDate;
-      if (formData.check_in && formData.check_out < formData.check_in) {
-         const d = new Date(finalDate);
-         d.setDate(d.getDate() + 1);
-         const year = d.getFullYear();
-         const month = String(d.getMonth() + 1).padStart(2, '0');
-         const day = String(d.getDate()).padStart(2, '0');
-         checkoutDateStr = `${year}-${month}-${day}`;
-      }
-      payload.check_out = `${checkoutDateStr}T${formData.check_out}:00`;
+      payload.check_out = formData.check_out.length === 16 ? `${formData.check_out}:00` : formData.check_out;
     }
 
     try {
@@ -228,15 +219,15 @@ const AttendancePage = () => {
 
   const handleEditClick = (row) => {
     setEditingId(row.id);
-    const checkInTime = row.check_in ? (row.check_in.includes('T') ? row.check_in.split('T')[1].slice(0, 5) : row.check_in.slice(0, 5)) : '';
-    const checkOutTime = row.check_out ? (row.check_out.includes('T') ? row.check_out.split('T')[1].slice(0, 5) : row.check_out.slice(0, 5)) : '';
+    const checkInVal = toLocalDateTimeInput(row.check_in);
+    const checkOutVal = toLocalDateTimeInput(row.check_out);
 
     setFormData({
       employee_id: String(row.employee_id),
       date: row.date || toLocalDateInput(new Date()),
       status: row.status || 'present',
-      check_in: checkInTime,
-      check_out: checkOutTime,
+      check_in: checkInVal,
+      check_out: checkOutVal,
       notes: row.notes || ''
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -408,10 +399,10 @@ const AttendancePage = () => {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Jam Check-in</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Waktu Check-in</label>
               {isGMOrSuperuser ? (
                 <input
-                  type="time"
+                  type="datetime-local"
                   value={formData.check_in}
                   onChange={(e) => setFormData((prev) => ({ ...prev, check_in: e.target.value }))}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2"
@@ -421,12 +412,12 @@ const AttendancePage = () => {
                   <input
                     type="checkbox"
                     checked={formData.check_in !== ''}
-                    onChange={(e) => setFormData(prev => ({...prev, check_in: e.target.checked ? currentTimeStr : ''}))}
+                    onChange={(e) => setFormData(prev => ({...prev, check_in: e.target.checked ? toLocalDateTimeInput(new Date()) : ''}))}
                     className="h-5 w-5 text-blue-600 rounded"
                   />
                   <input
-                    type="time"
-                    value={formData.check_in || currentTimeStr}
+                    type="datetime-local"
+                    value={formData.check_in || toLocalDateTimeInput(new Date())}
                     disabled
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100"
                   />
@@ -434,10 +425,10 @@ const AttendancePage = () => {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Jam Check-out</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Waktu Check-out</label>
               {isGMOrSuperuser ? (
                 <input
-                  type="time"
+                  type="datetime-local"
                   value={formData.check_out}
                   onChange={(e) => setFormData((prev) => ({ ...prev, check_out: e.target.value }))}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2"
@@ -447,12 +438,12 @@ const AttendancePage = () => {
                   <input
                     type="checkbox"
                     checked={formData.check_out !== ''}
-                    onChange={(e) => setFormData(prev => ({...prev, check_out: e.target.checked ? currentTimeStr : ''}))}
+                    onChange={(e) => setFormData(prev => ({...prev, check_out: e.target.checked ? toLocalDateTimeInput(new Date()) : ''}))}
                     className="h-5 w-5 text-blue-600 rounded"
                   />
                   <input
-                    type="time"
-                    value={formData.check_out || currentTimeStr}
+                    type="datetime-local"
+                    value={formData.check_out || toLocalDateTimeInput(new Date())}
                     disabled
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100"
                   />

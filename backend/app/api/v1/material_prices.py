@@ -70,16 +70,35 @@ def _lookup_price(
                 pass
 
     # 2. Fallback ke harga default (di mana customer_name = None)
-    default = (
-        db.query(MaterialPrice)
-        .filter(
-            MaterialPrice.material_type == material_type,
-            MaterialPrice.unit == unit,
-            MaterialPrice.customer_name == None,
-            MaterialPrice.is_active == True,
+    default = None
+    if vehicle_type:
+        # Coba cari yang spesifik untuk kendaraan ini
+        default = (
+            db.query(MaterialPrice)
+            .filter(
+                MaterialPrice.material_type == material_type,
+                MaterialPrice.unit == unit,
+                MaterialPrice.customer_name == None,
+                MaterialPrice.vehicle_type == vehicle_type,
+                MaterialPrice.is_active == True,
+            )
+            .first()
         )
-        .first()
-    )
+    
+    if not default:
+        # Fallback ke harga umum (vehicle_type = None)
+        default = (
+            db.query(MaterialPrice)
+            .filter(
+                MaterialPrice.material_type == material_type,
+                MaterialPrice.unit == unit,
+                MaterialPrice.customer_name == None,
+                MaterialPrice.vehicle_type == None,
+                MaterialPrice.is_active == True,
+            )
+            .first()
+        )
+
     if default:
         return {
             "found": True,
@@ -176,18 +195,21 @@ def create_price(
             MaterialPrice.material_type == data.material_type,
             MaterialPrice.unit == data.unit,
             MaterialPrice.customer_name == None,
+            MaterialPrice.vehicle_type == data.vehicle_type,
         )
         .first()
     )
     if existing:
+        veh_str = data.vehicle_type if data.vehicle_type else "Semua Kendaraan"
         raise HTTPException(
             status_code=409,
-            detail=f"Harga default untuk {data.material_type} / {data.unit} sudah ada. Gunakan edit.",
+            detail=f"Harga default untuk {data.material_type} / {data.unit} ({veh_str}) sudah ada. Gunakan edit.",
         )
 
     mp = MaterialPrice(
         material_type=data.material_type,
         customer_name=None,
+        vehicle_type=data.vehicle_type,
         unit=data.unit,
         price_per_unit=data.price_per_unit,
         is_active=data.is_active,

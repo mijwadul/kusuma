@@ -51,10 +51,10 @@ const MATERIAL_TYPES = [
   "Clay",
 ];
 const MATERIAL_UNITS = {
-  "Limestone (urugan)": ["m3", "ritase"],
-  Dolomite: ["ton", "ritase"],
-  Boulder: ["ton"],
-  Clay: ["ton", "ritase"],
+  "Limestone (urugan)": ["m3", "ton", "ritase"],
+  Dolomite: ["m3", "ton", "ritase"],
+  Boulder: ["m3", "ton", "ritase"],
+  Clay: ["m3", "ton", "ritase"],
 };
 const ALL_UNITS = ["m3", "ton", "ritase"];
 const TABS = [
@@ -123,6 +123,7 @@ const defaultMaterialForm = () => ({
   payment_method: "transfer",
   description: "",
   notes: "",
+  project_id: "",
   sj_length: "",
   sj_width: "",
   sj_height: "",
@@ -334,6 +335,7 @@ const IncomePage = () => {
         payment_method: r.payment_method ?? "transfer",
         description: r.description ?? "",
         notes: r.notes ?? "",
+        project_id: r.project_id ? String(r.project_id) : "",
         sj_length: String(r.sj_length ?? ""),
         sj_width: String(r.sj_width ?? ""),
         sj_height: String(r.sj_height ?? ""),
@@ -376,6 +378,7 @@ const IncomePage = () => {
           amount: parseFloat(materialForm.amount),
           payment_method: materialForm.payment_method,
           description: materialForm.description,
+          project_id: materialForm.project_id ? parseInt(materialForm.project_id) : null,
           ...(materialForm.notes ? { notes: materialForm.notes } : {}),
           sj_length: materialForm.sj_length ? parseFloat(materialForm.sj_length) : undefined,
           sj_width: materialForm.sj_width ? parseFloat(materialForm.sj_width) : undefined,
@@ -1159,7 +1162,7 @@ const IncomePage = () => {
                         setMaterialForm((p) => ({
                           ...p,
                           material_type: mat,
-                          unit: "ritase",
+                          unit: p.unit || "ritase",
                           quantity: "1",
                           unit_price: "",
                         }));
@@ -1170,6 +1173,28 @@ const IncomePage = () => {
                       {MATERIAL_TYPES.map((m) => (
                         <option key={m} value={m}>{m}</option>
                       ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Satuan <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      required
+                      value={materialForm.unit}
+                      onChange={(e) =>
+                        setMaterialForm((p) => ({
+                          ...p,
+                          unit: e.target.value,
+                          quantity: e.target.value === "ritase" ? "1" : p.quantity,
+                          unit_price: "",
+                        }))
+                      }
+                      className={inputCls("emerald")}
+                    >
+                      <option value="ritase">Ritase</option>
+                      <option value="m3">Kubikasi (m³)</option>
+                      <option value="ton">Tonase (ton)</option>
                     </select>
                   </div>
                   <div>
@@ -1235,6 +1260,28 @@ const IncomePage = () => {
                       placeholder="Penjualan pasir sungai ke CV. ABC"
                       className={inputCls("emerald")}
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Project <span className="text-xs text-gray-400 font-normal">(opsional)</span>
+                    </label>
+                    <select
+                      value={materialForm.project_id}
+                      onChange={(e) =>
+                        setMaterialForm((p) => ({
+                          ...p,
+                          project_id: e.target.value,
+                        }))
+                      }
+                      className={inputCls("emerald")}
+                    >
+                      <option value="">-- Tanpa Project (General) --</option>
+                      {projects.map((p) => (
+                        <option key={p.id} value={String(p.id)}>
+                          {p.name ?? p.project_name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">

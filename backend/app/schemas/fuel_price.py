@@ -28,6 +28,7 @@ class FuelPriceUpdate(BaseModel):
     approval_status: Optional[str] = None
     notes: Optional[str] = None
     vendor_name: Optional[str] = None
+    project_id: Optional[int] = None
 
 
 class FuelPrice(FuelPriceBase):
