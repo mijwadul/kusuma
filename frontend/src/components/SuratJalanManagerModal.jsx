@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+// File deprecated. Component moved to SuratJalanPage.jsx
 import { X, Search, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 

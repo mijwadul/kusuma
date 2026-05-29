@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Fuel, Save, History, AlertCircle, CheckCircle, Package, XCircle, Trash2, Info, Edit, Eye } from 'lucide-react';
+import { Fuel, Save, History, AlertCircle, CheckCircle, Package, XCircle, Trash2, Info, Edit, Eye, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import AlertModal from '../components/AlertModal';
 
@@ -30,6 +30,7 @@ const FuelPricePage = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const [editForm, setEditForm] = useState({
     liters: '',
@@ -332,6 +333,127 @@ const FuelPricePage = () => {
     setIsDetailModalOpen(true);
   };
 
+  const handleExportPDF = () => {
+    const loadingToast = toast.loading("Generating PDF...");
+    const printWindow = window.open("", "_blank");
+    
+    if (!printWindow) {
+      toast.error("Pop-up diblokir oleh browser. Izinkan pop-up untuk mencetak PDF.", { id: loadingToast });
+      return;
+    }
+
+    const totalLiters = purchases.reduce((acc, curr) => acc + (curr.liters || 0), 0);
+    const totalAmount = purchases.reduce((acc, curr) => acc + (curr.total_price || 0), 0);
+
+    const itemsHTML = purchases.map((item, idx) => `
+      <tr>
+        <td style="padding: 6px 10px; border: 1px solid #ddd; text-align: center;">${idx + 1}</td>
+        <td style="padding: 6px 10px; border: 1px solid #ddd;">${new Date(item.effective_date || item.created_at).toLocaleDateString('id-ID')}</td>
+        <td style="padding: 6px 10px; border: 1px solid #ddd;">${item.vendor_name || '-'}</td>
+        <td style="padding: 6px 10px; border: 1px solid #ddd; text-align: right;">${item.liters?.toLocaleString('id-ID') || '-'} L</td>
+        <td style="padding: 6px 10px; border: 1px solid #ddd; text-align: right;">Rp ${item.price_per_liter?.toLocaleString('id-ID') || '-'}</td>
+        <td style="padding: 6px 10px; border: 1px solid #ddd; text-align: right; font-weight: bold;">Rp ${item.total_price?.toLocaleString('id-ID') || '-'}</td>
+        <td style="padding: 6px 10px; border: 1px solid #ddd; text-align: center;">
+          ${item.approval_status === 'approved' ? 'Disetujui' : item.approval_status === 'rejected' ? 'Ditolak' : 'Menunggu'}
+        </td>
+      </tr>
+    `).join('');
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Laporan Pembelian BBM</title>
+          <style>
+            body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; margin: 0; padding: 40px; }
+            .info-grid { display: flex; justify-content: space-between; margin-top: 20px; margin-bottom: 30px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px; }
+            th { background-color: #f3f4f6; color: #374151; font-weight: bold; text-align: center; padding: 8px 10px; border: 1px solid #ddd; }
+            .total-row { font-weight: bold; font-size: 15px; }
+            .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 20px; }
+            @media print {
+              body { padding: 0; }
+              @page { margin: 1cm; }
+              table, th, td { border: 1px solid #333 !important; }
+              th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>
+          <table style="width: 100%; border-collapse: collapse; border: none; margin-bottom: 0;">
+            <tbody>
+              <tr style="border: none;">
+                <td style="width: 85px; padding: 0; border: none; vertical-align: middle;">
+                  <img src="/logo.png" alt="Logo" style="width: 80px; height: 80px; object-fit: contain; display: block;" onerror="this.style.display='none'" />
+                </td>
+                <td style="padding-left: 16px; border: none; vertical-align: middle; text-align: left;">
+                  <div style="font-size: 16pt; font-weight: bold; color: #1a3c6e; letter-spacing: 0.5px; line-height: 1.2;">
+                    PT. Kusuma Samudera Berkah
+                  </div>
+                  <div style="font-size: 9pt; color: #4a6fa5; margin-top: 2px; font-style: italic;">
+                    Pertambangan & Konstruksi
+                  </div>
+                  <div style="font-size: 8pt; color: #555; margin-top: 6px; line-height: 1.4;">
+                    Telp: - | Email: info@kusumasamuderaberkah.co.id
+                  </div>
+                </td>
+                <td style="width: 250px; border: none; vertical-align: middle; text-align: right;">
+                  <div style="font-size: 14pt; font-weight: bold; color: #1a3c6e; text-transform: uppercase; letter-spacing: 1px;">
+                    LAPORAN PEMBELIAN BBM
+                  </div>
+                  <div style="font-size: 10pt; font-weight: bold; color: #333; margin-top: 4px;">
+                    Periode: ${filterStart ? new Date(filterStart).toLocaleDateString('id-ID') : 'Awal'} - ${filterEnd ? new Date(filterEnd).toLocaleDateString('id-ID') : 'Akhir'}
+                  </div>
+                  <div style="font-size: 8pt; color: #777; margin-top: 4px;">
+                    Tanggal Cetak: ${new Date().toLocaleDateString("id-ID")}
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="border-bottom: 3px solid #1a3c6e; margin-top: 10px; margin-bottom: 30px;"></div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Tanggal</th>
+                <th>Vendor</th>
+                <th>Liter</th>
+                <th>Harga/Liter</th>
+                <th>Total Harga</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHTML || '<tr><td colspan="7" style="text-align:center; padding:10px; border:1px solid #ddd;">Tidak ada data pada periode ini</td></tr>'}
+            </tbody>
+            ${purchases.length > 0 ? `
+            <tfoot>
+              <tr>
+                <td colspan="3" style="text-align: right; padding: 10px; border: 1px solid #ddd;" class="total-row">TOTAL KESELURUHAN</td>
+                <td style="text-align: right; padding: 10px; border: 1px solid #ddd;" class="total-row">${totalLiters.toLocaleString('id-ID')} L</td>
+                <td style="text-align: right; padding: 10px; border: 1px solid #ddd;" class="total-row">-</td>
+                <td style="text-align: right; padding: 10px; border: 1px solid #ddd; color: #10b981;" class="total-row">Rp ${totalAmount.toLocaleString('id-ID')}</td>
+                <td style="border: 1px solid #ddd;"></td>
+              </tr>
+            </tfoot>` : ''}
+          </table>
+
+          <div class="footer">
+            Laporan generated automatically by System Kusuma
+          </div>
+          <script>
+            window.onload = function() { window.print(); }
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    toast.success("PDF siap dicetak / didownload", { id: loadingToast });
+  };
+
   // Check access
   const isFinance = currentUser?.role === 'finance';
   const hasAccess = isFinance || isGM || currentUser?.is_superuser;
@@ -570,9 +692,17 @@ const FuelPricePage = () => {
               </button>
               <button
                 onClick={() => { setFilterStart(''); setFilterEnd(''); fetchPurchases('', ''); }}
-                className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50"
+                className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 mr-auto"
               >
                 Semua
+              </button>
+              <button
+                onClick={handleExportPDF}
+                disabled={isExporting}
+                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors ml-auto disabled:opacity-50"
+              >
+                <Download className="h-4 w-4" />
+                Download PDF
               </button>
             </div>
             <div className="overflow-x-auto">
@@ -693,6 +823,21 @@ const FuelPricePage = () => {
                     </tr>
                   )}
                 </tbody>
+                {purchases.length > 0 && (
+                  <tfoot className="bg-amber-50 border-t-2 border-amber-200">
+                    <tr>
+                      <td colSpan="2" className="px-4 py-3 text-right font-bold text-gray-700">Total Keseluruhan:</td>
+                      <td className="px-4 py-3 text-right font-bold text-amber-700 whitespace-nowrap">
+                        {purchases.reduce((acc, curr) => acc + (curr.liters || 0), 0).toLocaleString('id-ID')} L
+                      </td>
+                      <td className="px-4 py-3"></td>
+                      <td className="px-4 py-3 text-right font-bold text-green-700 whitespace-nowrap">
+                        Rp {purchases.reduce((acc, curr) => acc + (curr.total_price || 0), 0).toLocaleString('id-ID')}
+                      </td>
+                      <td colSpan="2"></td>
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
           </div>

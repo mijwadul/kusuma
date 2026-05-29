@@ -1,4 +1,0 @@
-Record 99: MT=Limestone (urugan), U=m3, Cust=Mat Jalil, Veh=Tronton --> Result: {'found': True, 'price_per_unit': 65000.0, 'unit': 'm3', 'is_custom': True}
-Record 98: MT=Limestone (urugan), U=m3, Cust=Mat Jalil, Veh=Tronton --> Result: {'found': True, 'price_per_unit': 65000.0, 'unit': 'm3', 'is_custom': True}
-Record 95: MT=Limestone (urugan), U=m3, Cust=Mat Jalil, Veh=Tronton --> Result: {'found': True, 'price_per_unit': 65000.0, 'unit': 'm3', 'is_custom': True}
-Record 93: MT=Limestone (urugan), U=m3, Cust=Mat Jalil, Veh=Tronton --> Result: {'found': True, 'price_per_unit': 65000.0, 'unit': 'm3', 'is_custom': True}

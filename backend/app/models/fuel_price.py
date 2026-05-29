@@ -28,20 +28,4 @@ class FuelPrice(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())  # Waktu pencatatan
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # User yang mencatat
 
-# Auto-migration script for vendor_name
-try:
-    from sqlalchemy import create_engine, text
-    from .base import Base
-    from ..core.config import settings
-    
-    _engine = create_engine(settings.DATABASE_URL)
-    with _engine.connect() as _conn:
-        try:
-            _conn.execute(text("ALTER TABLE fuel_prices ADD COLUMN vendor_name VARCHAR(200);"))
-            _conn.commit()
-            print("Successfully added vendor_name column to fuel_prices")
-        except Exception as e:
-            # Column might already exist
-            pass
-except Exception as e:
-    print(f"Migration error: {e}")
+

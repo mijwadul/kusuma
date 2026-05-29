@@ -12,25 +12,33 @@ def alter_db():
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
+    # (table_name, col_name, col_type)
     columns_to_add = [
-        ("sj_length", "FLOAT"),
-        ("sj_width", "FLOAT"),
-        ("sj_height", "FLOAT"),
-        ("sj_volume_minus", "FLOAT"),
-        ("sj_gross_weight", "FLOAT"),
-        ("sj_tare_weight", "FLOAT"),
-        ("sj_weight_minus", "FLOAT"),
+        ("income_records", "sj_length", "FLOAT"),
+        ("income_records", "sj_width", "FLOAT"),
+        ("income_records", "sj_height", "FLOAT"),
+        ("income_records", "sj_volume_minus", "FLOAT"),
+        ("income_records", "sj_gross_weight", "FLOAT"),
+        ("income_records", "sj_tare_weight", "FLOAT"),
+        ("income_records", "sj_weight_minus", "FLOAT"),
+        ("income_records", "driver_name", "VARCHAR(100) DEFAULT NULL"),
+        ("fuel_prices", "vendor_name", "VARCHAR(200) DEFAULT NULL"),
+        ("fuel_prices", "payment_status", "VARCHAR(20) DEFAULT 'unpaid'"),
+        ("fuel_prices", "paid_by", "INTEGER"),
+        ("fuel_prices", "paid_at", "DATETIME"),
+        ("customers", "trucks_json", "TEXT DEFAULT NULL"),
+        ("invoices", "status", "VARCHAR(20) DEFAULT 'unpaid'"),
     ]
 
-    for col_name, col_type in columns_to_add:
+    for table_name, col_name, col_type in columns_to_add:
         try:
-            cursor.execute(f"ALTER TABLE income_records ADD COLUMN {col_name} {col_type}")
-            print(f"✅ Kolom {col_name} berhasil ditambahkan ke income_records.")
+            cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_type}")
+            print(f"✅ Kolom {col_name} berhasil ditambahkan ke {table_name}.")
         except sqlite3.OperationalError as e:
             if "duplicate column name" in str(e).lower():
-                print(f"⚠️ Kolom {col_name} sudah ada, dilewati.")
+                print(f"⚠️ Kolom {col_name} sudah ada di {table_name}, dilewati.")
             else:
-                print(f"❌ Error menambahkan kolom {col_name}: {e}")
+                print(f"❌ Error menambahkan kolom {col_name} ke {table_name}: {e}")
 
     conn.commit()
     conn.close()

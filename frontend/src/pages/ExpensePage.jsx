@@ -40,6 +40,7 @@ const CATEGORIES = [
   { value: 'transport',    label: 'Transport',     cls: 'bg-amber-100 text-amber-700' },
   { value: 'makan',        label: 'Makan',         cls: 'bg-green-100 text-green-700' },
   { value: 'operasional',  label: 'Operasional',   cls: 'bg-orange-100 text-orange-700' },
+  { value: 'inventaris',   label: 'Inventaris',    cls: 'bg-teal-100 text-teal-700' },
   { value: 'lain-lain',    label: 'Lain-lain',     cls: 'bg-gray-100 text-gray-700' },
 ];
 

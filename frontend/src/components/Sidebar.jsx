@@ -194,6 +194,12 @@ const Sidebar = ({ children }) => {
           show: true,
         },
         {
+          path: "/surat-jalan",
+          icon: Receipt,
+          label: "Surat Jalan",
+          show: isFinance, // Since it's in finance menu, isFinance is true for these users
+        },
+        {
           path: "/expenses",
           icon: Receipt,
           label: "Pengeluaran Harian",

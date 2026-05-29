@@ -17,7 +17,6 @@ import {
 import { API_URL } from "../api/auth";
 import AlertModal from "../components/AlertModal";
 import InvoiceGenerator from "../components/InvoiceGenerator";
-import SuratJalanManagerModal from "../components/SuratJalanManagerModal";
 import { Truck } from "lucide-react";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -151,7 +150,6 @@ const IncomePage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
-  const [showSuratJalanModal, setShowSuratJalanModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [customers, setCustomers] = useState([]);
 
@@ -532,12 +530,6 @@ const IncomePage = () => {
           </p>
         </div>
         <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2">
-          <button
-            onClick={() => setShowSuratJalanModal(true)}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-medium text-sm transition-colors shadow-sm"
-          >
-            <Truck className="w-4 h-4" /> Manajemen Surat Jalan
-          </button>
           <button
             onClick={() => setShowInvoiceModal(true)}
             className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium text-sm transition-colors shadow-sm"
@@ -1313,18 +1305,6 @@ const IncomePage = () => {
         customers={customers} 
         existingInvoice={selectedInvoice}
       />
-      {showSuratJalanModal && (
-        <SuratJalanManagerModal
-          onClose={() => setShowSuratJalanModal(false)}
-          API_URL={API_URL}
-          authFetchHelper={authFetchHelper}
-          customers={customers}
-          onSaved={() => {
-            setShowSuratJalanModal(false);
-            fetchRecords();
-          }}
-        />
-      )}
     </div>
   );
 };
