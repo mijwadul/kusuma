@@ -432,6 +432,7 @@ def create_fuel_price(
         total_price=price_data.total_price,
         notes=price_data.notes,
         vendor_name=price_data.vendor_name,
+        project_id=price_data.project_id,
         approval_status="approved" if is_gm else "pending",
         approved_by=current_user.id if is_gm else None,
         approved_at=datetime.now() if is_gm else None,

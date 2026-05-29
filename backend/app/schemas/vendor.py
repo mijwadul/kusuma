@@ -36,6 +36,7 @@ class VendorTopUpCreate(BaseModel):
     amount: Decimal
     topup_date: Optional[datetime] = None
     notes: Optional[str] = None
+    project_id: Optional[int] = None
 
 class VendorTopUpResponse(BaseModel):
     id: int

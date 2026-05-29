@@ -539,6 +539,7 @@ def create_payroll(
         other_deduction=payroll.other_deduction or 0,
         total_deduction=calc_result.total_deduction,
         net_salary=calc_result.net_salary,
+        project_id=payroll.project_id,
         payment_status="approved"
         if current_user.role == "gm"
         or current_user.is_admin

@@ -15,6 +15,8 @@ class PayrollRecord(Base):
     employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False)
     employee = relationship("Employee", back_populates="payroll_records")
     
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
+    
     # Period
     period_start = Column(Date, nullable=False)  # Tanggal mulai periode
     period_end = Column(Date, nullable=False)    # Tanggal akhir periode

@@ -129,6 +129,34 @@ class RangeReport(BaseModel):
     material_sales: List[MaterialSaleItem]
 
 
+class CashFlowIncome(BaseModel):
+    id: str
+    date: str
+    source_type: str # 'Material Sale', 'Project Payment', dll
+    description: str
+    amount: float
+    project_id: Optional[int]
+    project_name: Optional[str]
+
+class CashFlowExpense(BaseModel):
+    id: str
+    date: str
+    expense_type: str # 'Fuel', 'Payroll', 'Equipment Deposit', 'Other Expense'
+    description: str
+    amount: float
+    project_id: Optional[int]
+    project_name: Optional[str]
+
+class CashFlowReport(BaseModel):
+    period_start: str
+    period_end: str
+    project_id: Optional[int]
+    total_income: float
+    total_expense: float
+    net_balance: float
+    incomes: List[CashFlowIncome]
+    expenses: List[CashFlowExpense]
+
 # ── Helper ───────────────────────────────────────────────────────────────────
 
 def _fmt_date(d) -> Optional[str]:
@@ -463,4 +491,120 @@ def get_range_report(
         work_logs_detail=work_logs_detail,
         attendance_summary=attendance_summary,
         material_sales=material_items,
+    )
+
+@router.get("/cashflow", response_model=CashFlowReport)
+def get_cash_flow_report(
+    start_date: date,
+    end_date: date,
+    project_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    from ...models.project import Project
+    from ...models.expense import Expense
+    from ...models.payroll import PayrollRecord
+    from ...models.fuel_price import FuelPrice
+    
+    # Pre-fetch projects for names
+    projects = db.query(Project).all()
+    project_map = {p.id: p.name for p in projects}
+
+    incomes: List[CashFlowIncome] = []
+    expenses: List[CashFlowExpense] = []
+
+    # 1. INCOMES
+    income_q = db.query(IncomeRecord).filter(
+        IncomeRecord.income_date >= start_date,
+        IncomeRecord.income_date <= end_date
+    )
+    if project_id:
+        income_q = income_q.filter(IncomeRecord.project_id == project_id)
+        
+    for inc in income_q.all():
+        incomes.append(CashFlowIncome(
+            id=f"inc_{inc.id}",
+            date=_fmt_date(inc.income_date) or "",
+            source_type="Material Sale" if inc.income_type == "material_sale" else "Project Payment",
+            description=inc.description or f"Penjualan ke {inc.customer_name}",
+            amount=float(inc.amount or 0),
+            project_id=inc.project_id,
+            project_name=project_map.get(inc.project_id) if inc.project_id else None
+        ))
+
+    # 2. EXPENSES
+    # A. Expense (Others & Deposit)
+    exp_q = db.query(Expense).filter(
+        Expense.expense_date >= start_date,
+        Expense.expense_date <= end_date,
+        Expense.payment_status == 'paid'
+    )
+    if project_id:
+        exp_q = exp_q.filter(Expense.project_id == project_id)
+    for exp in exp_q.all():
+        expense_type = "Equipment Deposit" if exp.category == "deposit" else "Other Expense"
+        expenses.append(CashFlowExpense(
+            id=f"exp_{exp.id}",
+            date=_fmt_date(exp.expense_date) or "",
+            expense_type=expense_type,
+            description=exp.description or exp.category,
+            amount=float(exp.amount or 0),
+            project_id=exp.project_id,
+            project_name=project_map.get(exp.project_id) if exp.project_id else None
+        ))
+        
+    # B. Fuel Purchases
+    fuel_q = db.query(FuelPrice).filter(
+        cast(FuelPrice.effective_date, Date) >= start_date,
+        cast(FuelPrice.effective_date, Date) <= end_date,
+        FuelPrice.payment_status == 'paid'
+    )
+    if project_id:
+        fuel_q = fuel_q.filter(FuelPrice.project_id == project_id)
+    for fuel in fuel_q.all():
+        expenses.append(CashFlowExpense(
+            id=f"fuel_{fuel.id}",
+            date=_fmt_date(fuel.effective_date) or "",
+            expense_type="Fuel",
+            description=f"Pembelian BBM {fuel.fuel_type} {fuel.liters or 0} L - {fuel.vendor_name or ''}",
+            amount=float(fuel.total_price or 0),
+            project_id=fuel.project_id,
+            project_name=project_map.get(fuel.project_id) if fuel.project_id else None
+        ))
+        
+    # C. Payroll
+    payroll_q = db.query(PayrollRecord).filter(
+        PayrollRecord.payment_date >= start_date,
+        PayrollRecord.payment_date <= end_date,
+        PayrollRecord.payment_status == 'paid'
+    )
+    if project_id:
+        payroll_q = payroll_q.filter(PayrollRecord.project_id == project_id)
+    for pay in payroll_q.all():
+        expenses.append(CashFlowExpense(
+            id=f"pay_{pay.id}",
+            date=_fmt_date(pay.payment_date) or "",
+            expense_type="Payroll",
+            description=f"Gaji {pay.employee.name if pay.employee else 'Karyawan'}",
+            amount=float(pay.net_salary or 0),
+            project_id=pay.project_id,
+            project_name=project_map.get(pay.project_id) if pay.project_id else None
+        ))
+
+    total_income = sum(i.amount for i in incomes)
+    total_expense = sum(e.amount for e in expenses)
+    
+    # Sort descending
+    incomes.sort(key=lambda x: x.date, reverse=True)
+    expenses.sort(key=lambda x: x.date, reverse=True)
+
+    return CashFlowReport(
+        period_start=str(start_date),
+        period_end=str(end_date),
+        project_id=project_id,
+        total_income=total_income,
+        total_expense=total_expense,
+        net_balance=total_income - total_expense,
+        incomes=incomes,
+        expenses=expenses
     )

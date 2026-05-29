@@ -206,9 +206,9 @@ const Sidebar = ({ children }) => {
           show: true,
         },
         {
-          path: "/daily-report",
+          path: "/cashflow",
           icon: BarChart3,
-          label: "Laporan Keuangan",
+          label: "Cash Flow",
           show: isGM,
         },
         {

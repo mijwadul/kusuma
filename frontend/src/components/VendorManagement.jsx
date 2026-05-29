@@ -11,6 +11,7 @@ export default function VendorManagement({ userRole }) {
   const [topups, setTopups] = useState([]);
   const [allEquipment, setAllEquipment] = useState([]); // semua alat berat
   const [equipmentBalances, setEquipmentBalances] = useState([]); // saldo per alat
+  const [projects, setProjects] = useState([]); // data projects
   const [loading, setLoading] = useState(true);
   const [expandedVendors, setExpandedVendors] = useState({}); // vendor id → boolean
 
@@ -21,11 +22,11 @@ export default function VendorManagement({ userRole }) {
   const [showTopupForm, setShowTopupForm] = useState(false);
   const [selectedVendorForTopup, setSelectedVendorForTopup] = useState(null);
   const [vendorEquipments, setVendorEquipments] = useState([]); // alat berat milik vendor yang dipilih
-  const [topupData, setTopupData] = useState({ amount: "", notes: "", topup_date: "", equipment_id: "" });
+  const [topupData, setTopupData] = useState({ amount: "", notes: "", topup_date: "", equipment_id: "", project_id: "" });
 
   // Edit topup state
   const [editingTopup, setEditingTopup] = useState(null);
-  const [editTopupData, setEditTopupData] = useState({ amount: "", notes: "", topup_date: "", equipment_id: "" });
+  const [editTopupData, setEditTopupData] = useState({ amount: "", notes: "", topup_date: "", equipment_id: "", project_id: "" });
   const [editVendorEquipments, setEditVendorEquipments] = useState([]);
 
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
@@ -39,8 +40,18 @@ export default function VendorManagement({ userRole }) {
       fetchTopups();
       fetchAllEquipment();
       fetchEquipmentBalances();
+      fetchProjects();
     }
   }, [userRole, canManage]);
+
+  const fetchProjects = async () => {
+    try {
+      const res = await fetch(`${API_URL}/projects-data/projects`, { headers: { Authorization: `Bearer ${getToken()}` } });
+      if (res.ok) setProjects(await res.json());
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const getToken = () => localStorage.getItem("token");
 
@@ -142,7 +153,8 @@ export default function VendorManagement({ userRole }) {
       amount: "",
       notes: "",
       topup_date: new Date().toISOString().slice(0, 10),
-      equipment_id: eqs.length === 1 ? String(eqs[0].id) : ""
+      equipment_id: eqs.length === 1 ? String(eqs[0].id) : "",
+      project_id: ""
     });
     setShowTopupForm(true);
   };
@@ -162,7 +174,8 @@ export default function VendorManagement({ userRole }) {
           equipment_id: parseInt(topupData.equipment_id),
           amount: parseFloat(topupData.amount),
           topup_date: topupData.topup_date ? new Date(topupData.topup_date).toISOString() : undefined,
-          notes: topupData.notes
+          notes: topupData.notes,
+          project_id: topupData.project_id ? parseInt(topupData.project_id) : null
         })
       });
       if (res.ok) {
@@ -207,7 +220,8 @@ export default function VendorManagement({ userRole }) {
       amount: t.amount,
       notes: t.notes || "",
       topup_date: t.topup_date ? new Date(t.topup_date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
-      equipment_id: t.equipment_id ? String(t.equipment_id) : ""
+      equipment_id: t.equipment_id ? String(t.equipment_id) : "",
+      project_id: t.project_id ? String(t.project_id) : ""
     });
   };
 
@@ -226,7 +240,8 @@ export default function VendorManagement({ userRole }) {
           equipment_id: parseInt(editTopupData.equipment_id),
           amount: parseFloat(editTopupData.amount),
           topup_date: editTopupData.topup_date ? new Date(editTopupData.topup_date).toISOString() : undefined,
-          notes: editTopupData.notes
+          notes: editTopupData.notes,
+          project_id: editTopupData.project_id ? parseInt(editTopupData.project_id) : null
         })
       });
       if (res.ok) {
@@ -496,6 +511,19 @@ export default function VendorManagement({ userRole }) {
                 )}
               </div>
               <div>
+                <label className="block text-sm text-gray-700">Project (Opsional)</label>
+                <select
+                  value={editTopupData.project_id}
+                  onChange={e => setEditTopupData({ ...editTopupData, project_id: e.target.value })}
+                  className="mt-1 w-full border rounded p-2"
+                >
+                  <option value="">-- Pilih Project --</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
                 <label className="block text-sm text-gray-700">Nominal Rp</label>
                 <input
                   type="number" required min="1"
@@ -588,6 +616,19 @@ export default function VendorManagement({ userRole }) {
                     })}
                   </select>
                 )}
+              </div>
+              <div>
+                <label className="block text-sm text-gray-700">Project (Opsional)</label>
+                <select
+                  value={topupData.project_id}
+                  onChange={e => setTopupData({ ...topupData, project_id: e.target.value })}
+                  className="mt-1 w-full border rounded p-2"
+                >
+                  <option value="">-- Pilih Project --</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
               </div>
               <div><label className="block text-sm text-gray-700">Nominal Rp</label><input type="number" required min="1" value={topupData.amount} onChange={e=>setTopupData({...topupData, amount: e.target.value})} className="mt-1 w-full border rounded p-2" /></div>
               <div><label className="block text-sm text-gray-700">Tanggal Top-Up</label><input type="date" value={topupData.topup_date} onChange={e=>setTopupData({...topupData, topup_date: e.target.value})} className="mt-1 w-full border rounded p-2" /></div>

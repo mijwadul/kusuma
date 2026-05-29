@@ -10,6 +10,8 @@ class FuelPrice(Base):
     fuel_type = Column(String(50), nullable=False)  # Jenis BBM (solar, premium, dll)
     effective_date = Column(DateTime(timezone=True), nullable=False)  # Tanggal berlaku
     
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
+    
     # New fields for Fuel Purchase & Stock
     liters = Column(Float, nullable=True) # Jumlah liter yang dibeli
     total_price = Column(Float, nullable=True) # Total harga pembelian

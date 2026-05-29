@@ -225,6 +225,7 @@ class PayrollBase(BaseModel):
     other_deduction: Optional[float] = 0
     deduction_note: Optional[str] = None
     notes: Optional[str] = None
+    project_id: Optional[int] = None
 
 
 class PayrollCalculate(BaseModel):

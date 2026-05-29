@@ -320,6 +320,7 @@ export default function ProjectsPage() {
                 <tr>
                   <th className="px-4 py-3 text-left whitespace-nowrap">Nama Proyek & Klien</th>
                   <th className="px-4 py-3 text-left whitespace-nowrap">Lokasi</th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap">Budget</th>
                   <th className="px-4 py-3 text-left whitespace-nowrap">Target Material</th>
                   <th className="px-4 py-3 text-left whitespace-nowrap">Status</th>
                   {isGM && <th className="px-4 py-3 text-center whitespace-nowrap">Aksi</th>}
@@ -333,6 +334,20 @@ export default function ProjectsPage() {
                       <p className="text-xs text-gray-500">{p.client_name || "-"}</p>
                     </td>
                     <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{p.location || "-"}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="font-medium text-emerald-700">
+                        {p.budget ? formatIDR(p.budget) : "-"}
+                      </div>
+                      {p.budget ? (
+                        <div className="text-xs mt-1">
+                          <span className="text-gray-500">Terpakai: </span>
+                          <span className="text-rose-600 font-medium">{formatIDR(p.budget_used)}</span>
+                          <br />
+                          <span className="text-gray-500">Sisa: </span>
+                          <span className="text-blue-600 font-medium">{formatIDR(p.remaining_budget)}</span>
+                        </div>
+                      ) : null}
+                    </td>
                     <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
                       {p.material_items.length === 0 ? "-" : (
                         <ul className="list-disc pl-4">
@@ -360,7 +375,7 @@ export default function ProjectsPage() {
                   </tr>
                 ))}
                 {projects.length === 0 && (
-                  <tr><td colSpan={5} className="text-center py-10 text-gray-400">Belum ada proyek</td></tr>
+                  <tr><td colSpan={6} className="text-center py-10 text-gray-400">Belum ada proyek</td></tr>
                 )}
               </tbody>
             </table>
@@ -448,6 +463,10 @@ export default function ProjectsPage() {
                 <div>
                   <label className="block text-sm mb-1">Lokasi</label>
                   <input value={projForm.location} onChange={e => setProjForm(p => ({...p, location: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Budget (Rp)</label>
+                  <input type="number" value={projForm.budget} onChange={e => setProjForm(p => ({...p, budget: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm" />
                 </div>
                 <div>
                   <label className="block text-sm mb-1">Status</label>

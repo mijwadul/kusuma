@@ -28,6 +28,9 @@ def alter_db():
         ("fuel_prices", "paid_at", "DATETIME"),
         ("customers", "trucks_json", "TEXT"),
         ("invoices", "status", "VARCHAR(20) DEFAULT 'unpaid'"),
+        ("fuel_prices", "project_id", "INTEGER"),
+        ("payroll_records", "project_id", "INTEGER"),
+        ("vendor_topups", "project_id", "INTEGER"),
     ]
 
     with engine.begin() as conn:

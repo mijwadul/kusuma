@@ -12,6 +12,7 @@ class FuelPriceBase(BaseModel):
     total_price: Optional[float] = None
     notes: Optional[str] = None
     vendor_name: Optional[str] = None
+    project_id: Optional[int] = None
 
 
 class FuelPriceCreate(FuelPriceBase):

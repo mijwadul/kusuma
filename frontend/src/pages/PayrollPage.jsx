@@ -96,6 +96,7 @@ const EMPTY_FORM = {
   other_deduction: 0,
   deduction_note: "",
   notes: "",
+  project_id: "",
 };
 
 // ─── MAIN COMPONENT ────────────────────────────────────────────────────────────
@@ -106,6 +107,7 @@ const PayrollPage = () => {
   // ── data ──
   const [payrolls, setPayrolls] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -170,7 +172,16 @@ const PayrollPage = () => {
         // silent
       }
     };
+    const fetchProjects = async () => {
+      try {
+        const res = await api.get("/projects-data/projects");
+        setProjects(res.data ?? []);
+      } catch {
+        // silent
+      }
+    };
     fetchEmployees();
+    fetchProjects();
   }, []);
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -253,6 +264,7 @@ const PayrollPage = () => {
       other_deduction: parseFloat(form.other_deduction) || 0,
       deduction_note: form.deduction_note || undefined,
       notes: form.notes || undefined,
+      project_id: form.project_id ? Number(form.project_id) : null,
     };
 
     // loan_deduction hanya dikirim jika diisi (kosong = auto-calculate)
@@ -785,6 +797,26 @@ const PayrollPage = () => {
                   {employees.map((emp) => (
                     <option key={emp.id} value={emp.id}>
                       {emp.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Project */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Project (Opsional)
+                </label>
+                <select
+                  name="project_id"
+                  value={form.project_id}
+                  onChange={handleFormChange}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                >
+                  <option value="">Pilih Project (Kosongkan jika General)</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
                     </option>
                   ))}
                 </select>

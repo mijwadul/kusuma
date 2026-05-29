@@ -42,6 +42,8 @@ class VendorTopUp(Base):
     topup_date = Column(DateTime(timezone=True), default=func.now())
     notes = Column(Text, nullable=True)
     
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
+    
     status = Column(String(30), default="pending") # pending, approved, rejected
     
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)

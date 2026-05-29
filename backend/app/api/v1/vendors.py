@@ -238,6 +238,7 @@ def create_topup(data: VendorTopUpCreate, db: Session = Depends(get_db), current
         equipment_id=data.equipment_id,
         amount=data.amount,
         notes=data.notes,
+        project_id=data.project_id,
         topup_date=topup_dt,
         status="approved" if is_gm else "pending",
         created_by=current_user.id,
@@ -338,7 +339,8 @@ def _apply_topup_and_expense(db: Session, topup: VendorTopUp, vendor: Vendor, eq
         approved_at=datetime.now(),
         payment_status="paid",
         paid_by=user_id,
-        paid_at=datetime.now()
+        paid_at=datetime.now(),
+        project_id=topup.project_id
     )
     db.add(expense)
     db.commit()

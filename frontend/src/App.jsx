@@ -20,7 +20,7 @@ import IncomePage from "./pages/IncomePage";
 import FuelPricePage from "./pages/FuelPricePage";
 import PayrollPage from "./pages/PayrollPage";
 import ExpensePage from "./pages/ExpensePage";
-import DailyReportPage from "./pages/DailyReportPage";
+import CashFlowPage from "./pages/CashFlowPage";
 import ReportsPage from "./pages/ReportsPage";
 import SuratJalanPage from "./pages/SuratJalanPage";
 import Sidebar from "./components/Sidebar";
@@ -61,7 +61,7 @@ function App() {
           <Route path="/finance/fuel-price" element={<FuelPricePage />} />
           <Route path="/payroll" element={<PayrollPage />} />
           <Route path="/expenses" element={<ExpensePage />} />
-          <Route path="/daily-report" element={<DailyReportPage />} />
+          <Route path="/cashflow" element={<CashFlowPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/surat-jalan" element={<SuratJalanPage />} />
         </Route>

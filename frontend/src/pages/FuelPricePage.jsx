@@ -18,6 +18,8 @@ const FuelPricePage = () => {
   const [totalPrice, setTotalPrice] = useState('');
   const [pricePerLiter, setPricePerLiter] = useState('');
   const [vendorName, setVendorName] = useState('');
+  const [projectId, setProjectId] = useState('');
+  const [projects, setProjects] = useState([]);
   const [vendorList, setVendorList] = useState([]);
   const [notes, setNotes] = useState('');
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
@@ -56,8 +58,24 @@ const FuelPricePage = () => {
       fetchPurchases();
       fetchStockInfo();
       fetchVendors();
+      fetchProjects();
     }
   }, [currentUser]);
+
+  const fetchProjects = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/v1/projects-data/projects', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setProjects(data);
+      }
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+    }
+  };
 
   const fetchVendors = async () => {
     try {
@@ -165,6 +183,7 @@ const FuelPricePage = () => {
           liters: litersNum,
           total_price: totalPriceNum,
           vendor_name: vendorName,
+          project_id: projectId ? parseInt(projectId) : null,
           notes: notes
         })
       });
@@ -174,6 +193,7 @@ const FuelPricePage = () => {
         setTotalPrice('');
         setPricePerLiter('');
         setVendorName('');
+        setProjectId('');
         setNotes('');
         setPurchaseDate(new Date().toISOString().split('T')[0]);
         fetchPurchases();
@@ -624,6 +644,20 @@ const FuelPricePage = () => {
                     <option key={idx} value={v} />
                   ))}
                 </datalist>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Project (Opsional)</label>
+                <select
+                  value={projectId}
+                  onChange={(e) => setProjectId(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
+                >
+                  <option value="">Pilih Project (Kosongkan jika General)</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
               </div>
               
               <div>

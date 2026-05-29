@@ -26,6 +26,18 @@ def bootstrap_database():
     """Ensure tables exist and seed default admin on fresh setup."""
     Base.metadata.create_all(bind=engine)
     
+    try:
+        import sys
+        import os
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if backend_dir not in sys.path:
+            sys.path.append(backend_dir)
+        from alter_database import alter_db
+        alter_db()
+    except Exception as e:
+        print(f"Migration error: {e}")
+    
+    
 
 
     default_admin_email = settings.DEFAULT_ADMIN_EMAIL.strip().lower()

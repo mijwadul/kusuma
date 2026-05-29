@@ -86,6 +86,8 @@ class ProjectResponse(BaseModel):
     material_items: List[MaterialItemResponse] = []
     total_material_value: float = 0.0   # sum(target_qty * unit_price)
     realized_amount: float = 0.0        # income_records untuk proyek ini
+    budget_used: float = 0.0
+    remaining_budget: float = 0.0
 
     class Config:
         from_attributes = True
@@ -184,6 +186,38 @@ def _build_project_response(proj: Project, db: Session) -> ProjectResponse:
         )
     ).filter(IncomeRecord.project_id == proj.id).scalar()
 
+    # Calculate Budget Used
+    from ...models.fuel_price import FuelPrice
+    from ...models.payroll import PayrollRecord
+    from ...models.expense import Expense
+    from ...models.vendor import VendorTopUp
+    sqlfunc = __import__("sqlalchemy", fromlist=["func"]).func
+
+    fuel_used = db.query(sqlfunc.coalesce(sqlfunc.sum(FuelPrice.total_price), 0)).filter(
+        FuelPrice.project_id == proj.id,
+        FuelPrice.payment_status == 'paid'
+    ).scalar()
+
+    payroll_used = db.query(sqlfunc.coalesce(sqlfunc.sum(PayrollRecord.net_salary), 0)).filter(
+        PayrollRecord.project_id == proj.id,
+        PayrollRecord.payment_status == 'paid'
+    ).scalar()
+
+    expense_used = db.query(sqlfunc.coalesce(sqlfunc.sum(Expense.amount), 0)).filter(
+        Expense.project_id == proj.id,
+        Expense.payment_status == 'paid'
+    ).scalar()
+
+    topup_used = db.query(sqlfunc.coalesce(sqlfunc.sum(VendorTopUp.amount), 0)).filter(
+        VendorTopUp.project_id == proj.id,
+        VendorTopUp.status == 'approved'
+    ).scalar()
+
+    budget_used = float(fuel_used or 0) + float(payroll_used or 0) + float(expense_used or 0) + float(topup_used or 0)
+    remaining_budget = 0.0
+    if proj.budget is not None:
+        remaining_budget = float(proj.budget) - budget_used
+
     return ProjectResponse(
         id=proj.id,
         name=proj.name,
@@ -200,6 +234,8 @@ def _build_project_response(proj: Project, db: Session) -> ProjectResponse:
         material_items=items,
         total_material_value=round(float(total_val), 2),
         realized_amount=round(float(realized or 0), 2),
+        budget_used=round(budget_used, 2),
+        remaining_budget=round(remaining_budget, 2),
     )
 
 def _build_customer_response(cust: Customer, db: Session) -> CustomerResponse:
