@@ -89,7 +89,7 @@ const ExpenseModal = ({ expense, projects, onClose, onSaved }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.description.trim()) return toast.error('Deskripsi wajib diisi.');
+    if (!(form.description || '').trim()) return toast.error('Deskripsi wajib diisi.');
     if (!form.amount || Number(form.amount) <= 0) return toast.error('Jumlah harus lebih dari 0.');
 
     setSaving(true);
@@ -98,10 +98,10 @@ const ExpenseModal = ({ expense, projects, onClose, onSaved }) => {
       const payload = {
         expense_date: form.expense_date,
         category: form.category,
-        description: form.description.trim(),
+        description: (form.description || '').trim(),
         amount: Number(form.amount),
         project_id: form.project_id ? Number(form.project_id) : null,
-        notes: form.notes.trim() || null,
+        notes: (form.notes || '').trim() || null,
       };
 
       const url = isEdit
