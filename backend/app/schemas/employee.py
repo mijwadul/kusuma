@@ -305,6 +305,8 @@ class PayrollResponse(BaseModel):
     id: int
     employee_id: int
     employee_name: Optional[str] = None
+    project_id: Optional[int] = None
+    project_name: Optional[str] = None
     period_start: date
     period_end: date
 

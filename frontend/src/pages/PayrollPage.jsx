@@ -541,6 +541,9 @@ const PayrollPage = () => {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Periode
                     </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                      Proyek
+                    </th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Gaji Pokok
                     </th>
@@ -593,6 +596,17 @@ const PayrollPage = () => {
                           <div className="text-xs text-gray-400">
                             s.d. {formatDate(rec.period_end)}
                           </div>
+                        </td>
+
+                        {/* Proyek */}
+                        <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                          {rec.project_name ? (
+                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                              {rec.project_name}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 italic text-xs">Pusat/General</span>
+                          )}
                         </td>
 
                         {/* Gaji Pokok */}

@@ -844,7 +844,7 @@ const IncomePage = () => {
               <table className="min-w-full text-sm divide-y divide-gray-100">
                 <thead className="bg-gray-50 whitespace-nowrap">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Tgl Dibuat</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Tanggal Invoice</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">No Invoice</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Customer</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Periode Tagihan</th>
@@ -863,7 +863,7 @@ const IncomePage = () => {
                       }
                     }}>
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                        {new Date(r.created_at).toLocaleDateString("id-ID")}
+                        {r.invoice_date ? formatDate(r.invoice_date) : "-"}
                       </td>
                       <td className="px-4 py-3 text-gray-700 font-medium whitespace-nowrap">
                         {r.invoice_number}

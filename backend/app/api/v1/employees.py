@@ -28,6 +28,7 @@ from ...models import (
     EmployeeLoan,
     PayrollRecord,
     User,
+    Project,
 )
 from ...models.work_log import WorkLog
 from ...schemas import (
@@ -615,9 +616,14 @@ def get_payroll_records(
 
     records = query.order_by(PayrollRecord.period_start.desc()).all()
 
-    # Add employee name
+    # Add employee name and project name
     for record in records:
         record.employee_name = record.employee.name if record.employee else None
+        if record.project_id:
+            project = db.query(Project).filter(Project.id == record.project_id).first()
+            record.project_name = project.name if project else None
+        else:
+            record.project_name = None
 
     return records
 

@@ -113,11 +113,11 @@ const InvoiceGenerator = ({ isOpen, onClose, customers = [], existingInvoice = n
 
     setLoading(true);
     try {
-      const data = await authFetch(
-        `${API_URL}/invoices/preview?customer_name=${encodeURIComponent(
-          customerName
-        )}&start_date=${startDate}&end_date=${endDate}`
-      );
+      const url = `${API_URL}/invoices/preview?customer_name=${encodeURIComponent(
+        customerName
+      )}&start_date=${startDate}&end_date=${endDate}${existingInvoice ? `&invoice_id=${existingInvoice.id}` : ''}`;
+      
+      const data = await authFetch(url);
       if (data.items.length === 0) {
         toast.error("Tidak ada data penjualan untuk kriteria tersebut.");
       } else {

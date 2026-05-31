@@ -243,7 +243,7 @@ def get_invoices(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    invoices = db.query(Invoice).order_by(Invoice.id.desc()).all()
+    invoices = db.query(Invoice).order_by(Invoice.invoice_date.desc(), Invoice.id.desc()).all()
     return [
         InvoiceResponse(
             id=inv.id,
