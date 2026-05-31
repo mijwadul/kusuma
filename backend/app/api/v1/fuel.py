@@ -3,7 +3,7 @@ from typing import List, Optional, Set
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func, cast, Date
-from ...core.auth import get_current_user
+from ...core.auth import get_current_user, require_role, require_admin
 from ...core.database import get_db
 from ...models import FuelLog, Equipment, User, WorkLog, FuelPrice
 from ...schemas import (
@@ -29,7 +29,7 @@ def _period_start(days: int) -> datetime:
 def create_fuel_log(
     fuel_data: FuelLogCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role(["field", "helper", "finance", "checker"]))
 ):
     """Catat pengisian BBM baru"""
     equipment = db.query(Equipment).filter(Equipment.id == fuel_data.equipment_id).first()
@@ -143,15 +143,12 @@ def update_fuel_log(
     log_id: int,
     fuel_data: FuelLogUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role(["finance", "checker"]))
 ):
     """Update catatan pengisian BBM"""
     fuel_log = db.query(FuelLog).filter(FuelLog.id == log_id).first()
     if not fuel_log:
         raise HTTPException(status_code=404, detail="Fuel log not found")
-
-    if not current_user.is_admin and not current_user.is_superuser and fuel_log.recorded_by != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to update this log")
 
     update_data = fuel_data.model_dump(exclude_unset=True)
 
@@ -361,15 +358,12 @@ def get_equipment_fuel_efficiency(
 def delete_fuel_log(
     log_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role(["finance", "checker"]))
 ):
     """Hapus catatan pengisian BBM (admin only)"""
     log = db.query(FuelLog).filter(FuelLog.id == log_id).first()
     if not log:
         raise HTTPException(status_code=404, detail="Fuel log not found")
-
-    if not current_user.is_admin and not current_user.is_superuser and log.recorded_by != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to delete this log")
 
     db.delete(log)
     db.commit()
@@ -416,11 +410,9 @@ def get_fuel_prices(
 def create_fuel_price(
     price_data: FuelPriceCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role(["finance", "checker"]))
 ):
     """Tambah pembelian BBM baru. GM langsung auto-approved."""
-    if not current_user.is_admin and not current_user.is_superuser and current_user.role not in ['gm', 'finance', 'admin']:
-        raise HTTPException(status_code=403, detail="Not authorized to create fuel purchases")
 
     is_gm = current_user.role in ('gm', 'admin') or current_user.is_admin or current_user.is_superuser
 
@@ -451,11 +443,9 @@ def approve_fuel_purchase(
     price_id: int,
     status: str = "approved",
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_admin)
 ):
     """Approve atau reject pembelian BBM (GM only)"""
-    if not current_user.is_admin and not current_user.is_superuser and current_user.role not in ['gm', 'admin']:
-        raise HTTPException(status_code=403, detail="Hanya GM yang dapat melakukan approval")
         
     purchase = db.query(FuelPrice).filter(FuelPrice.id == price_id).first()
     if not purchase:
@@ -474,11 +464,9 @@ def approve_fuel_purchase(
 def pay_fuel_purchase(
     price_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role(["finance", "checker"]))
 ):
     """Mark fuel purchase as paid (Finance/GM)"""
-    if not current_user.is_admin and not current_user.is_superuser and current_user.role not in ['gm', 'finance', 'admin']:
-        raise HTTPException(status_code=403, detail="Hanya Finance atau GM yang dapat menandai lunas")
         
     purchase = db.query(FuelPrice).filter(FuelPrice.id == price_id).first()
     if not purchase:
@@ -501,7 +489,7 @@ def update_fuel_purchase(
     price_id: int,
     data: FuelPriceUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role(["finance", "checker"]))
 ):
     """Update pembelian BBM"""
     purchase = db.query(FuelPrice).filter(FuelPrice.id == price_id).first()
@@ -533,7 +521,7 @@ def update_fuel_purchase(
 def delete_fuel_purchase(
     price_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role(["finance", "checker"]))
 ):
     """Hapus data pembelian BBM"""
     purchase = db.query(FuelPrice).filter(FuelPrice.id == price_id).first()

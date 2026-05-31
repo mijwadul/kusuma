@@ -4,7 +4,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from ...core.auth import get_current_user
+from ...core.auth import get_current_user, require_role, require_admin
 from ...core.database import get_db
 from ...models.expense import Expense
 from ...models.project import Project
@@ -75,7 +75,7 @@ def get_expenses(
 def create_expense(
     data: ExpenseCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user: User = Depends(require_role(["finance", "checker"])),
 ):
     """Buat catatan pengeluaran baru."""
     expense = Expense(
@@ -109,7 +109,7 @@ def update_expense(
     expense_id: int,
     data: ExpenseUpdate,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user: User = Depends(require_role(["finance", "checker"])),
 ):
     """Update catatan pengeluaran. Hanya admin/GM atau pembuat yang bisa mengubah."""
     expense = db.query(Expense).filter(Expense.id == expense_id).first()
@@ -140,7 +140,7 @@ def update_expense(
 def delete_expense(
     expense_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user: User = Depends(require_role(["finance", "checker"])),
 ):
     """Hapus catatan pengeluaran. Hanya admin/GM/superuser."""
     expense = db.query(Expense).filter(Expense.id == expense_id).first()
@@ -166,7 +166,7 @@ def delete_expense(
 def approve_expense(
     expense_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     """Approve pengeluaran (Hanya untuk GM/Admin)."""
     expense = db.query(Expense).filter(Expense.id == expense_id).first()
@@ -199,7 +199,7 @@ def approve_expense(
 def pay_expense(
     expense_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user: User = Depends(require_role(["finance", "checker"])),
 ):
     """Tandai pengeluaran sebagai telah dibayar (Finance atau GM/Admin)."""
     expense = db.query(Expense).filter(Expense.id == expense_id).first()

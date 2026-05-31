@@ -25,6 +25,7 @@ import ReportsPage from "./pages/ReportsPage";
 import SuratJalanPage from "./pages/SuratJalanPage";
 import Sidebar from "./components/Sidebar";
 import ProtectedRoute from "./components/ProtectedRoute";
+import RoleProtectedRoute from "./components/RoleProtectedRoute";
 
 // Layout dengan Sidebar untuk halaman yang memerlukan autentikasi
 const MainLayout = () => {
@@ -48,22 +49,25 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/equipment" element={<EquipmentPage />} />
-          <Route path="/fuel" element={<FuelPage />} />
-          <Route path="/work-logs" element={<WorkLogsPage />} />
-          <Route path="/employees" element={<EmployeesPage />} />
-          <Route path="/projects" element={<ProjectsPage />} />
-          <Route path="/users" element={<UsersPage />} />
-          <Route path="/attendance" element={<AttendancePage />} />
-          <Route path="/material-sales" element={<MaterialSalesPage />} />
-          <Route path="/income" element={<IncomePage />} />
-          <Route path="/finance/fuel-price" element={<FuelPricePage />} />
-          <Route path="/payroll" element={<PayrollPage />} />
-          <Route path="/expenses" element={<ExpensePage />} />
-          <Route path="/cashflow" element={<CashFlowPage />} />
-          <Route path="/reports" element={<ReportsPage />} />
-          <Route path="/surat-jalan" element={<SuratJalanPage />} />
+          <Route path="/dashboard" element={<RoleProtectedRoute allowedRoles={[]}><DashboardPage /></RoleProtectedRoute>} />
+          <Route path="/equipment" element={<RoleProtectedRoute allowedRoles={[]}><EquipmentPage /></RoleProtectedRoute>} />
+          <Route path="/projects" element={<RoleProtectedRoute allowedRoles={[]}><ProjectsPage /></RoleProtectedRoute>} />
+          
+          <Route path="/fuel" element={<RoleProtectedRoute allowedRoles={["field", "helper", "finance", "checker", "gm", "admin"]}><FuelPage /></RoleProtectedRoute>} />
+          <Route path="/work-logs" element={<RoleProtectedRoute allowedRoles={["field", "helper", "finance", "checker", "gm", "admin"]}><WorkLogsPage /></RoleProtectedRoute>} />
+          <Route path="/material-sales" element={<RoleProtectedRoute allowedRoles={["field", "helper", "finance", "checker", "gm", "admin"]}><MaterialSalesPage /></RoleProtectedRoute>} />
+          
+          <Route path="/income" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><IncomePage /></RoleProtectedRoute>} />
+          <Route path="/finance/fuel-price" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><FuelPricePage /></RoleProtectedRoute>} />
+          <Route path="/payroll" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><PayrollPage /></RoleProtectedRoute>} />
+          <Route path="/expenses" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><ExpensePage /></RoleProtectedRoute>} />
+          <Route path="/reports" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><ReportsPage /></RoleProtectedRoute>} />
+          <Route path="/surat-jalan" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><SuratJalanPage /></RoleProtectedRoute>} />
+          
+          <Route path="/employees" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]}><EmployeesPage /></RoleProtectedRoute>} />
+          <Route path="/users" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]}><UsersPage /></RoleProtectedRoute>} />
+          <Route path="/attendance" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]}><AttendancePage /></RoleProtectedRoute>} />
+          <Route path="/cashflow" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]}><CashFlowPage /></RoleProtectedRoute>} />
         </Route>
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>

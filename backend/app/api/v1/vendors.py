@@ -5,7 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from ...core.database import get_db
-from ...core.auth import get_current_user
+from ...core.auth import get_current_user, require_role, require_admin
 from ...models import Vendor, VendorTopUp, Expense, User, Equipment
 from ...schemas.vendor import (
     VendorCreate,
@@ -116,10 +116,7 @@ def get_vendor(vendor_id: int, db: Session = Depends(get_db)):
     return vendor
 
 @router.post("", response_model=VendorResponse)
-def create_vendor(data: VendorCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["finance", "gm", "admin"] and not current_user.is_admin and not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="Not authorized")
-        
+def create_vendor(data: VendorCreate, db: Session = Depends(get_db), current_user: User = Depends(require_role(["finance", "checker"]))):
     db_vendor = Vendor(**data.model_dump())
     db.add(db_vendor)
     db.commit()
@@ -127,10 +124,7 @@ def create_vendor(data: VendorCreate, db: Session = Depends(get_db), current_use
     return db_vendor
 
 @router.put("/{vendor_id}", response_model=VendorResponse)
-def update_vendor(vendor_id: int, data: VendorUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["finance", "gm", "admin"] and not current_user.is_admin and not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="Not authorized")
-        
+def update_vendor(vendor_id: int, data: VendorUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_role(["finance", "checker"]))):
     vendor = db.query(Vendor).filter(Vendor.id == vendor_id).first()
     if not vendor:
         raise HTTPException(status_code=404, detail="Vendor not found")
@@ -144,10 +138,7 @@ def update_vendor(vendor_id: int, data: VendorUpdate, db: Session = Depends(get_
     return vendor
 
 @router.delete("/{vendor_id}")
-def delete_vendor(vendor_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["gm", "admin"] and not current_user.is_admin and not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="Only GM can delete vendor")
-        
+def delete_vendor(vendor_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     vendor = db.query(Vendor).filter(Vendor.id == vendor_id).first()
     if not vendor:
         raise HTTPException(status_code=404, detail="Vendor not found")
@@ -213,11 +204,8 @@ def get_all_topups(db: Session = Depends(get_db)):
     return [VendorTopUpResponse(**_enrich_topup(t, db)) for t in topups]
 
 @router.post("/topups", response_model=VendorTopUpResponse)
-def create_topup(data: VendorTopUpCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def create_topup(data: VendorTopUpCreate, db: Session = Depends(get_db), current_user: User = Depends(require_role(["finance", "checker"]))):
     """Create a new topup request. Equipment wajib dipilih."""
-    if current_user.role not in ["finance", "gm", "admin"] and not current_user.is_admin and not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="Not authorized")
-        
     vendor = db.query(Vendor).filter(Vendor.id == data.vendor_id).first()
     if not vendor:
         raise HTTPException(status_code=404, detail="Vendor not found")
@@ -255,11 +243,8 @@ def create_topup(data: VendorTopUpCreate, db: Session = Depends(get_db), current
     return VendorTopUpResponse(**_enrich_topup(topup, db))
 
 @router.put("/topups/{topup_id}/approve", response_model=VendorTopUpResponse)
-def approve_topup(topup_id: int, status: str = "approved", db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def approve_topup(topup_id: int, status: str = "approved", db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     """Approve or reject a topup (GM only)."""
-    if current_user.role not in ["gm", "admin"] and not current_user.is_admin and not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="Hanya GM yang dapat melakukan approval")
-        
     topup = db.query(VendorTopUp).filter(VendorTopUp.id == topup_id).first()
     if not topup:
         raise HTTPException(status_code=404, detail="TopUp not found")
@@ -283,11 +268,8 @@ def approve_topup(topup_id: int, status: str = "approved", db: Session = Depends
     return VendorTopUpResponse(**_enrich_topup(topup, db))
 
 @router.put("/topups/{topup_id}", response_model=VendorTopUpResponse)
-def edit_topup(topup_id: int, data: VendorTopUpCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def edit_topup(topup_id: int, data: VendorTopUpCreate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     """Edit a topup record (GM only)."""
-    if current_user.role not in ["gm", "admin"] and not current_user.is_admin and not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="Hanya GM yang dapat mengedit deposit")
-
     topup = db.query(VendorTopUp).filter(VendorTopUp.id == topup_id).first()
     if not topup:
         raise HTTPException(status_code=404, detail="TopUp not found")
@@ -310,11 +292,8 @@ def edit_topup(topup_id: int, data: VendorTopUpCreate, db: Session = Depends(get
     return VendorTopUpResponse(**_enrich_topup(topup, db))
 
 @router.delete("/topups/{topup_id}")
-def delete_topup(topup_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def delete_topup(topup_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     """Delete a topup record (GM only). Balance is recalculated dynamically."""
-    if current_user.role not in ["gm", "admin"] and not current_user.is_admin and not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="Hanya GM yang dapat menghapus deposit")
-
     topup = db.query(VendorTopUp).filter(VendorTopUp.id == topup_id).first()
     if not topup:
         raise HTTPException(status_code=404, detail="TopUp not found")

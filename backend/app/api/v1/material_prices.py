@@ -3,7 +3,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from ...core.auth import get_current_user
+from ...core.auth import get_current_user, require_admin
 from ...core.database import get_db
 from ...models.material_price import MaterialPrice, MATERIAL_TYPES, ALL_UNITS
 from ...models.user import User
@@ -183,7 +183,7 @@ def list_prices(
 def create_price(
     data: MaterialPriceCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     """Tambah harga material. GM only."""
     if not _is_gm(current_user):
@@ -227,7 +227,7 @@ def update_price(
     price_id: int,
     data: MaterialPriceUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     """Update harga material. GM only."""
     if not _is_gm(current_user):
@@ -251,7 +251,7 @@ def update_price(
 def delete_price(
     price_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
 ):
     """Hapus harga material. GM only."""
     if not _is_gm(current_user):

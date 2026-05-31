@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from ...core.database import get_db
-from ...core.auth import get_current_user
+from ...core.auth import get_current_user, require_admin
 from ...models import Equipment, User
 from ...schemas.equipment import Equipment as EquipmentSchema, EquipmentCreate, EquipmentUpdate
 
@@ -20,7 +20,7 @@ def get_equipment_by_id(equipment_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Equipment not found")
     return equipment
 
-@router.post("", response_model=EquipmentSchema)
+@router.post("", response_model=EquipmentSchema, dependencies=[Depends(require_admin)])
 def create_equipment(equipment: EquipmentCreate, db: Session = Depends(get_db)):
     db_equipment = Equipment(**equipment.model_dump())
     db.add(db_equipment)
@@ -28,7 +28,7 @@ def create_equipment(equipment: EquipmentCreate, db: Session = Depends(get_db)):
     db.refresh(db_equipment)
     return db_equipment
 
-@router.put("/{equipment_id}", response_model=EquipmentSchema)
+@router.put("/{equipment_id}", response_model=EquipmentSchema, dependencies=[Depends(require_admin)])
 def update_equipment(equipment_id: int, equipment_update: EquipmentUpdate, db: Session = Depends(get_db)):
     equipment = db.query(Equipment).filter(Equipment.id == equipment_id).first()
     if not equipment:
@@ -41,7 +41,7 @@ def update_equipment(equipment_id: int, equipment_update: EquipmentUpdate, db: S
     db.refresh(equipment)
     return equipment
 
-@router.delete("/{equipment_id}")
+@router.delete("/{equipment_id}", dependencies=[Depends(require_admin)])
 def delete_equipment(equipment_id: int, db: Session = Depends(get_db)):
     equipment = db.query(Equipment).filter(Equipment.id == equipment_id).first()
     if not equipment:

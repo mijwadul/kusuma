@@ -739,8 +739,8 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* GM Yesterday's Operational & Sales Overview */}
-          {isGM && (
+          {/* GM & Finance Yesterday's Operational & Sales Overview */}
+          {(isGM || role === 'finance') && (
             <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mt-6 transition-all duration-300 hover:shadow-md">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-5 bg-gradient-to-r from-indigo-50/50 via-slate-50 to-indigo-50/20 border-b border-slate-100">
                 <div className="flex items-center gap-3">
@@ -1128,8 +1128,8 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ── Laporan Keuangan Hari Ini (GM Only) ──────────────────────────── */}
-      {isGM &&
+      {/* ── Laporan Keuangan Hari Ini (GM & Finance) ──────────────────────────── */}
+      {(isGM || role === 'finance') &&
         (() => {
           const totalIncome = dailyReport?.summary?.total_income ?? 0;
           const totalExpense = dailyReport?.summary?.total_expense ?? 0;

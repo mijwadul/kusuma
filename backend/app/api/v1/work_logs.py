@@ -6,7 +6,7 @@ from decimal import Decimal
 from datetime import datetime, date, timedelta
 
 from ...core.database import get_db
-from ...core.auth import get_current_user
+from ...core.auth import get_current_user, require_role
 from ...models import WorkLog, Equipment, User, Vendor
 from ...schemas.work_log import (
     WorkLog as WorkLogSchema, 
@@ -110,7 +110,7 @@ def get_work_log(work_log_id: int, db: Session = Depends(get_db)):
     return WorkLogWithEquipment(**work_dict)
 
 @router.post("", response_model=WorkLogSchema)
-def create_work_log(work_log: WorkLogCreate, db: Session = Depends(get_db)):
+def create_work_log(work_log: WorkLogCreate, db: Session = Depends(get_db), current_user: User = Depends(require_role(["field", "helper", "finance", "checker"]))):
     """Create new work log"""
     
     # Validate equipment exists
@@ -156,7 +156,8 @@ def create_work_log(work_log: WorkLogCreate, db: Session = Depends(get_db)):
 def update_work_log(
     work_log_id: int, 
     work_log_update: WorkLogUpdate, 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["finance", "checker"]))
 ):
     """Update work log"""
     work_log = db.query(WorkLog).filter(WorkLog.id == work_log_id).first()
@@ -191,7 +192,7 @@ def update_work_log(
     return work_log
 
 @router.delete("/{work_log_id}")
-def delete_work_log(work_log_id: int, db: Session = Depends(get_db)):
+def delete_work_log(work_log_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_role(["finance", "checker"]))):
     """Delete work log"""
     work_log = db.query(WorkLog).filter(WorkLog.id == work_log_id).first()
     

@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from ...core.auth import get_current_user
+from ...core.auth import get_current_user, require_role
 from ...core.database import get_db
 from ...models.income_record import IncomeRecord
 from ...models.invoice import Invoice
@@ -155,7 +155,7 @@ def preview_invoice(
 def create_invoice(
     data: InvoiceCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role(["finance", "checker"])),
 ):
     # Generate invoice number (e.g., INV-YYYYMMDD-0001)
     today = date.today()
@@ -269,7 +269,7 @@ def update_invoice_status(
     invoice_id: int,
     data: InvoiceStatusUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role(["finance", "checker"])),
 ):
     inv = db.query(Invoice).filter(Invoice.id == invoice_id).first()
     if not inv:
@@ -308,7 +308,7 @@ def update_invoice_status(
 def pay_invoice(
     invoice_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role(["finance", "checker"])),
 ):
     inv = db.query(Invoice).filter(Invoice.id == invoice_id).first()
     if not inv:
@@ -353,7 +353,7 @@ def update_invoice(
     invoice_id: int,
     data: InvoiceUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role(["finance", "checker"])),
 ):
     inv = db.query(Invoice).filter(Invoice.id == invoice_id).first()
     if not inv:
@@ -411,7 +411,7 @@ def update_invoice(
 def delete_invoice(
     invoice_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role(["finance", "checker"])),
 ):
     inv = db.query(Invoice).filter(Invoice.id == invoice_id).first()
     if not inv:

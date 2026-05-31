@@ -4,7 +4,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from ...core.auth import get_current_user
+from ...core.auth import get_current_user, require_role, require_admin
 from ...core.database import get_db
 from ...models.income_record import IncomeRecord
 from ...models.project import Project
@@ -90,7 +90,7 @@ def get_income_records(
 def create_income_record(
     data: IncomeRecordCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_role(["field", "helper", "finance", "checker"])),
 ):
     """Buat catatan pemasukan baru."""
     # Auto create customer and truck if it's a material_sale
@@ -325,7 +325,7 @@ def update_income_record(
     record_id: int,
     data: IncomeRecordUpdate,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_role(["finance", "checker"])),
 ):
     """Update catatan pemasukan. Hanya admin/GM atau pembuat yang bisa mengubah."""
     record = db.query(IncomeRecord).filter(IncomeRecord.id == record_id).first()
@@ -395,7 +395,7 @@ def update_income_record(
 def delete_income_record(
     record_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_role(["finance", "checker"])),
 ):
     """Hapus catatan pemasukan. Hanya admin/GM/superuser."""
     record = db.query(IncomeRecord).filter(IncomeRecord.id == record_id).first()
