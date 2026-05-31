@@ -8,6 +8,7 @@ from ...core.auth import get_current_user, require_role, require_admin
 from ...core.database import get_db
 from ...models.expense import Expense
 from ...models.project import Project
+from ...models.user import User
 from ...schemas.expense import ExpenseCreate, ExpenseResponse, ExpenseUpdate
 
 router = APIRouter()

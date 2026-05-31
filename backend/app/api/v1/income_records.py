@@ -9,6 +9,7 @@ from ...core.database import get_db
 from ...models.income_record import IncomeRecord
 from ...models.project import Project
 from ...models.customer import Customer
+from ...models.user import User
 from ...schemas.income_record import (
     IncomeRecordCreate,
     IncomeRecordResponse,
