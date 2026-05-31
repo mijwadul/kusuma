@@ -639,7 +639,7 @@ const PayrollPage = () => {
                             </button>
 
                             {/* Edit (GM/Finance only) */}
-                            {isFinance && rec.payment_status !== "paid" && (
+                            {isFinance && (
                               <button
                                 onClick={() => openEditModal(rec)}
                                 title="Edit Payroll"
