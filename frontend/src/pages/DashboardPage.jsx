@@ -634,13 +634,33 @@ export default function DashboardPage() {
           </div>
           
           {financeSummary.uninvoiced_material_sales_count > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
+            <div 
+              onClick={() => navigate('/material-sales')} 
+              className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm cursor-pointer hover:bg-amber-100 transition-colors"
+            >
               <AlertTriangle className="w-6 h-6 text-amber-500 shrink-0 mt-0.5" />
               <div>
                 <h3 className="text-sm font-bold text-amber-800">Menunggu Diterbitkan Invoice</h3>
                 <p className="text-xs text-amber-700 mt-1">
                   Terdapat {financeSummary.uninvoiced_material_sales_count} penjualan material yang belum dibuatkan invoice. Segera periksa menu Material Sales / Invoices.
                 </p>
+                <p className="text-xs font-semibold text-amber-800 mt-2 underline">Klik untuk membuat invoice →</p>
+              </div>
+            </div>
+          )}
+
+          {financeSummary.unprocessed_attendances_count > 0 && (
+            <div 
+              onClick={() => navigate('/payroll')} 
+              className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm cursor-pointer hover:bg-blue-100 transition-colors"
+            >
+              <AlertTriangle className="w-6 h-6 text-blue-500 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-bold text-blue-800">Absensi Belum Dibuatkan Slip Gaji</h3>
+                <p className="text-xs text-blue-700 mt-1">
+                  Terdapat {financeSummary.unprocessed_attendances_count} karyawan yang absensinya belum diproses menjadi slip gaji.
+                </p>
+                <p className="text-xs font-semibold text-blue-800 mt-2 underline">Klik untuk membuat slip gaji →</p>
               </div>
             </div>
           )}

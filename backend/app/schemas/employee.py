@@ -296,6 +296,7 @@ class PayrollUpdate(BaseModel):
     payment_status: Optional[str] = None
     payment_date: Optional[date] = None
     payment_method: Optional[str] = None
+    project_id: Optional[int] = None
 
 
 class PayrollResponse(BaseModel):

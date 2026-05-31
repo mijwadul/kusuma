@@ -20,6 +20,7 @@ import {
   Calendar,
   RefreshCw,
   Trash2,
+  Pencil,
 } from "lucide-react";
 import AlertModal from "../components/AlertModal";
 
@@ -124,6 +125,7 @@ const PayrollPage = () => {
   // ── modal ──
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [editId, setEditId] = useState(null);
 
   // ── detail modal ──
   const [showDetail, setShowDetail] = useState(false);
@@ -235,13 +237,33 @@ const PayrollPage = () => {
   };
 
   const openModal = () => {
+    setEditId(null);
     setForm(EMPTY_FORM);
+    setShowModal(true);
+  };
+
+  const openEditModal = (rec) => {
+    setEditId(rec.id);
+    setForm({
+      employee_id: rec.employee_id || "",
+      period_start: rec.period_start || "",
+      period_end: rec.period_end || "",
+      overtime_hours: rec.overtime_hours || 0,
+      bonus: rec.bonus || 0,
+      allowance: rec.allowance || 0,
+      loan_deduction: rec.loan_deduction ?? "",
+      other_deduction: rec.other_deduction || 0,
+      deduction_note: rec.deduction_note || "",
+      notes: rec.notes || "",
+      project_id: rec.project_id || "",
+    });
     setShowModal(true);
   };
 
   const closeModal = () => {
     setShowModal(false);
     setForm(EMPTY_FORM);
+    setEditId(null);
   };
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -274,8 +296,13 @@ const PayrollPage = () => {
 
     setSubmitting(true);
     try {
-      await api.post("/employees/payroll", payload);
-      toast.success("Payroll berhasil dibuat");
+      if (editId) {
+        await api.put(`/employees/payroll/${editId}`, payload);
+        toast.success("Payroll berhasil diupdate");
+      } else {
+        await api.post("/employees/payroll", payload);
+        toast.success("Payroll berhasil dibuat");
+      }
       closeModal();
       fetchPayrolls();
     } catch (err) {
@@ -611,6 +638,17 @@ const PayrollPage = () => {
                               <Eye className="w-4 h-4" />
                             </button>
 
+                            {/* Edit (GM/Finance only) */}
+                            {isFinance && rec.payment_status !== "paid" && (
+                              <button
+                                onClick={() => openEditModal(rec)}
+                                title="Edit Payroll"
+                                className="p-1.5 rounded-lg text-blue-500 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                            )}
+
                             {/* Download PDF – hanya bisa saat approved/paid */}
                             <button
                               onClick={() =>
@@ -769,7 +807,7 @@ const PayrollPage = () => {
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                 <DollarSign className="w-5 h-5 text-blue-600" />
-                Buat Payroll Baru
+                {editId ? "Edit Payroll" : "Buat Payroll Baru"}
               </h2>
               <button
                 onClick={closeModal}
@@ -781,7 +819,7 @@ const PayrollPage = () => {
 
             {/* Modal Body */}
             <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5">
-              {/* Karyawan */}
+              {/* Karyawan (disabled kalau edit) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Karyawan <span className="text-red-500">*</span>
@@ -791,7 +829,8 @@ const PayrollPage = () => {
                   value={form.employee_id}
                   onChange={handleFormChange}
                   required
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                  disabled={!!editId}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white disabled:bg-gray-100 disabled:text-gray-500"
                 >
                   <option value="">-- Pilih Karyawan --</option>
                   {employees.map((emp) => (

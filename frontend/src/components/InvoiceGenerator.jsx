@@ -25,6 +25,7 @@ const InvoiceGenerator = ({ isOpen, onClose, customers = [], existingInvoice = n
   
   // Form State
   const [customerName, setCustomerName] = useState("");
+  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().slice(0, 10));
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [notes, setNotes] = useState("");
@@ -38,6 +39,7 @@ const InvoiceGenerator = ({ isOpen, onClose, customers = [], existingInvoice = n
     if (isOpen) {
       if (existingInvoice) {
         setCustomerName(existingInvoice.customer_name);
+        setInvoiceDate(existingInvoice.invoice_date || new Date().toISOString().slice(0, 10));
         setStartDate(existingInvoice.start_date);
         setEndDate(existingInvoice.end_date);
         setNotes(existingInvoice.notes || "");
@@ -47,6 +49,7 @@ const InvoiceGenerator = ({ isOpen, onClose, customers = [], existingInvoice = n
         setStep(1);
         setPreviewData(null);
         setCustomerName("");
+        setInvoiceDate(new Date().toISOString().slice(0, 10));
         setStartDate("");
         setEndDate("");
         setNotes("");
@@ -292,6 +295,7 @@ const InvoiceGenerator = ({ isOpen, onClose, customers = [], existingInvoice = n
     try {
       const payload = {
         customer_name: previewData.customer_name,
+        invoice_date: invoiceDate,
         start_date: previewData.start_date,
         end_date: previewData.end_date,
         total_amount: previewData.total_amount,
@@ -331,6 +335,7 @@ const InvoiceGenerator = ({ isOpen, onClose, customers = [], existingInvoice = n
     try {
       const payload = {
         customer_name: previewData.customer_name,
+        invoice_date: invoiceDate,
         start_date: previewData.start_date,
         end_date: previewData.end_date,
         total_amount: previewData.total_amount,
@@ -428,9 +433,21 @@ const InvoiceGenerator = ({ isOpen, onClose, customers = [], existingInvoice = n
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tanggal Invoice diterbitkan <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={invoiceDate}
+                    onChange={(e) => setInvoiceDate(e.target.value)}
+                    className={inputCls}
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tanggal Mulai <span className="text-red-500">*</span>
+                    Periode Awal <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"
@@ -442,7 +459,7 @@ const InvoiceGenerator = ({ isOpen, onClose, customers = [], existingInvoice = n
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tanggal Akhir <span className="text-red-500">*</span>
+                    Periode Akhir <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"

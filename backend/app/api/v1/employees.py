@@ -102,6 +102,7 @@ def calculate_payroll(
                     Attendance.employee_id == employee.id,
                     between(Attendance.date, period_start, period_end),
                     Attendance.status.in_(["present", "late"]),
+                    (Attendance.is_payroll_generated == False) | (Attendance.is_payroll_generated == None)
                 )
             )
             .all()
@@ -562,6 +563,19 @@ def create_payroll(
     db.commit()
     db.refresh(db_payroll)
 
+    # Mark associated attendance records
+    attendances_to_mark = db.query(Attendance).filter(
+        Attendance.employee_id == payroll.employee_id,
+        Attendance.date >= payroll.period_start,
+        Attendance.date <= payroll.period_end,
+        (Attendance.is_payroll_generated == False) | (Attendance.is_payroll_generated == None)
+    ).all()
+    for att in attendances_to_mark:
+        att.is_payroll_generated = True
+        att.payroll_id = db_payroll.id
+    if attendances_to_mark:
+        db.commit()
+
     return db_payroll
 
 
@@ -606,6 +620,42 @@ def get_payroll_records(
         record.employee_name = record.employee.name if record.employee else None
 
     return records
+
+
+@router.put("/payroll/{payroll_id}", response_model=PayrollResponse)
+def update_payroll(
+    payroll_id: int,
+    data: PayrollUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Update payroll record. Only GM/Finance can edit.
+    """
+    if not check_finance_access(current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="Only Finance/GM can update payroll",
+        )
+
+    payroll = db.query(PayrollRecord).filter(PayrollRecord.id == payroll_id).first()
+    if not payroll:
+        raise HTTPException(status_code=404, detail="Payroll record not found")
+
+    update_data = data.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(payroll, key, value)
+    
+    # Recalculate totals
+    payroll.total_income = (payroll.basic_salary or 0) + (payroll.overtime_amount or 0) + (payroll.bonus or 0) + (payroll.allowance or 0)
+    payroll.total_deduction = (payroll.loan_deduction or 0) + (payroll.debt_deduction or 0) + (payroll.other_deduction or 0)
+    payroll.net_salary = payroll.total_income - payroll.total_deduction
+    
+    db.commit()
+    db.refresh(payroll)
+    
+    payroll.employee_name = payroll.employee.name if payroll.employee else None
+    return payroll
 
 
 @router.put("/payroll/{payroll_id}/approve", response_model=PayrollResponse)

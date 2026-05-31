@@ -550,22 +550,40 @@ def get_finance_summary(
     pending_expenses = db.query(Expense).filter(Expense.approval_status == "pending").count()
     
     # 6. Uninvoiced Material Sales (Notification)
-    material_sales = db.query(IncomeRecord).filter(IncomeRecord.income_type == "material_sale").all()
-    invoices_all = db.query(Invoice).all()
-    uninvoiced_sales = []
-    for ms in material_sales:
-        is_invoiced = False
-        for inv in invoices_all:
-            if inv.customer_name == ms.customer_name and inv.start_date <= ms.income_date <= inv.end_date:
-                is_invoiced = True
-                break
-        if not is_invoiced:
-            uninvoiced_sales.append({
-                "id": ms.id, 
-                "date": str(ms.income_date), 
-                "customer_name": ms.customer_name, 
-                "material_type": ms.material_type, 
-                "amount": float(ms.amount or 0)
+    uninvoiced_sales_records = db.query(IncomeRecord).filter(
+        IncomeRecord.income_type == "material_sale",
+        (IncomeRecord.is_invoiced == False) | (IncomeRecord.is_invoiced == None)
+    ).all()
+    
+    uninvoiced_sales = [
+        {
+            "id": ms.id, 
+            "date": str(ms.income_date), 
+            "customer_name": ms.customer_name, 
+            "material_type": ms.material_type, 
+            "amount": float(ms.amount or 0)
+        }
+        for ms in uninvoiced_sales_records
+    ]
+    
+    # 6b. Unprocessed Attendances (Notification)
+    from ...models.payroll import Attendance
+    unprocessed_attendance_records = db.query(
+        Attendance.employee_id,
+        func.count(Attendance.id).label("unprocessed_days")
+    ).filter(
+        Attendance.status.in_(["present", "late"]),
+        (Attendance.is_payroll_generated == False) | (Attendance.is_payroll_generated == None)
+    ).group_by(Attendance.employee_id).all()
+    
+    unprocessed_attendances = []
+    for rec in unprocessed_attendance_records:
+        emp = db.query(Employee).filter(Employee.id == rec.employee_id).first()
+        if emp:
+            unprocessed_attendances.append({
+                "employee_id": emp.id,
+                "employee_name": emp.name,
+                "unprocessed_days": rec.unprocessed_days
             })
     
     # 7. Equipment Deposit Alert (per alat berat, bukan per vendor)
@@ -620,6 +638,8 @@ def get_finance_summary(
         "unpaid_invoices": unpaid_invoices,
         "uninvoiced_material_sales": uninvoiced_sales,
         "uninvoiced_material_sales_count": len(uninvoiced_sales),
+        "unprocessed_attendances": unprocessed_attendances,
+        "unprocessed_attendances_count": len(unprocessed_attendances),
         "pending_fuel_purchases": pending_fuel_purchases,
         "pending_expenses": pending_expenses,
         "recent_pending_fuel": recent_pending_fuel,

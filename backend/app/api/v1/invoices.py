@@ -38,6 +38,7 @@ class InvoiceCreate(BaseModel):
     start_date: date
     end_date: date
     total_amount: float
+    invoice_date: Optional[date] = None
     notes: Optional[str] = None
     discount_type: Optional[str] = None
     discount_value: Optional[float] = None
@@ -46,6 +47,7 @@ class InvoiceUpdate(BaseModel):
     customer_name: Optional[str] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
+    invoice_date: Optional[date] = None
     total_amount: Optional[float] = None
     notes: Optional[str] = None
     discount_type: Optional[str] = None
@@ -85,6 +87,7 @@ def preview_invoice(
             IncomeRecord.customer_name == customer_name,
             IncomeRecord.income_date >= start_date,
             IncomeRecord.income_date <= end_date,
+            (IncomeRecord.is_invoiced == False) | (IncomeRecord.is_invoiced == None)
         )
         .order_by(IncomeRecord.income_date.asc())
         .all()
@@ -176,7 +179,7 @@ def create_invoice(
     new_invoice = Invoice(
         invoice_number=invoice_number,
         customer_name=data.customer_name,
-        invoice_date=today,
+        invoice_date=data.invoice_date if data.invoice_date else today,
         start_date=data.start_date,
         end_date=data.end_date,
         total_amount=data.total_amount,
@@ -191,6 +194,20 @@ def create_invoice(
     db.add(new_invoice)
     db.commit()
     db.refresh(new_invoice)
+
+    # Mark associated income records
+    records_to_mark = db.query(IncomeRecord).filter(
+        IncomeRecord.income_type == "material_sale",
+        IncomeRecord.customer_name == data.customer_name,
+        IncomeRecord.income_date >= data.start_date,
+        IncomeRecord.income_date <= data.end_date,
+        (IncomeRecord.is_invoiced == False) | (IncomeRecord.is_invoiced == None)
+    ).all()
+    for r in records_to_mark:
+        r.is_invoiced = True
+        r.invoice_id = new_invoice.id
+    if records_to_mark:
+        db.commit()
 
     return InvoiceResponse(
         id=new_invoice.id,
@@ -395,6 +412,12 @@ def delete_invoice(
     )
     if not is_admin_or_gm:
         raise HTTPException(status_code=403, detail="Not authorized to delete invoice")
+        
+    # Unmark associated income records
+    records_to_unmark = db.query(IncomeRecord).filter(IncomeRecord.invoice_id == invoice_id).all()
+    for r in records_to_unmark:
+        r.is_invoiced = False
+        r.invoice_id = None
         
     db.delete(inv)
     db.commit()

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Date, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, Date, DateTime, Float, ForeignKey, Integer, String, Text, Boolean
 from sqlalchemy.sql import func
 
 from .base import Base
@@ -36,6 +36,11 @@ class IncomeRecord(Base):
     sj_weight_minus = Column(Float, nullable=True)   # Minus berat
     
     notes = Column(Text, nullable=True)
+    
+    # Invoicing tracking
+    is_invoiced = Column(Boolean, default=False, nullable=True)
+    invoice_id = Column(Integer, ForeignKey("invoices.id"), nullable=True)
+    
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
