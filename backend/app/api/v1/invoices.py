@@ -77,21 +77,33 @@ def preview_invoice(
     customer_name: str = Query(..., description="Nama customer"),
     start_date: date = Query(..., description="Tanggal awal"),
     end_date: date = Query(..., description="Tanggal akhir"),
+    invoice_id: Optional[int] = Query(None, description="ID Invoice (jika edit)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    records = (
+    query = (
         db.query(IncomeRecord)
         .filter(
             IncomeRecord.income_type == "material_sale",
             IncomeRecord.customer_name == customer_name,
             IncomeRecord.income_date >= start_date,
             IncomeRecord.income_date <= end_date,
-            (IncomeRecord.is_invoiced == False) | (IncomeRecord.is_invoiced == None)
         )
-        .order_by(IncomeRecord.income_date.asc())
-        .all()
     )
+    
+    if invoice_id is not None:
+        query = query.filter(
+            (IncomeRecord.is_invoiced == False) | 
+            (IncomeRecord.is_invoiced == None) | 
+            (IncomeRecord.invoice_id == invoice_id)
+        )
+    else:
+        query = query.filter(
+            (IncomeRecord.is_invoiced == False) | 
+            (IncomeRecord.is_invoiced == None)
+        )
+        
+    records = query.order_by(IncomeRecord.income_date.asc()).all()
 
     items = []
     total = 0.0

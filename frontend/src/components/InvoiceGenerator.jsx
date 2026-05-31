@@ -64,7 +64,7 @@ const InvoiceGenerator = ({ isOpen, onClose, customers = [], existingInvoice = n
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `${API_URL}/invoices/preview?customer_name=${encodeURIComponent(invoice.customer_name)}&start_date=${invoice.start_date}&end_date=${invoice.end_date}`,
+        `${API_URL}/invoices/preview?customer_name=${encodeURIComponent(invoice.customer_name)}&start_date=${invoice.start_date}&end_date=${invoice.end_date}&invoice_id=${invoice.id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!res.ok) throw new Error(await res.text());
@@ -220,7 +220,7 @@ const InvoiceGenerator = ({ isOpen, onClose, customers = [], existingInvoice = n
                     ${invoiceNumber}
                   </div>
                   <div style="font-size: 8pt; color: #777; margin-top: 4px;">
-                    Tanggal Cetak: ${new Date().toLocaleDateString("id-ID")}
+                    Tanggal Invoice: ${formatDate(invoiceDate)}
                   </div>
                 </td>
               </tr>
