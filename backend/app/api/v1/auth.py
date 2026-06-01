@@ -35,78 +35,24 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
 def get_current_user_info(current_user: UserModel = Depends(get_current_user)):
     return current_user
 
+from ...services.user_service import UserService
+
 # User Management Endpoints (Admin only)
 @router.get("/users", response_model=List[User])
 def get_users(db: Session = Depends(get_db), admin_user: UserModel = Depends(require_admin)):
-    users = db.query(UserModel).all()
-    return users
+    return UserService.get_all_users(db)
 
 @router.post("/users", response_model=User)
 def create_user(user: UserCreate, db: Session = Depends(get_db), admin_user: UserModel = Depends(require_admin)):
-    # Check if email already exists
-    existing = db.query(UserModel).filter(UserModel.email == user.email).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
-    # Support both 'gm' (Bina-ERP) and 'admin' (legacy) as admin roles
-    is_admin_user = user.is_admin or user.role in ["admin", "gm"]
-    
-    db_user = UserModel(
-        email=user.email,
-        password_hash=get_password_hash(user.password),
-        full_name=user.full_name,
-        phone=user.phone,
-        employee_id=user.employee_id,
-        role=user.role,
-        is_admin=is_admin_user,
-        is_active=user.is_active
-    )
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
+    return UserService.create_user(db, user)
 
 @router.put("/users/{user_id}", response_model=User)
 def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get_db), admin_user: UserModel = Depends(require_admin)):
-    db_user = db.query(UserModel).filter(UserModel.id == user_id).first()
-    if not db_user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    update_data = user_update.model_dump(exclude_unset=True)
-    
-    # Handle password separately
-    if "password" in update_data and update_data["password"]:
-        update_data["password_hash"] = get_password_hash(update_data.pop("password"))
-    elif "password" in update_data:
-        update_data.pop("password")
-    
-    # Update is_admin based on role if role is changed
-    # Support both legacy 'admin' role and Bina-ERP 'gm' role
-    if "role" in update_data:
-        if update_data["role"] in ["admin", "gm"]:
-            update_data["is_admin"] = True
-        else:
-            update_data["is_admin"] = False
-    
-    for key, value in update_data.items():
-        setattr(db_user, key, value)
-    
-    db.commit()
-    db.refresh(db_user)
-    return db_user
+    return UserService.update_user(db, user_id, user_update)
 
 @router.delete("/users/{user_id}")
 def delete_user(user_id: int, db: Session = Depends(get_db), admin_user: UserModel = Depends(require_admin)):
-    db_user = db.query(UserModel).filter(UserModel.id == user_id).first()
-    if not db_user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    # Prevent deleting yourself
-    if db_user.id == admin_user.id:
-        raise HTTPException(status_code=400, detail="Cannot delete your own account")
-    
-    db.delete(db_user)
-    db.commit()
+    UserService.delete_user(db, user_id, admin_user.id)
     return {"message": "User deleted successfully"}
 
 @router.post("/change-password")
@@ -117,17 +63,5 @@ def change_password(
     current_user: UserModel = Depends(get_current_user)
 ):
     """Change password for current user"""
-    # Verify current password
-    if not authenticate_user(db, current_user.email, current_password):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect current password"
-        )
-    
-    # Update password
-    current_user.password_hash = get_password_hash(new_password)
-    current_user.password_change_required = False
-    db.commit()
-    db.refresh(current_user)
-    
+    UserService.change_password(db, current_user, current_password, new_password)
     return {"message": "Password changed successfully"}

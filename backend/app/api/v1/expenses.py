@@ -56,20 +56,8 @@ def get_expenses(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Daftar pengeluaran dengan filter tanggal dan kategori."""
-    query = db.query(Expense)
-
-    if expense_date is not None:
-        query = query.filter(Expense.expense_date == expense_date)
-    if start_date is not None:
-        query = query.filter(Expense.expense_date >= start_date)
-    if end_date is not None:
-        query = query.filter(Expense.expense_date <= end_date)
-    if category is not None:
-        query = query.filter(Expense.category == category)
-
-    expenses = query.order_by(Expense.expense_date.desc(), Expense.id.desc()).all()
-    return [_build_expense_response(e, db) for e in expenses]
+    from ...services.expense_service import ExpenseService
+    return ExpenseService.get_expenses(db, expense_date, start_date, end_date, category)
 
 
 @router.post("/", response_model=ExpenseResponse, status_code=status.HTTP_201_CREATED)
@@ -78,31 +66,8 @@ def create_expense(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(["finance", "checker"])),
 ):
-    """Buat catatan pengeluaran baru."""
-    expense = Expense(
-        expense_date=data.expense_date,
-        category=data.category,
-        description=data.description,
-        amount=data.amount,
-        project_id=data.project_id,
-        notes=data.notes,
-        created_by=current_user.id if current_user else None,
-    )
-
-    is_admin_or_gm = current_user and (
-        getattr(current_user, "is_admin", False)
-        or getattr(current_user, "is_superuser", False)
-        or getattr(current_user, "role", "") in ("admin", "gm")
-    )
-    if is_admin_or_gm:
-        from datetime import datetime
-        expense.approval_status = "approved"
-        expense.approved_by = current_user.id
-        expense.approved_at = datetime.now()
-    db.add(expense)
-    db.commit()
-    db.refresh(expense)
-    return _build_expense_response(expense, db)
+    from ...services.expense_service import ExpenseService
+    return ExpenseService.create_expense(db, current_user, data)
 
 
 @router.put("/{expense_id}", response_model=ExpenseResponse)
@@ -112,29 +77,8 @@ def update_expense(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(["finance", "checker"])),
 ):
-    """Update catatan pengeluaran. Hanya admin/GM atau pembuat yang bisa mengubah."""
-    expense = db.query(Expense).filter(Expense.id == expense_id).first()
-    if not expense:
-        raise HTTPException(status_code=404, detail="Expense not found")
-
-    is_admin_or_gm = (
-        getattr(current_user, "is_admin", False)
-        or getattr(current_user, "is_superuser", False)
-        or getattr(current_user, "role", "") in ("admin", "gm")
-    )
-    if not is_admin_or_gm and expense.created_by != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to update this expense",
-        )
-
-    update_data = data.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(expense, field, value)
-
-    db.commit()
-    db.refresh(expense)
-    return _build_expense_response(expense, db)
+    from ...services.expense_service import ExpenseService
+    return ExpenseService.update_expense(db, current_user, expense_id, data)
 
 
 @router.delete("/{expense_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -143,24 +87,8 @@ def delete_expense(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(["finance", "checker"])),
 ):
-    """Hapus catatan pengeluaran. Hanya admin/GM/superuser."""
-    expense = db.query(Expense).filter(Expense.id == expense_id).first()
-    if not expense:
-        raise HTTPException(status_code=404, detail="Expense not found")
-
-    is_admin_or_gm = (
-        getattr(current_user, "is_admin", False)
-        or getattr(current_user, "is_superuser", False)
-        or getattr(current_user, "role", "") in ("admin", "gm")
-    )
-    if not is_admin_or_gm:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin/GM access required",
-        )
-
-    db.delete(expense)
-    db.commit()
+    from ...services.expense_service import ExpenseService
+    ExpenseService.delete_expense(db, current_user, expense_id)
     return None
 
 @router.put("/{expense_id}/approve", response_model=ExpenseResponse)
@@ -169,31 +97,8 @@ def approve_expense(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    """Approve pengeluaran (Hanya untuk GM/Admin)."""
-    expense = db.query(Expense).filter(Expense.id == expense_id).first()
-    if not expense:
-        raise HTTPException(status_code=404, detail="Expense not found")
-
-    is_admin_or_gm = (
-        getattr(current_user, "is_admin", False)
-        or getattr(current_user, "is_superuser", False)
-        or getattr(current_user, "role", "") in ("admin", "gm")
-    )
-    if not is_admin_or_gm:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin/GM access required to approve expenses",
-        )
-
-    if expense.approval_status != "approved":
-        from datetime import datetime
-        expense.approval_status = "approved"
-        expense.approved_by = current_user.id
-        expense.approved_at = datetime.now()
-        db.commit()
-        db.refresh(expense)
-
-    return _build_expense_response(expense, db)
+    from ...services.expense_service import ExpenseService
+    return ExpenseService.approve_expense(db, current_user, expense_id)
 
 
 @router.put("/{expense_id}/pay", response_model=ExpenseResponse)
@@ -202,34 +107,5 @@ def pay_expense(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(["finance", "checker"])),
 ):
-    """Tandai pengeluaran sebagai telah dibayar (Finance atau GM/Admin)."""
-    expense = db.query(Expense).filter(Expense.id == expense_id).first()
-    if not expense:
-        raise HTTPException(status_code=404, detail="Expense not found")
-
-    is_authorized = (
-        getattr(current_user, "is_admin", False)
-        or getattr(current_user, "is_superuser", False)
-        or getattr(current_user, "role", "") in ("admin", "gm", "finance")
-    )
-    if not is_authorized:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access required to mark expenses as paid",
-        )
-
-    if expense.approval_status != "approved":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot pay an unapproved expense",
-        )
-
-    if expense.payment_status != "paid":
-        from datetime import datetime
-        expense.payment_status = "paid"
-        expense.paid_by = current_user.id
-        expense.paid_at = datetime.now()
-        db.commit()
-        db.refresh(expense)
-
-    return _build_expense_response(expense, db)
+    from ...services.expense_service import ExpenseService
+    return ExpenseService.pay_expense(db, current_user, expense_id)

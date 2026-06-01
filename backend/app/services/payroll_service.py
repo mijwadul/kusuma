@@ -1,0 +1,325 @@
+from datetime import date, datetime, timedelta
+from typing import List, Optional
+from sqlalchemy.orm import Session
+from sqlalchemy import and_, between, func
+from ..models import Employee, PayrollRecord, Project, Attendance, WorkLog, EmployeeLoan, Expense, User
+from ..schemas import PayrollCalculate, PayrollCalculationResult, PayrollCreate, PayrollUpdate
+from ..core.exceptions import NotFoundError, ValidationError, AuthorizationError
+
+class PayrollService:
+    @staticmethod
+    def calculate_payroll(
+        db: Session,
+        employee_id: int,
+        period_start: date,
+        period_end: date,
+        overtime_hours: float = 0,
+        bonus: float = 0,
+        allowance: float = 0,
+        loan_deduction: Optional[float] = None,
+        other_deduction: float = 0,
+    ) -> PayrollCalculationResult:
+        employee = db.query(Employee).filter(Employee.id == employee_id).first()
+        if not employee:
+            raise NotFoundError("Employee not found")
+
+        auto_overtime_hours = 0
+        basic_salary = 0
+        present_days = 0
+        
+        daily_salary = employee.daily_salary or 0
+        hourly_overtime_rate = employee.hourly_overtime_rate or 0
+
+        attendances = (
+            db.query(Attendance)
+            .filter(
+                and_(
+                    Attendance.employee_id == employee.id,
+                    between(Attendance.date, period_start, period_end),
+                    Attendance.status.in_(["present", "late"]),
+                    (Attendance.is_payroll_generated == False) | (Attendance.is_payroll_generated == None)
+                )
+            )
+            .all()
+        )
+        present_days = len(attendances)
+        
+        for att in attendances:
+            work_hours = att.work_hours or 0
+            if work_hours < 6:
+                basic_salary += (daily_salary * 0.5)
+            else:
+                basic_salary += daily_salary
+                
+            if work_hours > 12:
+                auto_overtime_hours += (work_hours - 12)
+
+        total_overtime_hours = overtime_hours + auto_overtime_hours
+
+        work_days = 0
+        current = period_start
+        while current <= period_end:
+            if current.weekday() < 5: 
+                work_days += 1
+            current += timedelta(days=1)
+
+        absent_days = work_days - present_days
+
+        auto_operator_bonus = 0
+        if employee.position and employee.position.lower() == "operator":
+            work_logs = (
+                db.query(WorkLog)
+                .filter(
+                    func.lower(WorkLog.operator_name) == func.lower(employee.name),
+                    WorkLog.work_date >= period_start,
+                    WorkLog.work_date <= period_end,
+                )
+                .all()
+            )
+            total_discount_hours = sum(float(wl.rental_discount_hours or 0) for wl in work_logs)
+            auto_operator_bonus = total_discount_hours * 150000.0
+
+        total_bonus = bonus + auto_operator_bonus
+        overtime_amount = hourly_overtime_rate * total_overtime_hours
+        total_income = basic_salary + overtime_amount + total_bonus + allowance
+
+        if loan_deduction is not None:
+            actual_loan_deduction = min(loan_deduction, employee.loan_balance or 0)
+        else:
+            total_deduction_setting = (
+                db.query(func.sum(EmployeeLoan.deduction_per_period))
+                .filter(
+                    EmployeeLoan.employee_id == employee.id, EmployeeLoan.is_active == True
+                )
+                .scalar()
+                or 0
+            )
+            total_balance = (
+                db.query(func.sum(EmployeeLoan.remaining_balance))
+                .filter(
+                    EmployeeLoan.employee_id == employee.id, EmployeeLoan.is_active == True
+                )
+                .scalar()
+                or 0
+            )
+            actual_loan_deduction = min(total_deduction_setting, total_balance)
+
+        debt_deduction = min(employee.debt_to_company or 0, employee.debt_to_company or 0)
+        total_deduction = actual_loan_deduction + debt_deduction + other_deduction
+        net_salary = total_income - total_deduction
+
+        loan_remaining = max(0, (employee.loan_balance or 0) - actual_loan_deduction)
+        debt_remaining = max(0, (employee.debt_to_company or 0) - debt_deduction)
+
+        return PayrollCalculationResult(
+            employee_id=employee.id,
+            employee_name=employee.name,
+            period_start=period_start,
+            period_end=period_end,
+            work_days=work_days,
+            present_days=present_days,
+            absent_days=absent_days,
+            basic_salary=basic_salary,
+            overtime_hours=total_overtime_hours,
+            overtime_amount=overtime_amount,
+            bonus=total_bonus,
+            allowance=allowance,
+            total_income=total_income,
+            loan_deduction=actual_loan_deduction,
+            debt_deduction=debt_deduction,
+            other_deduction=other_deduction,
+            total_deduction=total_deduction,
+            net_salary=net_salary,
+            loan_remaining=loan_remaining,
+            debt_remaining=debt_remaining,
+        )
+
+    @staticmethod
+    def create_payroll(db: Session, current_user: User, payroll: PayrollCreate) -> PayrollRecord:
+        calc_result = PayrollService.calculate_payroll(
+            db=db,
+            employee_id=payroll.employee_id,
+            period_start=payroll.period_start,
+            period_end=payroll.period_end,
+            overtime_hours=payroll.overtime_hours or 0,
+            bonus=payroll.bonus or 0,
+            allowance=payroll.allowance or 0,
+            loan_deduction=payroll.loan_deduction,
+            other_deduction=payroll.other_deduction or 0,
+        )
+
+        db_payroll = PayrollRecord(
+            employee_id=payroll.employee_id,
+            period_start=payroll.period_start,
+            period_end=payroll.period_end,
+            work_days=calc_result.work_days,
+            present_days=calc_result.present_days,
+            absent_days=calc_result.absent_days,
+            overtime_hours=calc_result.overtime_hours,
+            overtime_amount=calc_result.overtime_amount,
+            basic_salary=calc_result.basic_salary,
+            bonus=calc_result.bonus,
+            allowance=payroll.allowance or 0,
+            total_income=calc_result.total_income,
+            loan_deduction=calc_result.loan_deduction,
+            debt_deduction=calc_result.debt_deduction,
+            other_deduction=payroll.other_deduction or 0,
+            total_deduction=calc_result.total_deduction,
+            net_salary=calc_result.net_salary,
+            project_id=payroll.project_id,
+            payment_status="approved" if current_user.role == "gm" or current_user.is_admin or current_user.is_superuser else "pending",
+            notes=payroll.notes,
+            created_by=current_user.id,
+        )
+
+        employee = db.query(Employee).filter(Employee.id == payroll.employee_id).first()
+        if current_user.role == "gm" or current_user.is_admin or current_user.is_superuser:
+            db_payroll.approved_by = current_user.id
+            db_payroll.approved_at = datetime.now()
+            if employee:
+                employee.loan_balance = calc_result.loan_remaining
+                employee.debt_to_company = calc_result.debt_remaining
+
+        db.add(db_payroll)
+        db.commit()
+        db.refresh(db_payroll)
+
+        attendances_to_mark = db.query(Attendance).filter(
+            Attendance.employee_id == payroll.employee_id,
+            Attendance.date >= payroll.period_start,
+            Attendance.date <= payroll.period_end,
+            (Attendance.is_payroll_generated == False) | (Attendance.is_payroll_generated == None)
+        ).all()
+        for att in attendances_to_mark:
+            att.is_payroll_generated = True
+            att.payroll_id = db_payroll.id
+        if attendances_to_mark:
+            db.commit()
+
+        return db_payroll
+
+    @staticmethod
+    def get_payroll_records(
+        db: Session,
+        employee_id: Optional[int] = None,
+        period_start: Optional[date] = None,
+        period_end: Optional[date] = None,
+        payment_status: Optional[str] = None,
+    ) -> List[PayrollRecord]:
+        query = db.query(PayrollRecord)
+        if employee_id:
+            query = query.filter(PayrollRecord.employee_id == employee_id)
+        if period_start and period_end:
+            query = query.filter(
+                and_(
+                    PayrollRecord.period_start >= period_start,
+                    PayrollRecord.period_end <= period_end,
+                )
+            )
+        if payment_status:
+            query = query.filter(PayrollRecord.payment_status == payment_status)
+
+        records = query.order_by(PayrollRecord.period_start.desc()).all()
+        for record in records:
+            record.employee_name = record.employee.name if record.employee else None
+            if record.project_id:
+                project = db.query(Project).filter(Project.id == record.project_id).first()
+                record.project_name = project.name if project else None
+            else:
+                record.project_name = None
+
+        return records
+
+    @staticmethod
+    def update_payroll(db: Session, payroll_id: int, data: PayrollUpdate) -> PayrollRecord:
+        payroll = db.query(PayrollRecord).filter(PayrollRecord.id == payroll_id).first()
+        if not payroll:
+            raise NotFoundError("Payroll record not found")
+
+        if payroll.payment_status == "paid":
+            raise ValidationError("Slip gaji dengan status 'paid' tidak dapat diedit. Hubungi superadmin.")
+
+        old_loan_deduction = payroll.loan_deduction or 0
+        old_debt_deduction = payroll.debt_deduction or 0
+
+        update_data = data.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(payroll, key, value)
+        
+        payroll.total_income = (payroll.basic_salary or 0) + (payroll.overtime_amount or 0) + (payroll.bonus or 0) + (payroll.allowance or 0)
+        payroll.total_deduction = (payroll.loan_deduction or 0) + (payroll.debt_deduction or 0) + (payroll.other_deduction or 0)
+        payroll.net_salary = payroll.total_income - payroll.total_deduction
+        
+        if payroll.payment_status == "approved" and payroll.employee:
+            new_loan_deduction = payroll.loan_deduction or 0
+            new_debt_deduction = payroll.debt_deduction or 0
+            
+            diff_loan = new_loan_deduction - old_loan_deduction
+            diff_debt = new_debt_deduction - old_debt_deduction
+            
+            payroll.employee.loan_balance = max(0, (payroll.employee.loan_balance or 0) - diff_loan)
+            payroll.employee.debt_to_company = max(0, (payroll.employee.debt_to_company or 0) - diff_debt)
+
+        db.commit()
+        db.refresh(payroll)
+        
+        payroll.employee_name = payroll.employee.name if payroll.employee else None
+        return payroll
+
+    @staticmethod
+    def approve_payroll(db: Session, current_user: User, payroll_id: int, approval_note: Optional[str] = None) -> PayrollRecord:
+        payroll = db.query(PayrollRecord).filter(PayrollRecord.id == payroll_id).first()
+        if not payroll:
+            raise NotFoundError("Payroll record not found")
+
+        if payroll.payment_status != "pending":
+            raise ValidationError("Payroll already processed")
+
+        payroll.payment_status = "approved"
+        payroll.approved_by = current_user.id
+        payroll.approved_at = datetime.now()
+        payroll.approval_note = approval_note
+
+        employee = payroll.employee
+        if employee:
+            employee.loan_balance = max(0, (employee.loan_balance or 0) - (payroll.loan_deduction or 0))
+            employee.debt_to_company = max(0, (employee.debt_to_company or 0) - (payroll.debt_deduction or 0))
+
+        db.commit()
+        db.refresh(payroll)
+        return payroll
+
+    @staticmethod
+    def pay_payroll(db: Session, current_user: User, payroll_id: int) -> PayrollRecord:
+        payroll = db.query(PayrollRecord).filter(PayrollRecord.id == payroll_id).first()
+        if not payroll:
+            raise NotFoundError("Payroll record not found")
+
+        if payroll.payment_status == "paid":
+            raise ValidationError("Payroll already paid")
+            
+        if payroll.payment_status == "pending":
+            raise ValidationError("Payroll must be approved first")
+
+        payroll.payment_status = "paid"
+        payroll.payment_date = date.today()
+        
+        expense = Expense(
+            category="gaji",
+            description=f"Pembayaran Gaji: {payroll.employee.name if payroll.employee else '-'} (Periode {payroll.period_start} s/d {payroll.period_end})",
+            amount=float(payroll.net_salary or 0),
+            expense_date=date.today(),
+            created_by=current_user.id,
+            approval_status="approved",
+            approved_by=current_user.id,
+            approved_at=datetime.now(),
+            payment_status="paid",
+            paid_by=current_user.id,
+            paid_at=datetime.now(),
+            project_id=payroll.project_id
+        )
+        db.add(expense)
+        
+        db.commit()
+        db.refresh(payroll)
+        return payroll

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Home,
   LogOut,
@@ -86,10 +87,13 @@ const Sidebar = ({ children }) => {
     fetchUser();
   }, []);
 
+  const queryClient = useQueryClient();
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setCurrentUser(null);
+    queryClient.clear();
     navigate("/login");
   };
 

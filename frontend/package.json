@@ -9,6 +9,7 @@
     "start": "vite preview --host"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.28.0",
     "axios": "^1.16.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
@@ -22,10 +23,14 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@types/node": "^20.11.30",
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
     "@vitejs/plugin-react-swc": "^3.11.0",
     "autoprefixer": "^10.5.0",
     "postcss": "^8.5.14",
     "tailwindcss": "^3.4.0",
+    "typescript": "^5.2.2",
     "vite": "^8.0.13"
   }
 }

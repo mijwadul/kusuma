@@ -1,0 +1,722 @@
+import React, { useState, useRef } from "react";
+import {
+  Calendar,
+  FileText,
+  Fuel,
+  Clock,
+  Users,
+  ShoppingCart,
+  Printer,
+  Loader2,
+  AlertCircle,
+  TrendingUp,
+  TrendingDown,
+  BarChart2,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
+import {
+  BarChart as RechartsBarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+
+import { useOperationalReport } from "../hooks/useReports";
+
+const formatRupiah = (n?: number | null) =>
+  new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(n || 0);
+
+const formatNum = (n?: number | null, decimals = 2) =>
+  new Intl.NumberFormat("id-ID", { maximumFractionDigits: decimals }).format(n || 0);
+
+const formatDate = (d?: string | null) => {
+  if (!d) return "-";
+  const parts = d.split("-");
+  if (parts.length !== 3) return d;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+};
+
+const SummaryCard = ({ icon: Icon, label, value, sub, color, iconBg }: any) => (
+  <div className="report-card bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-start gap-4">
+    <div className={`p-3 rounded-xl ${iconBg} flex-shrink-0`}>
+      <Icon size={22} className={color} />
+    </div>
+    <div className="min-w-0 flex-1">
+      <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{label}</p>
+      <p className={`text-sm sm:text-base md:text-lg lg:text-xl font-bold mt-0.5 break-words ${color}`}>{value}</p>
+      {sub && <p className="text-xs text-gray-400 mt-0.5 break-words">{sub}</p>}
+    </div>
+  </div>
+);
+
+const TableWrapper = ({ children }: { children: React.ReactNode }) => (
+  <div className="overflow-x-auto rounded-xl border border-gray-100">
+    <table className="w-full text-sm">{children}</table>
+  </div>
+);
+
+const Th = ({ children, right }: { children: React.ReactNode; right?: boolean }) => (
+  <th
+    className={`px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50 border-b border-gray-100 ${right ? "text-right" : "text-left"}`}
+  >
+    {children}
+  </th>
+);
+
+const Td = ({ children, right, bold, muted, className }: { children: React.ReactNode; right?: boolean; bold?: boolean; muted?: boolean; className?: string }) => (
+  <td
+    className={`px-4 py-3 text-gray-700 border-b border-gray-50 ${right ? "text-right" : ""} ${bold ? "font-semibold" : ""} ${muted ? "text-gray-400" : ""} ${className || ""}`}
+  >
+    {children}
+  </td>
+);
+
+const TotalRow = ({ cols, label, value }: { cols: number; label: string; value: string | React.ReactNode }) => (
+  <tr className="bg-gray-50">
+    <td
+      colSpan={cols - 1}
+      className="px-4 py-3 text-right font-bold text-gray-700 border-t border-gray-200"
+    >
+      {label}
+    </td>
+    <td className="px-4 py-3 text-right font-bold text-gray-900 border-t border-gray-200 whitespace-nowrap">
+      {value}
+    </td>
+  </tr>
+);
+
+const Section = ({ title, children, defaultOpen = true }: any) => {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="mb-6 report-section">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="no-print w-full flex items-center justify-between py-3 px-1 text-left"
+      >
+        <h3 className="text-base font-bold text-gray-800">{title}</h3>
+        {open ? <ChevronDown size={18} className="text-gray-400" /> : <ChevronRight size={18} className="text-gray-400" />}
+      </button>
+      <div className="print-section-title hidden">{title}</div>
+      {open && <div>{children}</div>}
+    </div>
+  );
+};
+
+export default function ReportsPage() {
+  const today = new Date().toISOString().split("T")[0];
+  const firstOfMonth = today.slice(0, 8) + "01";
+
+  const [startDate, setStartDate] = useState(firstOfMonth);
+  const [endDate, setEndDate] = useState(today);
+
+  const reportRef = useRef<HTMLDivElement>(null);
+
+  const { data: report, isLoading, isFetching, error, refetch } = useOperationalReport(
+    { start_date: startDate, end_date: endDate },
+    { enabled: false } // Only fetch manually
+  );
+
+  const loading = isLoading || isFetching;
+
+  const generate = () => {
+    refetch();
+  };
+
+  const handlePrint = () => window.print();
+
+  // --- Chart Data Preparation ---
+  const pieData = report ? [
+    { name: "BBM", value: report.summary.total_fuel_expense },
+    { name: "Gaji (Est)", value: report.summary.total_payroll_expense },
+    { name: "Sewa Alat", value: report.summary.total_equipment_rental_expense },
+  ].filter(d => d.value > 0) : [];
+
+  const PIE_COLORS = ["#f59e0b", "#3b82f6", "#8b5cf6"];
+
+  const barFuelData = report ? report.fuel_by_equipment.map((f: any) => ({
+    name: f.equipment_name.length > 10 ? f.equipment_name.substring(0, 10) + '...' : f.equipment_name,
+    liters: f.total_liters,
+    cost: f.total_cost,
+    fullName: f.equipment_name
+  })).sort((a: any, b: any) => b.liters - a.liters).slice(0, 10) : [];
+
+  const barWorkData = report ? report.work_logs_by_equipment.map((w: any) => ({
+    name: w.equipment_name.length > 10 ? w.equipment_name.substring(0, 10) + '...' : w.equipment_name,
+    hours: w.total_payable_hours,
+    cost: w.total_rental_cost,
+    fullName: w.equipment_name
+  })).sort((a: any, b: any) => b.hours - a.hours).slice(0, 10) : [];
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-xs">
+        <p className="font-semibold text-gray-700 mb-2">{payload[0]?.payload?.fullName || label}</p>
+        {payload.map((p: any, i: number) => (
+          <div key={i} className="flex items-center gap-2 mb-1">
+            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
+            <span className="text-gray-600">{p.name}:</span>
+            <span className="font-medium">{p.name === 'Biaya' || p.name.includes('Sewa') ? formatRupiah(p.value) : p.value}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <>
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          #report-printable, #report-printable * { visibility: visible; }
+          #report-printable { position: absolute; left: 0; top: 0; width: 100%; }
+          .no-print { display: none !important; }
+          .print-section-title { display: block !important; font-weight: 700; font-size: 14px;
+            margin-bottom: 8px; margin-top: 16px; color: #1f2937; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
+          .report-card { break-inside: avoid; }
+          .report-section { break-inside: avoid; }
+          table { width: 100%; border-collapse: collapse; font-size: 11px; }
+          th, td { border: 1px solid #d1d5db; padding: 4px 8px; }
+          th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+          .kop-table-print, .kop-table-print tr, .kop-table-print td { border: none !important; padding: 0 !important; background: none !important; }
+        }
+        @media screen {
+          .print-section-title { display: none; }
+        }
+      `}</style>
+
+      <div className="max-w-6xl mx-auto pb-10">
+        <div className="mb-8 no-print">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="p-2.5 bg-emerald-100 rounded-xl">
+              <FileText size={22} className="text-emerald-700" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Laporan Operasional</h1>
+              <p className="text-sm text-gray-500">Generate laporan berdasarkan rentang tanggal</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="no-print bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
+          <div className="flex flex-wrap items-end gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
+                Tanggal Mulai
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
+                Tanggal Akhir
+              </label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+              />
+            </div>
+            <button
+              onClick={generate}
+              disabled={loading}
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-semibold px-6 py-2.5 rounded-xl transition-colors text-sm"
+            >
+              {loading ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <BarChart2 size={16} />
+              )}
+              {loading ? "Memuat..." : "Generate Laporan"}
+            </button>
+            {report && (
+              <button
+                onClick={handlePrint}
+                className="flex items-center gap-2 border border-gray-200 hover:bg-gray-50 text-gray-600 font-semibold px-5 py-2.5 rounded-xl transition-colors text-sm ml-auto"
+              >
+                <Printer size={16} />
+                Cetak
+              </button>
+            )}
+          </div>
+        </div>
+
+        {error && (
+          <div className="no-print flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-5 py-4 mb-6 text-red-700">
+            <AlertCircle size={18} />
+            <p className="text-sm font-medium">{error.message || "Terjadi kesalahan"}</p>
+          </div>
+        )}
+
+        {loading && (
+          <div className="no-print space-y-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-24 bg-gray-100 rounded-2xl animate-pulse" />
+            ))}
+          </div>
+        )}
+
+        {report && !loading && (
+          <div id="report-printable" ref={reportRef}>
+            {/* Print header */}
+            <div className="hidden print:block mb-6">
+              <table style={{ width: "100%", borderCollapse: "collapse", border: "none" }} className="kop-table-print">
+                <tbody>
+                  <tr style={{ border: "none" }}>
+                    <td style={{ width: "85px", padding: 0, border: "none", verticalAlign: "middle" }}>
+                      {/* Logo removed or updated to absolute path if needed, keeping simple text for now */}
+                      <div style={{ width: "80px", height: "80px", background: "#f3f4f6", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "8px", fontWeight: "bold", color: "#9ca3af" }}>LOGO</div>
+                    </td>
+                    <td style={{ paddingLeft: "16px", border: "none", verticalAlign: "middle", textAlign: "left" }}>
+                      <div style={{ fontSize: "16pt", fontWeight: "bold", color: "#1a3c6e", letterSpacing: "0.5px", lineHeight: "1.2" }}>
+                        PT. Kusuma Samudera Berkah
+                      </div>
+                      <div style={{ fontSize: "9pt", color: "#4a6fa5", marginTop: "2px", fontStyle: "italic" }}>
+                        Pertambangan &amp; Konstruksi
+                      </div>
+                      <div style={{ fontSize: "8pt", color: "#555", marginTop: "6px", lineHeight: "1.4" }}>
+                        Jl. [Alamat Perusahaan], [Kota], [Provinsi]<br />
+                        Telp: [Nomor Telepon] | Email: info@kusumasamuderaberkah.co.id
+                      </div>
+                    </td>
+                    <td style={{ width: "220px", border: "none", verticalAlign: "middle", textAlign: "right" }}>
+                      <div style={{ fontSize: "12pt", fontWeight: "bold", color: "#1a3c6e", textTransform: "uppercase", letterSpacing: "1px" }}>
+                        Laporan Operasional
+                      </div>
+                      <div style={{ fontSize: "8pt", color: "#555", marginTop: "4px" }}>
+                        Periode: {formatDate(report.period_start)} s/d {formatDate(report.period_end)}
+                      </div>
+                      <div style={{ fontSize: "7.5pt", color: "#777", marginTop: "4px" }}>
+                        Dicetak: {new Date().toLocaleDateString("id-ID")}
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div style={{ borderBottom: "3px solid #1a3c6e", marginTop: "10px" }}></div>
+            </div>
+
+            <div className="no-print mb-5 flex items-center gap-2 text-sm text-gray-500">
+              <Calendar size={15} />
+              <span>
+                Periode:{" "}
+                <span className="font-semibold text-gray-800">
+                  {formatDate(report.period_start)} — {formatDate(report.period_end)}
+                </span>
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
+              <SummaryCard
+                icon={Fuel}
+                label="Pembelian BBM"
+                value={formatRupiah(report.summary.total_fuel_expense)}
+                sub={`${formatNum(report.summary.total_fuel_liters)} Liter`}
+                color="text-amber-600"
+                iconBg="bg-amber-50"
+              />
+              <SummaryCard
+                icon={Clock}
+                label="Jam Kerja Alat"
+                value={`${formatNum(report.summary.total_work_hours)} jam`}
+                sub={`${report.work_logs_by_equipment.length} alat aktif`}
+                color="text-blue-600"
+                iconBg="bg-blue-50"
+              />
+              <SummaryCard
+                icon={Users}
+                label="Estimasi Gaji"
+                value={formatRupiah(report.summary.total_payroll_expense)}
+                sub={`${report.summary.total_employees} karyawan · ${report.summary.total_present_days} hari hadir`}
+                color="text-purple-600"
+                iconBg="bg-purple-50"
+              />
+              <SummaryCard
+                icon={ShoppingCart}
+                label="Penjualan Material"
+                value={formatRupiah(report.summary.total_material_sales)}
+                sub={`${report.material_sales.length} transaksi`}
+                color="text-emerald-600"
+                iconBg="bg-emerald-50"
+              />
+              <SummaryCard
+                icon={report.summary.net_balance >= 0 ? TrendingUp : TrendingDown}
+                label="Selisih (Penjualan − Biaya)"
+                value={formatRupiah(Math.abs(report.summary.net_balance))}
+                sub={report.summary.net_balance >= 0 ? "Surplus" : "Defisit"}
+                color={report.summary.net_balance >= 0 ? "text-emerald-600" : "text-red-500"}
+                iconBg={report.summary.net_balance >= 0 ? "bg-emerald-50" : "bg-red-50"}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 mt-6">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <PieChart size={18} className="text-purple-500" /> Komposisi Beban Operasional
+                </h3>
+                {pieData.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-10">Tidak ada pengeluaran di periode ini.</p>
+                ) : (
+                  <>
+                    <ResponsiveContainer width="100%" height={180}>
+                      <PieChart>
+                        <Pie
+                          data={pieData}
+                          cx="50%" cy="50%"
+                          innerRadius={50} outerRadius={75}
+                          paddingAngle={3} dataKey="value"
+                        >
+                          {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                        </Pie>
+                        <Tooltip formatter={(v: any) => formatRupiah(v)} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="mt-3 space-y-2">
+                      {pieData.map((d, i) => (
+                        <div key={i} className="flex justify-between text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                            <span className="text-gray-600">{d.name}</span>
+                          </div>
+                          <span className="font-semibold text-gray-800">{formatRupiah(d.value)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <Fuel size={18} className="text-amber-500" /> Top 10 Konsumsi BBM (Liter)
+                </h3>
+                {barFuelData.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-10">Belum ada data BBM.</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={230}>
+                    <RechartsBarChart data={barFuelData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                      <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-25} textAnchor="end" interval={0} />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="liters" name="Liter" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                    </RechartsBarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <Clock size={18} className="text-blue-500" /> Top 10 Jam Kerja Alat
+                </h3>
+                {barWorkData.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-10">Belum ada data Jam Kerja.</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={230}>
+                    <RechartsBarChart data={barWorkData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                      <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-25} textAnchor="end" interval={0} />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="hours" name="Jam Kerja" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    </RechartsBarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            <Section title="1. Penggunaan BBM per Alat (FIFO)">
+              {report.fuel_by_equipment.length === 0 ? (
+                <p className="text-sm text-gray-400 italic py-3">Tidak ada data pengisian BBM pada periode ini.</p>
+              ) : (
+                <TableWrapper>
+                  <thead>
+                    <tr>
+                      <Th>No</Th>
+                      <Th>Nama Alat</Th>
+                      <Th>Tipe</Th>
+                      <Th right>Total Liter</Th>
+                      <Th right>Total Biaya (FIFO)</Th>
+                      <Th right>Jml Pengisian</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {report.fuel_by_equipment.map((fb: any, idx: number) => (
+                      <tr key={fb.equipment_id} className="hover:bg-gray-50">
+                        <Td muted>{idx + 1}</Td>
+                        <Td bold>{fb.equipment_name}</Td>
+                        <Td>{fb.equipment_type}</Td>
+                        <Td right bold>{formatNum(fb.total_liters)} L</Td>
+                        <Td right bold className="text-amber-700">{formatRupiah(fb.total_cost)}</Td>
+                        <Td right>{fb.refuel_count}×</Td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-gray-50">
+                      <td colSpan={3} className="px-4 py-3 text-right font-bold text-gray-700 border-t border-gray-200">Total</td>
+                      <td className="px-4 py-3 text-right font-bold text-gray-900 border-t border-gray-200">{formatNum(report.fuel_by_equipment.reduce((s: any, r: any) => s + r.total_liters, 0))} L</td>
+                      <td className="px-4 py-3 text-right font-bold text-gray-900 border-t border-gray-200 text-amber-700">{formatRupiah(report.fuel_by_equipment.reduce((s: any, r: any) => s + r.total_cost, 0))}</td>
+                      <td className="px-4 py-3 text-right font-bold text-gray-900 border-t border-gray-200">{report.fuel_by_equipment.reduce((s: any, r: any) => s + r.refuel_count, 0)}×</td>
+                    </tr>
+                  </tfoot>
+                </TableWrapper>
+              )}
+            </Section>
+
+            <Section title="3. Jam Kerja Alat">
+              {report.work_logs_by_equipment.length === 0 ? (
+                <p className="text-sm text-gray-400 italic py-3">Tidak ada data jam kerja pada periode ini.</p>
+              ) : (
+                <>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Ringkasan per Alat</p>
+                  <TableWrapper>
+                    <thead>
+                      <tr>
+                        <Th>No</Th>
+                        <Th>Nama Alat</Th>
+                        <Th>Tipe</Th>
+                        <Th right>Total Jam</Th>
+                        <Th right>Jam Diskon</Th>
+                        <Th right>Jam Dibayar</Th>
+                        <Th right>Rate Sewa/Jam</Th>
+                        <Th right>Total Biaya Sewa</Th>
+                        <Th right>Jml Log</Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {report.work_logs_by_equipment.map((wb: any, idx: number) => (
+                        <tr key={wb.equipment_id} className="hover:bg-gray-50">
+                          <Td muted>{idx + 1}</Td>
+                          <Td bold>{wb.equipment_name}</Td>
+                          <Td>{wb.equipment_type}</Td>
+                          <Td right>{formatNum(wb.total_hours)}</Td>
+                          <Td right className="text-red-500">{formatNum(wb.total_discount_hours)}</Td>
+                          <Td right bold className="text-blue-700">{formatNum(wb.total_payable_hours)}</Td>
+                          <Td right className="text-gray-500">{formatRupiah(wb.rental_rate_per_hour)}</Td>
+                          <Td right bold className="text-amber-700">{formatRupiah(wb.total_rental_cost)}</Td>
+                          <Td right>{wb.log_count}×</Td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-gray-50">
+                        <td colSpan={3} className="px-4 py-3 text-right font-bold text-gray-700 border-t border-gray-200">Total Keseluruhan</td>
+                        <td className="px-4 py-3 text-right font-bold text-gray-900 border-t border-gray-200">{formatNum(report.summary.total_work_hours)}</td>
+                        <td className="px-4 py-3 text-right font-bold text-red-600 border-t border-gray-200">{formatNum(report.work_logs_by_equipment.reduce((s: any, r: any) => s + r.total_discount_hours, 0))}</td>
+                        <td className="px-4 py-3 text-right font-bold text-blue-700 border-t border-gray-200">{formatNum(report.work_logs_by_equipment.reduce((s: any, r: any) => s + r.total_payable_hours, 0))}</td>
+                        <td className="px-4 py-3 text-right font-bold text-gray-400 border-t border-gray-200">-</td>
+                        <td className="px-4 py-3 text-right font-bold text-amber-700 border-t border-gray-200">{formatRupiah(report.work_logs_by_equipment.reduce((s: any, r: any) => s + r.total_rental_cost, 0))}</td>
+                        <td className="px-4 py-3 text-right font-bold text-gray-900 border-t border-gray-200">{report.work_logs_by_equipment.reduce((s: any, r: any) => s + r.log_count, 0)}×</td>
+                      </tr>
+                    </tfoot>
+                  </TableWrapper>
+
+                  {report.work_logs_detail.length > 0 && (
+                    <>
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mt-5 mb-2">Detail Harian</p>
+                      <TableWrapper>
+                        <thead>
+                          <tr>
+                            <Th>No</Th>
+                            <Th>Tanggal</Th>
+                            <Th>Alat</Th>
+                            <Th>Operator</Th>
+                            <Th right>Total Jam</Th>
+                            <Th right>Diskon</Th>
+                            <Th right>Dibayar</Th>
+                            <Th right>Rate Sewa</Th>
+                            <Th right>Total Biaya Sewa</Th>
+                            <Th>Deskripsi</Th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {report.work_logs_detail.map((wd: any, idx: number) => (
+                            <tr key={wd.id} className="hover:bg-gray-50">
+                              <Td muted>{idx + 1}</Td>
+                              <Td>{formatDate(wd.work_date)}</Td>
+                              <Td bold>{wd.equipment_name}</Td>
+                              <Td>{wd.operator_name || "-"}</Td>
+                              <Td right>{formatNum(wd.total_hours)}</Td>
+                              <Td right className={wd.rental_discount_hours > 0 ? "text-red-500 font-medium" : ""}>{formatNum(wd.rental_discount_hours)}</Td>
+                              <Td right bold className="text-blue-700">{formatNum(wd.payable_rental_hours)}</Td>
+                              <Td right className="text-gray-500">{formatRupiah(wd.rental_rate_per_hour)}</Td>
+                              <Td right bold className="text-amber-700">{formatRupiah(wd.total_rental_cost)}</Td>
+                              <Td muted>{wd.work_description || "-"}</Td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </TableWrapper>
+                    </>
+                  )}
+                </>
+              )}
+            </Section>
+
+            <Section title="4. Estimasi Gaji Karyawan (Berdasarkan Absensi)">
+              {report.attendance_summary.length === 0 ? (
+                <p className="text-sm text-gray-400 italic py-3">Tidak ada data absensi pada periode ini.</p>
+              ) : (
+                <>
+                  <p className="text-xs text-gray-400 italic mb-3">
+                    * Estimasi dihitung dari: Hari Hadir × Gaji Harian masing-masing karyawan
+                  </p>
+                  <TableWrapper>
+                    <thead>
+                      <tr>
+                        <Th>No</Th>
+                        <Th>Nama Karyawan</Th>
+                        <Th>Jabatan</Th>
+                        <Th right>Hadir</Th>
+                        <Th right>Terlambat</Th>
+                        <Th right>Tidak Hadir</Th>
+                        <Th right>Total Jam</Th>
+                        <Th right>Lembur</Th>
+                        <Th right>Gaji Harian</Th>
+                        <Th right>Bonus Operator</Th>
+                        <Th right>Est. Gaji</Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {report.attendance_summary.map((att: any, idx: number) => (
+                        <tr key={att.employee_id} className="hover:bg-gray-50">
+                          <Td muted>{idx + 1}</Td>
+                          <Td bold>{att.employee_name}</Td>
+                          <Td muted>{att.position || "-"}</Td>
+                          <Td right><span className="text-green-700 font-semibold">{att.present_days}h</span></Td>
+                          <Td right><span className={att.late_days > 0 ? "text-amber-600" : "text-gray-400"}>{att.late_days}h</span></Td>
+                          <Td right><span className={att.absent_days > 0 ? "text-red-500" : "text-gray-400"}>{att.absent_days}h</span></Td>
+                          <Td right>{formatNum(att.total_work_hours)} jam</Td>
+                          <Td right><span className={att.total_overtime_hours > 0 ? "text-purple-600 font-medium" : "text-gray-400"}>{formatNum(att.total_overtime_hours)} jam</span></Td>
+                          <Td right>{formatRupiah(att.daily_salary)}</Td>
+                          <Td right className={att.operator_bonus > 0 ? "text-blue-600 font-bold" : "text-gray-400"}>{formatRupiah(att.operator_bonus)}</Td>
+                          <Td right bold>{formatRupiah(att.estimated_salary)}</Td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <TotalRow
+                        cols={11}
+                        label={`Total Estimasi (${report.attendance_summary.length} karyawan · ${report.summary.total_present_days} hari hadir)`}
+                        value={formatRupiah(report.summary.total_payroll_expense)}
+                      />
+                    </tfoot>
+                  </TableWrapper>
+                </>
+              )}
+            </Section>
+
+            <Section title="5. Penjualan Material">
+              {report.material_sales.length === 0 ? (
+                <p className="text-sm text-gray-400 italic py-3">Tidak ada data penjualan material pada periode ini.</p>
+              ) : (
+                <TableWrapper>
+                  <thead>
+                    <tr>
+                      <Th>No</Th>
+                      <Th>Tanggal</Th>
+                      <Th>Material</Th>
+                      <Th>Pelanggan</Th>
+                      <Th right>Qty</Th>
+                      <Th>Satuan</Th>
+                      <Th right>Harga/Unit</Th>
+                      <Th right>Total</Th>
+                      <Th>Bayar</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {report.material_sales.map((ms: any, idx: number) => (
+                      <tr key={ms.id} className="hover:bg-gray-50">
+                        <Td muted>{idx + 1}</Td>
+                        <Td>{formatDate(ms.tanggal)}</Td>
+                        <Td bold>{ms.material_type || ms.description}</Td>
+                        <Td>{ms.customer_name || "-"}</Td>
+                        <Td right>{ms.quantity != null ? formatNum(ms.quantity) : "-"}</Td>
+                        <Td>{ms.unit || "-"}</Td>
+                        <Td right>{ms.unit_price != null ? formatRupiah(ms.unit_price) : "-"}</Td>
+                        <Td right bold>{formatRupiah(ms.amount)}</Td>
+                        <Td muted>{ms.payment_method || "-"}</Td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <TotalRow
+                      cols={9}
+                      label={`Total (${report.material_sales.length} transaksi)`}
+                      value={formatRupiah(report.summary.total_material_sales)}
+                    />
+                  </tfoot>
+                </TableWrapper>
+              )}
+            </Section>
+
+            <div className="mt-6 bg-gray-50 rounded-2xl border border-gray-200 p-5">
+              <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wide mb-4">Ringkasan Keuangan Operasional</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-4">
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold text-emerald-700 uppercase tracking-wider border-b border-emerald-200 pb-1 mb-2">Total Pemasukan</h4>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Penjualan Material</span>
+                    <span className="font-semibold text-emerald-700">{formatRupiah(report.summary.total_material_sales)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-bold pt-2 border-t border-emerald-100 mt-2">
+                    <span className="text-gray-800">Total Pemasukan</span>
+                    <span className="text-emerald-800">{formatRupiah(report.summary.total_material_sales)}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold text-red-700 uppercase tracking-wider border-b border-red-200 pb-1 mb-2">Total Pengeluaran</h4>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Pemakaian BBM (FIFO)</span>
+                    <span className="font-semibold text-red-600/90">{formatRupiah(report.summary.total_fuel_expense)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Estimasi Gaji Karyawan</span>
+                    <span className="font-semibold text-red-600/90">{formatRupiah(report.summary.total_payroll_expense)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Biaya Sewa Alat</span>
+                    <span className="font-semibold text-red-600/90">{formatRupiah(report.summary.total_equipment_rental_expense)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-bold pt-2 border-t border-red-100 mt-2">
+                    <span className="text-gray-800">Total Pengeluaran</span>
+                    <span className="text-red-800">{formatRupiah(report.summary.total_fuel_expense + report.summary.total_payroll_expense + report.summary.total_equipment_rental_expense)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t-2 border-gray-300 pt-4 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm">
+                <span className="font-bold text-gray-800 text-lg mb-2 md:mb-0">Estimasi Selisih Bersih (Net Balance)</span>
+                <span className={`font-black text-2xl tracking-tight ${report.summary.net_balance >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                  {formatRupiah(report.summary.net_balance)}
+                </span>
+              </div>
+            </div>
+
+            <div className="hidden print:block mt-8 pt-4 border-t text-xs text-gray-400 text-center">
+              Dicetak pada: {new Date().toLocaleString("id-ID")} · PT. Kusuma Samudera Berkah
+            </div>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}

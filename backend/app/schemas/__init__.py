@@ -34,7 +34,7 @@ from .fuel_price import (
 )
 from .income_record import IncomeRecordCreate, IncomeRecordResponse, IncomeRecordUpdate
 from .loan import EmployeeLoanCreate, EmployeeLoanResponse, EmployeeLoanUpdate
-from .project import Project, ProjectCreate, ProjectUpdate
+from .project import ProjectResponse, ProjectCreate, ProjectUpdate
 from .user import Token, TokenData, User, UserCreate, UserLogin, UserUpdate
 from .work_log import (
     WorkEfficiencyStats,
