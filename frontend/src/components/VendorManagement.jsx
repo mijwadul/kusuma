@@ -93,9 +93,8 @@ export default function VendorManagement({ userRole }) {
     }
   };
 
-  // Filter alat berat milik vendor tertentu (rental only)
   const getVendorEquipments = (vendorId) =>
-    allEquipment.filter(eq => eq.vendor_id === vendorId && eq.ownership_status === "rental");
+    allEquipment.filter(eq => eq.vendor_id === vendorId);
 
   const handleVendorSubmit = async (e) => {
     e.preventDefault();

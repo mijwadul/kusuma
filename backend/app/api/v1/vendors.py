@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
 from decimal import Decimal
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from sqlalchemy import and_, or_
 
 from ...core.database import get_db
 from ...core.auth import get_current_user, require_role, require_admin
@@ -303,10 +305,16 @@ def edit_topup(topup_id: int, data: VendorTopUpCreate, db: Session = Depends(get
 
     # Update Expense terkait agar laporan cash flow akurat
     expense = db.query(Expense).filter(
-        Expense.category == "deposit",
-        Expense.description == old_desc,
-        Expense.amount == old_amount,
-        Expense.expense_date == old_date
+        Expense.category == "deposit"
+    ).filter(
+        or_(
+            Expense.description.like(f"[TopUp #{topup.id}]%"),
+            and_(
+                Expense.amount == old_amount,
+                Expense.expense_date == old_date,
+                Expense.description.like(f"Deposit Alat - {vendor.name}%")
+            )
+        )
     ).first()
 
     if expense:
@@ -315,7 +323,7 @@ def edit_topup(topup_id: int, data: VendorTopUpCreate, db: Session = Depends(get
         if data.topup_date:
             expense.expense_date = data.topup_date.date()
         new_eq_label = f" - {equipment.name}" if equipment else ""
-        expense.description = f"Deposit Alat - {vendor.name}{new_eq_label}: {data.notes or ''}"
+        expense.description = f"[TopUp #{topup.id}] Deposit Alat - {vendor.name}{new_eq_label}: {data.notes or ''}"
 
     db.commit()
     db.refresh(topup)
@@ -336,10 +344,16 @@ def delete_topup(topup_id: int, db: Session = Depends(get_db), current_user: Use
     old_date = topup.topup_date.date() if topup.topup_date else datetime.now().date()
 
     expense = db.query(Expense).filter(
-        Expense.category == "deposit",
-        Expense.description == old_desc,
-        Expense.amount == old_amount,
-        Expense.expense_date == old_date
+        Expense.category == "deposit"
+    ).filter(
+        or_(
+            Expense.description.like(f"[TopUp #{topup.id}]%"),
+            and_(
+                Expense.amount == old_amount,
+                Expense.expense_date == old_date,
+                Expense.description.like(f"Deposit Alat - {vendor.name}%")
+            )
+        )
     ).first()
 
     if expense:
@@ -356,7 +370,7 @@ def _apply_topup_and_expense(db: Session, topup: VendorTopUp, vendor: Vendor, eq
     eq_label = f" - {equipment.name}" if equipment else ""
     expense = Expense(
         category="deposit",
-        description=f"Deposit Alat - {vendor.name}{eq_label}: {topup.notes or ''}",
+        description=f"[TopUp #{topup.id}] Deposit Alat - {vendor.name}{eq_label}: {topup.notes or ''}",
         amount=float(topup.amount),
         expense_date=expense_dt,
         created_by=user_id,
