@@ -92,6 +92,7 @@ def _enrich_topup(topup: VendorTopUp, db: Session) -> dict:
         "created_by": topup.created_by,
         "approved_by": topup.approved_by,
         "approved_at": topup.approved_at,
+        "project_id": topup.project_id,
     }
     if topup.equipment_id:
         eq = db.query(Equipment).filter(Equipment.id == topup.equipment_id).first()
@@ -285,6 +286,7 @@ def edit_topup(topup_id: int, data: VendorTopUpCreate, db: Session = Depends(get
 
     topup.amount = data.amount
     topup.notes = data.notes
+    topup.project_id = data.project_id
     if data.topup_date:
         topup.topup_date = data.topup_date
     db.commit()

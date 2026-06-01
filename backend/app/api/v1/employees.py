@@ -8,7 +8,7 @@ Role Access:
 - Field: No access to employee menu
 """
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -1309,7 +1309,7 @@ def download_payroll_pdf(
     payroll_data = {
         "employee": employee,
         "payroll": record,
-        "generated_at": datetime.now(),
+        "generated_at": datetime.now(timezone(timedelta(hours=7))),
     }
 
     try:

@@ -50,6 +50,7 @@ class VendorTopUpResponse(BaseModel):
     created_by: int
     approved_by: Optional[int] = None
     approved_at: Optional[datetime] = None
+    project_id: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
 

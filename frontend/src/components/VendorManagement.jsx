@@ -412,6 +412,7 @@ export default function VendorManagement({ userRole }) {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alat Berat</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nominal</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catatan</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -434,6 +435,9 @@ export default function VendorManagement({ userRole }) {
                         ) : (
                           <span className="text-xs text-gray-400 italic">-</span>
                         )}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                        {t.project_id ? projects.find(p => p.id === t.project_id)?.name || `Project #${t.project_id}` : "-"}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-emerald-600">{formatIDR(t.amount)}</td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{t.notes || "-"}</td>
@@ -503,7 +507,7 @@ export default function VendorManagement({ userRole }) {
                 >
                   <option value="">-- Pilih Alat Berat --</option>
                   {editVendorEquipments.map(eq => (
-                    <option key={eq.id} value={eq.id}>{eq.name} ({eq.type})</option>
+                    <option key={eq.id} value={String(eq.id)}>{eq.name} ({eq.type})</option>
                   ))}
                 </select>
                 {editVendorEquipments.length === 0 && (
@@ -609,7 +613,7 @@ export default function VendorManagement({ userRole }) {
                     {vendorEquipments.map(eq => {
                       const bal = equipmentBalances.find(b => b.equipment_id === eq.id);
                       return (
-                        <option key={eq.id} value={eq.id}>
+                        <option key={eq.id} value={String(eq.id)}>
                           {eq.name} ({eq.type}){bal ? ` — Saldo: ${formatIDR(bal.balance)}` : ""}
                         </option>
                       );
