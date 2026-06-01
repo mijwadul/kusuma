@@ -367,9 +367,27 @@ def update_invoice(
     if not is_admin_or_gm:
         raise HTTPException(status_code=403, detail="Not authorized to edit invoice")
         
+    # Detach all currently bound income records
+    records_to_unmark = db.query(IncomeRecord).filter(IncomeRecord.invoice_id == inv.id).all()
+    for r in records_to_unmark:
+        r.is_invoiced = False
+        r.invoice_id = None
+        
     update_data = data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(inv, key, value)
+        
+    # Re-attach income records based on the potentially updated date range and customer name
+    records_to_mark = db.query(IncomeRecord).filter(
+        IncomeRecord.income_type == "material_sale",
+        IncomeRecord.customer_name == inv.customer_name,
+        IncomeRecord.income_date >= inv.start_date,
+        IncomeRecord.income_date <= inv.end_date,
+        (IncomeRecord.is_invoiced == False) | (IncomeRecord.is_invoiced == None)
+    ).all()
+    for r in records_to_mark:
+        r.is_invoiced = True
+        r.invoice_id = inv.id
         
     # Re-calculate final_amount if needed
     if "total_amount" in update_data or "discount_type" in update_data or "discount_value" in update_data:

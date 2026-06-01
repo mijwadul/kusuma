@@ -275,6 +275,15 @@ def edit_topup(topup_id: int, data: VendorTopUpCreate, db: Session = Depends(get
     if not topup:
         raise HTTPException(status_code=404, detail="TopUp not found")
 
+    vendor = db.query(Vendor).filter(Vendor.id == topup.vendor_id).first()
+
+    # Simpan atribut lama untuk mencari Expense terkait
+    old_equipment = db.query(Equipment).filter(Equipment.id == topup.equipment_id).first() if topup.equipment_id else None
+    old_eq_label = f" - {old_equipment.name}" if old_equipment else ""
+    old_desc = f"Deposit Alat - {vendor.name}{old_eq_label}: {topup.notes or ''}"
+    old_amount = float(topup.amount)
+    old_date = topup.topup_date.date() if topup.topup_date else datetime.now().date()
+
     # Validasi equipment jika diubah
     if data.equipment_id:
         equipment = db.query(Equipment).filter(Equipment.id == data.equipment_id).first()
@@ -283,12 +292,31 @@ def edit_topup(topup_id: int, data: VendorTopUpCreate, db: Session = Depends(get
         if equipment.vendor_id != data.vendor_id:
             raise HTTPException(status_code=400, detail="Alat berat ini bukan milik vendor yang dipilih")
         topup.equipment_id = data.equipment_id
+    else:
+        equipment = old_equipment
 
     topup.amount = data.amount
     topup.notes = data.notes
     topup.project_id = data.project_id
     if data.topup_date:
         topup.topup_date = data.topup_date
+
+    # Update Expense terkait agar laporan cash flow akurat
+    expense = db.query(Expense).filter(
+        Expense.category == "deposit",
+        Expense.description == old_desc,
+        Expense.amount == old_amount,
+        Expense.expense_date == old_date
+    ).first()
+
+    if expense:
+        expense.amount = float(data.amount)
+        expense.project_id = data.project_id
+        if data.topup_date:
+            expense.expense_date = data.topup_date.date()
+        new_eq_label = f" - {equipment.name}" if equipment else ""
+        expense.description = f"Deposit Alat - {vendor.name}{new_eq_label}: {data.notes or ''}"
+
     db.commit()
     db.refresh(topup)
     return VendorTopUpResponse(**_enrich_topup(topup, db))
@@ -299,6 +327,23 @@ def delete_topup(topup_id: int, db: Session = Depends(get_db), current_user: Use
     topup = db.query(VendorTopUp).filter(VendorTopUp.id == topup_id).first()
     if not topup:
         raise HTTPException(status_code=404, detail="TopUp not found")
+
+    vendor = db.query(Vendor).filter(Vendor.id == topup.vendor_id).first()
+    old_equipment = db.query(Equipment).filter(Equipment.id == topup.equipment_id).first() if topup.equipment_id else None
+    old_eq_label = f" - {old_equipment.name}" if old_equipment else ""
+    old_desc = f"Deposit Alat - {vendor.name}{old_eq_label}: {topup.notes or ''}"
+    old_amount = float(topup.amount)
+    old_date = topup.topup_date.date() if topup.topup_date else datetime.now().date()
+
+    expense = db.query(Expense).filter(
+        Expense.category == "deposit",
+        Expense.description == old_desc,
+        Expense.amount == old_amount,
+        Expense.expense_date == old_date
+    ).first()
+
+    if expense:
+        db.delete(expense)
 
     db.delete(topup)
     db.commit()

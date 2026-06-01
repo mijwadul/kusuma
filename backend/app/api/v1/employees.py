@@ -648,6 +648,15 @@ def update_payroll(
     if not payroll:
         raise HTTPException(status_code=404, detail="Payroll record not found")
 
+    if payroll.payment_status == "paid":
+        raise HTTPException(
+            status_code=400, 
+            detail="Slip gaji dengan status 'paid' tidak dapat diedit. Hubungi superadmin."
+        )
+
+    old_loan_deduction = payroll.loan_deduction or 0
+    old_debt_deduction = payroll.debt_deduction or 0
+
     update_data = data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(payroll, key, value)
@@ -657,6 +666,16 @@ def update_payroll(
     payroll.total_deduction = (payroll.loan_deduction or 0) + (payroll.debt_deduction or 0) + (payroll.other_deduction or 0)
     payroll.net_salary = payroll.total_income - payroll.total_deduction
     
+    if payroll.payment_status == "approved" and payroll.employee:
+        new_loan_deduction = payroll.loan_deduction or 0
+        new_debt_deduction = payroll.debt_deduction or 0
+        
+        diff_loan = new_loan_deduction - old_loan_deduction
+        diff_debt = new_debt_deduction - old_debt_deduction
+        
+        payroll.employee.loan_balance = max(0, (payroll.employee.loan_balance or 0) - diff_loan)
+        payroll.employee.debt_to_company = max(0, (payroll.employee.debt_to_company or 0) - diff_debt)
+
     db.commit()
     db.refresh(payroll)
     
@@ -727,6 +746,23 @@ def pay_payroll(
 
     payroll.payment_status = "paid"
     payroll.payment_date = date.today()
+    
+    from ...models import Expense
+    expense = Expense(
+        category="gaji",
+        description=f"Pembayaran Gaji: {payroll.employee.name if payroll.employee else '-'} (Periode {payroll.period_start} s/d {payroll.period_end})",
+        amount=float(payroll.net_salary or 0),
+        expense_date=date.today(),
+        created_by=current_user.id,
+        approval_status="approved",
+        approved_by=current_user.id,
+        approved_at=datetime.now(),
+        payment_status="paid",
+        paid_by=current_user.id,
+        paid_at=datetime.now(),
+        project_id=payroll.project_id
+    )
+    db.add(expense)
     
     db.commit()
     db.refresh(payroll)
@@ -1354,6 +1390,15 @@ def delete_payroll(
             status_code=400,
             detail="Slip gaji dengan status 'paid' tidak dapat dihapus. Hubungi superadmin.",
         )
+
+    if record.payment_status == "approved" and record.employee:
+        record.employee.loan_balance = (record.employee.loan_balance or 0) + (record.loan_deduction or 0)
+        record.employee.debt_to_company = (record.employee.debt_to_company or 0) + (record.debt_deduction or 0)
+
+    attendances_to_reset = db.query(Attendance).filter(Attendance.payroll_id == record.id).all()
+    for att in attendances_to_reset:
+        att.is_payroll_generated = False
+        att.payroll_id = None
 
     db.delete(record)
     db.commit()
