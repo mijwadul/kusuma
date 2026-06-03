@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import { Briefcase, Wallet, CreditCard, AlertCircle } from 'lucide-react';
 import EmployeeListTab from '../components/employees/EmployeeListTab';
-import PayrollTab from '../components/employees/PayrollTab';
 import LoansTab from '../components/employees/LoansTab';
 import { useCurrentUser } from '../hooks/useAuth';
 
 const TABS = {
   EMPLOYEES: 'employees',
-  PAYROLL: 'payroll',
   LOANS: 'loans'
 };
 
@@ -60,19 +58,6 @@ const EmployeesPage: React.FC = () => {
         </button>
         {canAccessFinancial && (
           <button
-            onClick={() => setActiveTab(TABS.PAYROLL)}
-            className={`flex-shrink-0 py-2 px-3 sm:px-4 rounded-md text-sm font-medium transition-colors ${
-              activeTab === TABS.PAYROLL
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Wallet className="inline-block w-4 h-4 mr-1 sm:mr-2" />
-            Payroll
-          </button>
-        )}
-        {canAccessFinancial && (
-          <button
             onClick={() => setActiveTab(TABS.LOANS)}
             className={`flex-shrink-0 py-2 px-3 sm:px-4 rounded-md text-sm font-medium transition-colors ${
               activeTab === TABS.LOANS
@@ -94,10 +79,6 @@ const EmployeesPage: React.FC = () => {
           canManageEmployees={canManageEmployees}
           isGM={isGM}
         />
-      )}
-
-      {activeTab === TABS.PAYROLL && canAccessFinancial && (
-        <PayrollTab canAccessFinancial={canAccessFinancial} />
       )}
 
       {activeTab === TABS.LOANS && canAccessFinancial && (

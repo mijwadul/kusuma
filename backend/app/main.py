@@ -27,7 +27,6 @@ from slowapi.middleware import SlowAPIMiddleware
 
 def bootstrap_database():
     """Ensure tables exist and seed default admin on fresh setup."""
-    Base.metadata.create_all(bind=engine)
     
     # Database migration is now executed manually
 

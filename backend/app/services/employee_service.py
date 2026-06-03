@@ -26,7 +26,7 @@ class EmployeeService:
         if status:
             query = query.filter(Employee.status == status)
             
-        employees = query.offset(skip).limit(limit).all()
+        employees = query.order_by(Employee.name.asc()).offset(skip).limit(limit).all()
         
         # Check finance access
         finance_roles = ["gm", "finance", "admin", "checker"]

@@ -7,7 +7,6 @@ import {
   Truck,
   MapPin,
   Droplets,
-  X,
   Save,
   Edit,
   Trash2,
@@ -175,7 +174,6 @@ const FuelPage = () => {
       notes: log.notes || "",
     });
     setShowForm(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDelete = (logId: number) => {
@@ -241,24 +239,20 @@ const FuelPage = () => {
         </div>
         <button
           onClick={() => {
-            if (showForm) {
-              handleCancelEdit();
-            } else {
-              if (!stockOk) {
-                toast.error('Stok BBM habis! Catat pembelian BBM terlebih dahulu di menu Pembelian & Stok BBM.');
-                return;
-              }
-              setShowForm(true);
+            if (!stockOk) {
+              toast.error('Stok BBM habis! Catat pembelian BBM terlebih dahulu di menu Pembelian & Stok BBM.');
+              return;
             }
+            setShowForm(true);
           }}
           className={`w-full sm:w-auto px-5 py-2.5 rounded-lg flex items-center justify-center space-x-2 transition-colors shadow-md text-white ${
-            stockOk || showForm
+            stockOk
               ? 'bg-amber-500 hover:bg-amber-600'
               : 'bg-gray-400 cursor-not-allowed'
           }`}
         >
-          {showForm ? <X size={20} /> : <Plus size={20} />}
-          <span>{showForm ? "Batal" : "Isi Solar"}</span>
+          <Plus size={20} />
+          <span>Isi Solar</span>
         </button>
       </div>
 
@@ -330,20 +324,27 @@ const FuelPage = () => {
 
       {/* Form Modal */}
       {showForm && (
-        <div className="mb-6 bg-white rounded-lg shadow-lg overflow-hidden">
-          <div
-            className={`${editingLog ? "bg-blue-500" : "bg-amber-500"} text-white px-6 py-4`}
-          >
-            <h2 className="text-lg font-semibold flex items-center space-x-2">
-              <Droplets size={20} />
-              <span>
-                {editingLog
-                  ? "Edit Catatan Pengisian Solar"
-                  : "Catat Pengisian Solar"}
-              </span>
-            </h2>
-          </div>
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
+              <h2 className="text-lg font-bold text-gray-800 flex items-center">
+                <div className={`p-2 rounded-lg mr-3 ${editingLog ? "bg-blue-100" : "bg-amber-100"}`}>
+                  <Droplets className={`w-5 h-5 ${editingLog ? "text-blue-600" : "text-amber-600"}`} />
+                </div>
+                <span>
+                  {editingLog
+                    ? "Edit Catatan Pengisian Solar"
+                    : "Catat Pengisian Solar"}
+                </span>
+              </h2>
+              <button
+                onClick={handleCancelEdit}
+                className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                &times;
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Pilih Unit */}
               <div>
@@ -523,6 +524,7 @@ const FuelPage = () => {
               </button>
             </div>
           </form>
+          </div>
         </div>
       )}
 

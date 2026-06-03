@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Fuel, Save, History, AlertCircle, CheckCircle, Package, XCircle, Trash2, Info, Edit, Eye, Download } from 'lucide-react';
+import { Fuel, Save, History, AlertCircle, CheckCircle, Package, XCircle, Trash2, Info, Edit, Eye, Download, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import AlertModal from '../components/AlertModal';
 import { useCurrentUser } from '../hooks/useAuth';
@@ -35,7 +35,8 @@ const FuelPricePage = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
+  const [isExporting] = useState(false);
+  const [showForm, setShowForm] = useState(false);
 
   const [editForm, setEditForm] = useState({
     liters: '',
@@ -128,6 +129,7 @@ const FuelPricePage = () => {
         setProjectId('');
         setNotes('');
         setPurchaseDate(new Date().toISOString().split('T')[0]);
+        setShowForm(false);
         if (isGM) {
           toast.success('Pembelian BBM berhasil dicatat dan langsung disetujui');
         } else {
@@ -433,136 +435,164 @@ const FuelPricePage = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div>
         
-        {/* Form Pembelian */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">
-              Catat Pembelian BBM Baru
-              {isGM && (
-                <span className="ml-2 text-xs font-normal text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-                  ✓ Auto-Approve
-                </span>
-              )}
-            </h3>
-            <div className="space-y-4">
-
-              {/* Tanggal Pembelian */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tanggal Pembelian
-                </label>
-                <input
-                  type="date"
-                  value={purchaseDate}
-                  max={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => setPurchaseDate(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Total Liter (Solar)</label>
-                <input
-                  type="number"
-                  value={liters}
-                  onChange={handleLitersChange}
-                  placeholder="Misal: 5000"
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Harga per Liter (Rp)</label>
-                  <input
-                    type="number"
-                    value={pricePerLiter}
-                    onChange={handlePricePerLiterChange}
-                    placeholder="Misal: 6800"
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Total Harga (Rp)</label>
-                  <input
-                    type="number"
-                    value={totalPrice}
-                    onChange={handleTotalPriceChange}
-                    placeholder="Misal: 34000000"
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Vendor / Penjual</label>
-                <input
-                  type="text"
-                  list="vendor-list"
-                  value={vendorName}
-                  onChange={(e) => setVendorName(e.target.value)}
-                  placeholder="Ketik manual atau pilih dari daftar"
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
-                />
-                <datalist id="vendor-list">
-                  {vendorList.map((v: string, idx: number) => (
-                    <option key={idx} value={v} />
-                  ))}
-                </datalist>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Project (Opsional)</label>
-                <select
-                  value={projectId}
-                  onChange={(e) => setProjectId(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
+        {/* Form Pembelian Modal */}
+        {showForm && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
+                <h3 className="text-lg font-bold text-gray-800 flex items-center">
+                  Catat Pembelian BBM Baru
+                  {isGM && (
+                    <span className="ml-2 text-xs font-normal text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                      ✓ Auto-Approve
+                    </span>
+                  )}
+                </h3>
+                <button
+                  onClick={() => setShowForm(false)}
+                  className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-full transition-colors"
                 >
-                  <option value="">Pilih Project (Kosongkan jika General)</option>
-                  {projects.map((p: any) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
+                  &times;
+                </button>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
-                <input
-                  type="text"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Misal: PO-123 / Supir Budi"
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
-                />
-              </div>
+              <div className="p-6 space-y-4">
 
-              <button
-                onClick={handleSavePurchase}
-                disabled={!liters || !totalPrice || !purchaseDate || createMutation.isPending}
-                className="w-full py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 flex justify-center items-center font-medium"
-              >
-                <Save className="h-5 w-5 mr-2" />
-                {isGM ? 'Catat & Setujui Pembelian' : 'Submit Pembelian'}
-              </button>
-              <p className="text-xs text-gray-500 text-center mt-2">
-                {isGM
-                  ? '✓ Pembelian oleh GM langsung disetujui dan masuk ke perhitungan stok'
-                  : '* Pembelian memerlukan persetujuan GM sebelum masuk ke perhitungan stok'
-                }
-              </p>
+                {/* Tanggal Pembelian */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tanggal Pembelian
+                  </label>
+                  <input
+                    type="date"
+                    value={purchaseDate}
+                    max={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => setPurchaseDate(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Total Liter (Solar)</label>
+                  <input
+                    type="number"
+                    value={liters}
+                    onChange={handleLitersChange}
+                    placeholder="Misal: 5000"
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Harga per Liter (Rp)</label>
+                    <input
+                      type="number"
+                      value={pricePerLiter}
+                      onChange={handlePricePerLiterChange}
+                      placeholder="Misal: 6800"
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Harga (Rp)</label>
+                    <input
+                      type="number"
+                      value={totalPrice}
+                      onChange={handleTotalPriceChange}
+                      placeholder="Misal: 34000000"
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Vendor / Penjual</label>
+                  <input
+                    type="text"
+                    list="vendor-list"
+                    value={vendorName}
+                    onChange={(e) => setVendorName(e.target.value)}
+                    placeholder="Ketik manual atau pilih dari daftar"
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
+                  />
+                  <datalist id="vendor-list">
+                    {vendorList.map((v: string, idx: number) => (
+                      <option key={idx} value={v} />
+                    ))}
+                  </datalist>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Project (Opsional)</label>
+                  <select
+                    value={projectId}
+                    onChange={(e) => setProjectId(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
+                  >
+                    <option value="">Pilih Project (Kosongkan jika General)</option>
+                    {projects.map((p: any) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
+                  <input
+                    type="text"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Misal: PO-123 / Supir Budi"
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
+                  />
+                </div>
+
+                <div className="pt-4 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowForm(false)}
+                    className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition-colors"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={handleSavePurchase}
+                    disabled={!liters || !totalPrice || !purchaseDate || createMutation.isPending}
+                    className="flex-1 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 flex justify-center items-center font-medium transition-colors"
+                  >
+                    <Save className="h-5 w-5 mr-2" />
+                    {isGM ? 'Catat & Setujui' : 'Submit'}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 text-center mt-2">
+                  {isGM
+                    ? '✓ Pembelian oleh GM langsung disetujui dan masuk ke perhitungan stok'
+                    : '* Pembelian memerlukan persetujuan GM sebelum masuk ke perhitungan stok'
+                  }
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Tabel Riwayat */}
-        <div className="lg:col-span-2">
+        <div>
           <div className="bg-white rounded-xl shadow-sm p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center border-b pb-2">
-              <History className="h-5 w-5 mr-2 text-gray-500" />
-              Riwayat Pembelian
-            </h3>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 border-b pb-2 gap-4">
+              <h3 className="text-lg font-bold text-gray-800 flex items-center">
+                <History className="h-5 w-5 mr-2 text-gray-500" />
+                Riwayat Pembelian
+              </h3>
+              <button
+                onClick={() => setShowForm(true)}
+                className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg flex items-center font-medium shadow-sm"
+              >
+                <Plus className="w-4 h-4 mr-1.5" />
+                Catat Pembelian
+              </button>
+            </div>
 
             {/* Filter Tanggal */}
             <div className="flex flex-wrap items-end gap-3 mb-4 p-3 bg-amber-50 rounded-lg border border-amber-100">

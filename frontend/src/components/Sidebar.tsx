@@ -407,7 +407,7 @@ interface MenuItem {
         )}
 
         {/* Mobile Content */}
-        <div className="pt-16 px-3 py-4 min-w-0 overflow-x-auto">{children}</div>
+        <div className="pt-24 px-4 py-6 min-w-0 overflow-x-auto">{children}</div>
       </div>
     );
   }

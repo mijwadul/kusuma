@@ -10,7 +10,6 @@ import {
   FileText,
   ToggleLeft,
   ToggleRight,
-  X,
   Save,
   Edit,
   Trash2,
@@ -176,7 +175,6 @@ export default function WorkLogsPage() {
         : new Date().toISOString().slice(0, 10),
     });
     setShowForm(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDelete = (logId: number) => {
@@ -261,11 +259,11 @@ export default function WorkLogsPage() {
           </div>
         </div>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => setShowForm(true)}
           className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center justify-center space-x-2 transition-colors shadow-md"
         >
-          {showForm ? <X size={20} /> : <Plus size={20} />}
-          <span>{showForm ? "Batal" : "Catat Kerja"}</span>
+          <Plus size={20} />
+          <span>Catat Kerja</span>
         </button>
       </div>
 
@@ -299,14 +297,23 @@ export default function WorkLogsPage() {
 
       {/* Form Modal */}
       {showForm && (
-        <div className="mb-6 bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
-          <div className="bg-blue-600 text-white px-6 py-4">
-            <h2 className="text-lg font-semibold flex items-center space-x-2">
-              <Clock size={20} />
-              <span>{editingLog ? "Edit Log Jam Kerja" : "Catat Jam Kerja Alat"}</span>
-            </h2>
-          </div>
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
+              <h2 className="text-lg font-bold text-gray-800 flex items-center">
+                <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                  <Clock className="w-5 h-5 text-blue-600" />
+                </div>
+                {editingLog ? "Edit Log Jam Kerja" : "Catat Jam Kerja Alat"}
+              </h2>
+              <button
+                onClick={handleCancelEdit}
+                className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                &times;
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
             {/* Input Method Toggle */}
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-100">
               <div className="flex items-center space-x-3">
@@ -567,6 +574,7 @@ export default function WorkLogsPage() {
               </button>
             </div>
           </form>
+          </div>
         </div>
       )}
 

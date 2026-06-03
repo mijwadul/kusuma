@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Calendar, Clock, UserCheck, Users, Plus, Loader2 } from 'lucide-react';
+import { Calendar, Clock, UserCheck, Users, Plus, Loader2, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import AlertModal from '../components/AlertModal';
 import { useCurrentUser } from '../hooks/useAuth';
@@ -20,7 +20,7 @@ const toLocalDateInput = (value?: string | Date | null) => {
   return `${year}-${month}-${day}`;
 };
 
-const toLocalDateTimeInput = (value?: string | null) => {
+const toLocalDateTimeInput = (value?: string | Date | null) => {
   if (!value) return '';
   if (typeof value === 'string') {
     return value.slice(0, 16);
@@ -82,6 +82,7 @@ export default function AttendancePage() {
     notes: ''
   });
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [showForm, setShowForm] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; attendanceId: number | null }>({ isOpen: false, attendanceId: null });
 
   const loading = loadingUser || loadingEmployees || loadingAttendance;
@@ -176,11 +177,12 @@ export default function AttendancePage() {
       check_out: checkOutVal,
       notes: row.notes || ''
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setShowForm(true);
   };
 
   const handleCancelEdit = () => {
     setEditingId(null);
+    setShowForm(false);
     setFormData({
       employee_id: employees.length > 0 ? String(employees[0].id) : '',
       date: isHelper ? toLocalDateInput(new Date()) : toLocalDateInput(new Date()),
@@ -217,9 +219,18 @@ export default function AttendancePage() {
 
   return (
     <div>
-      <div className="mb-4 sm:mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Absensi Karyawan</h1>
-        <p className="text-gray-600 mt-1 text-sm">Pencatatan dan pemantauan kehadiran karyawan</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Absensi Karyawan</h1>
+          <p className="text-gray-600 mt-1 text-sm">Pencatatan dan pemantauan kehadiran karyawan</p>
+        </div>
+        <button
+          onClick={() => setShowForm(true)}
+          className="mt-3 sm:mt-0 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center shadow-sm"
+        >
+          <Plus className="w-5 h-5 mr-2" />
+          Input Absensi
+        </button>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
@@ -261,141 +272,159 @@ export default function AttendancePage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center justify-between">
-          <div className="flex items-center">
-            <Plus className="w-5 h-5 mr-2 text-blue-600" />
-            {editingId ? 'Edit Absensi' : 'Input Absensi'}
-          </div>
-          {editingId && (
-            <button onClick={handleCancelEdit} className="text-sm text-gray-500 hover:text-gray-700 underline">
-              Batal Edit
-            </button>
-          )}
-        </h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Karyawan</label>
-              <select
-                value={formData.employee_id}
-                onChange={(e) => setFormData((prev) => ({ ...prev, employee_id: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
+      {showForm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
+              <h2 className="text-lg font-semibold text-gray-800 flex items-center">
+                <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                  <UserCheck className="w-5 h-5 text-blue-600" />
+                </div>
+                {editingId ? 'Edit Absensi' : 'Input Absensi'}
+              </h2>
+              <button
+                onClick={handleCancelEdit}
+                className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-full transition-colors"
               >
-                <option value="">-- Pilih Karyawan --</option>
-                {employees.map((emp) => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.name} ({emp.employee_code || '-'})
-                  </option>
-                ))}
-              </select>
+                &times;
+              </button>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
-              <input
-                type="date"
-                value={isHelper ? toLocalDateInput(new Date()) : formData.date}
-                onChange={(e) => setFormData((prev) => ({ ...prev, date: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                disabled={isHelper}
-                readOnly={isHelper}
-                required
-              />
-              {isGMOrSuperuser && (
-                <p className="text-xs text-gray-500 mt-1">Role Anda dapat memilih tanggal absensi.</p>
-              )}
-              {isHelper && (
-                <p className="text-xs text-amber-600 mt-1">Tanggal helper otomatis mengikuti tanggal akses aplikasi.</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              >
-                <option value="present">Hadir</option>
-                <option value="late">Terlambat</option>
-                <option value="sick">Sakit</option>
-                <option value="leave">Izin/Cuti</option>
-                <option value="absent">Alpha</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Waktu Check-in</label>
-              {isGMOrSuperuser ? (
-                <input
-                  type="datetime-local"
-                  value={formData.check_in}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, check_in: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-              ) : (
-                <div className="flex items-center space-x-2">
+            
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Karyawan</label>
+                  <select
+                    value={formData.employee_id}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, employee_id: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-gray-50 focus:bg-white"
+                    required
+                  >
+                    <option value="">-- Pilih Karyawan --</option>
+                    {employees.map((emp) => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.name} ({emp.employee_code || '-'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
                   <input
-                    type="checkbox"
-                    checked={formData.check_in !== ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, check_in: e.target.checked ? toLocalDateTimeInput(new Date()) : '' }))}
-                    className="h-5 w-5 text-blue-600 rounded"
+                    type="date"
+                    value={isHelper ? toLocalDateInput(new Date()) : formData.date}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, date: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-gray-50 focus:bg-white"
+                    disabled={isHelper}
+                    readOnly={isHelper}
+                    required
                   />
+                  {isGMOrSuperuser && (
+                    <p className="text-xs text-gray-500 mt-1">Role Anda dapat memilih tanggal absensi.</p>
+                  )}
+                  {isHelper && (
+                    <p className="text-xs text-amber-600 mt-1">Tanggal helper otomatis mengikuti tanggal akses aplikasi.</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-gray-50 focus:bg-white"
+                  >
+                    <option value="present">Hadir</option>
+                    <option value="late">Terlambat</option>
+                    <option value="sick">Sakit</option>
+                    <option value="leave">Izin/Cuti</option>
+                    <option value="absent">Alpha</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Waktu Check-in</label>
+                  {isGMOrSuperuser ? (
+                    <input
+                      type="datetime-local"
+                      value={formData.check_in}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, check_in: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-gray-50 focus:bg-white"
+                    />
+                  ) : (
+                    <div className="flex items-center space-x-3 p-2.5 border border-gray-200 rounded-xl bg-gray-50">
+                      <input
+                        type="checkbox"
+                        checked={formData.check_in !== ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, check_in: e.target.checked ? toLocalDateTimeInput(new Date()) : '' }))}
+                        className="h-5 w-5 text-blue-600 rounded cursor-pointer"
+                      />
+                      <input
+                        type="datetime-local"
+                        value={formData.check_in || toLocalDateTimeInput(new Date())}
+                        disabled
+                        className="w-full bg-transparent text-gray-600 outline-none"
+                      />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Waktu Check-out</label>
+                  {isGMOrSuperuser ? (
+                    <input
+                      type="datetime-local"
+                      value={formData.check_out}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, check_out: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-gray-50 focus:bg-white"
+                    />
+                  ) : (
+                    <div className="flex items-center space-x-3 p-2.5 border border-gray-200 rounded-xl bg-gray-50">
+                      <input
+                        type="checkbox"
+                        checked={formData.check_out !== ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, check_out: e.target.checked ? toLocalDateTimeInput(new Date()) : '' }))}
+                        className="h-5 w-5 text-blue-600 rounded cursor-pointer"
+                      />
+                      <input
+                        type="datetime-local"
+                        value={formData.check_out || toLocalDateTimeInput(new Date())}
+                        disabled
+                        className="w-full bg-transparent text-gray-600 outline-none"
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="md:col-span-2 lg:col-span-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Catatan</label>
                   <input
-                    type="datetime-local"
-                    value={formData.check_in || toLocalDateTimeInput(new Date())}
-                    disabled
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100"
+                    type="text"
+                    value={formData.notes}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-gray-50 focus:bg-white"
+                    placeholder="Opsional"
                   />
                 </div>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Waktu Check-out</label>
-              {isGMOrSuperuser ? (
-                <input
-                  type="datetime-local"
-                  value={formData.check_out}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, check_out: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.check_out !== ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, check_out: e.target.checked ? toLocalDateTimeInput(new Date()) : '' }))}
-                    className="h-5 w-5 text-blue-600 rounded"
-                  />
-                  <input
-                    type="datetime-local"
-                    value={formData.check_out || toLocalDateTimeInput(new Date())}
-                    disabled
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100"
-                  />
-                </div>
-              )}
-            </div>
-            <div className="md:col-span-2 lg:col-span-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
-              <input
-                type="text"
-                value={formData.notes}
-                onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="Opsional"
-              />
-            </div>
+              </div>
+              
+              <div className="pt-6 border-t border-gray-100 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="px-6 py-2.5 rounded-xl text-gray-700 font-medium hover:bg-gray-100 transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-6 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 shadow-sm shadow-blue-200 transition-colors min-w-[140px]"
+                >
+                  {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {editingId ? 'Update Absensi' : 'Simpan Absensi'}
+                </button>
+              </div>
+            </form>
           </div>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2"
-          >
-            {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-            {editingId ? 'Update Absensi' : 'Simpan Absensi'}
-          </button>
-        </form>
-      </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Filter & Riwayat Absensi</h2>
@@ -465,9 +494,13 @@ export default function AttendancePage() {
                     <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{row.notes || '-'}</td>
                     {isGMOrSuperuser && (
                       <td className="px-4 py-3 text-sm whitespace-nowrap">
-                        <div className="flex items-center space-x-3">
-                          <button onClick={() => handleEditClick(row)} className="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
-                          <button onClick={() => handleDelete(row.id)} className="text-red-600 hover:text-red-800 font-medium">Hapus</button>
+                        <div className="flex items-center space-x-2">
+                          <button onClick={() => handleEditClick(row)} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition-colors" title="Edit">
+                            <Edit size={18} />
+                          </button>
+                          <button onClick={() => handleDelete(row.id)} className="text-red-600 hover:bg-red-50 p-1.5 rounded transition-colors" title="Hapus">
+                            <Trash2 size={18} />
+                          </button>
                         </div>
                       </td>
                     )}
