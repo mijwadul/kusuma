@@ -4,7 +4,16 @@ import { BarChart2, PlusCircle, TrendingUp, TrendingDown, ChevronRight, Loader2 
 import StatCard from "./StatCard";
 import { formatIDR } from "../../utils/formatters";
 
-const DailyReportPanel = ({ isGM, role, dailyReport, dailyReportDate, setDailyReportDate, loadingDaily }) => {
+interface DailyReportPanelProps {
+  isGM: boolean;
+  role: string;
+  dailyReport: any;
+  dailyReportDate: string;
+  setDailyReportDate: (date: string) => void;
+  loadingDaily: boolean;
+}
+
+const DailyReportPanel: React.FC<DailyReportPanelProps> = ({ isGM, role, dailyReport, dailyReportDate, setDailyReportDate, loadingDaily }) => {
   const navigate = useNavigate();
 
   if (!(isGM || role === 'finance')) return null;

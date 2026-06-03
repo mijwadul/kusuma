@@ -11,6 +11,7 @@ export const login = async (email?: string, password?: string) => {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
+    withCredentials: true,
   });
 
   if (response.data.access_token) {
@@ -29,7 +30,12 @@ export const getUser = () => {
   return userStr ? JSON.parse(userStr) : null;
 };
 
-export const logout = () => {
+export const logout = async () => {
+  try {
+    await axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true });
+  } catch (err) {
+    console.error("Logout backend failed", err);
+  }
   localStorage.removeItem('token');
   localStorage.removeItem('user');
 };

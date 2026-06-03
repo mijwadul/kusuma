@@ -1,6 +1,17 @@
 import React from 'react';
 
-const AlertModal = ({ 
+interface AlertModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  confirmColor?: string;
+}
+
+const AlertModal: React.FC<AlertModalProps> = ({ 
   isOpen, 
   onClose, 
   onConfirm, 

@@ -10,13 +10,21 @@ const formatIDR = (val) =>
     minimumFractionDigits: 0,
   }).format(val || 0);
 
+interface SuratJalanManagerModalProps {
+  onClose: () => void;
+  API_URL: string;
+  authFetchHelper: (url: string, options?: any) => Promise<any>;
+  customers: any[];
+  onSaved: () => void;
+}
+
 export default function SuratJalanManagerModal({
   onClose,
   API_URL,
   authFetchHelper,
   customers,
   onSaved
-}) {
+}: SuratJalanManagerModalProps) {
   const [filters, setFilters] = useState({
     startDate: new Date().toISOString().split("T")[0],
     endDate: new Date().toISOString().split("T")[0],

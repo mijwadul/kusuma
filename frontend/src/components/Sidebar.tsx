@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { logout as apiLogout } from "../api/auth";
 import {
   Home,
   LogOut,
@@ -21,7 +22,6 @@ import {
   ShoppingCart,
   Wallet,
   TrendingUp,
-  DollarSign,
   Briefcase,
   FileText,
   Receipt,
@@ -29,13 +29,17 @@ import {
   FileBarChart2,
 } from "lucide-react";
 
-const Sidebar = ({ children }) => {
+interface SidebarProps {
+  children: React.ReactNode;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isOpen, setIsOpen] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const [isOpen, setIsOpen] = useState<boolean>(true);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -89,19 +93,34 @@ const Sidebar = ({ children }) => {
 
   const queryClient = useQueryClient();
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+  const handleLogout = async () => {
+    await apiLogout();
     setCurrentUser(null);
     queryClient.clear();
     navigate("/login");
   };
 
-  const [expandedMenu, setExpandedMenu] = useState(null);
+  const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
+
+interface SubMenuItem {
+  path: string;
+  icon: any;
+  label: string;
+  show?: boolean;
+}
+
+interface MenuItem {
+  id?: string;
+  path?: string;
+  icon: any;
+  label: string;
+  show?: boolean;
+  submenu?: SubMenuItem[];
+}
 
   // Role-based menu filtering - Bina-ERP Roles: gm, finance, admin, field
   // Legacy roles: helper → field, checker → finance
-  const getMenuItems = () => {
+  const getMenuItems = (): MenuItem[] => {
     const role = currentUser?.role || "field";
     // GM level: gm, admin (legacy), is_admin flag
     const isGM = role === "gm" || role === "admin" || currentUser?.is_admin;
@@ -113,7 +132,7 @@ const Sidebar = ({ children }) => {
     const isField =
       role === "field" || role === "helper" || isAdmin || isFinance;
 
-    const items = [
+    const items: MenuItem[] = [
       { path: "/dashboard", icon: Home, label: "Dashboard", show: true },
     ];
 
@@ -263,7 +282,7 @@ const Sidebar = ({ children }) => {
 
   const mainMenuItems = getMenuItems();
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path: string) => location.pathname === path;
 
   // Mobile hamburger menu
   if (isMobile) {
@@ -283,11 +302,11 @@ const Sidebar = ({ children }) => {
         {/* Mobile Menu Overlay */}
         {mobileMenuOpen && (
           <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-40"
+            className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
             onClick={() => setMobileMenuOpen(false)}
           >
             <div
-              className="absolute top-16 left-0 right-0 bg-brand-dark text-white shadow-lg max-h-[calc(100vh-4rem)] overflow-y-auto"
+              className="absolute top-16 left-0 right-0 glass-sidebar text-white shadow-xl max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-slate-700/50"
               onClick={(e) => e.stopPropagation()}
             >
               <nav className="p-4 space-y-1">
@@ -303,12 +322,12 @@ const Sidebar = ({ children }) => {
                       <div key={item.id}>
                         <button
                           onClick={() =>
-                            setExpandedMenu(isExpanded ? null : item.id)
+                            setExpandedMenu(isExpanded ? null : (item.id || null))
                           }
-                          className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
+                          className={`w-full flex items-center justify-between p-3 rounded-xl transition-all duration-200 ${
                             hasActiveChild
-                              ? "bg-accent text-white"
-                              : "hover:bg-slate-800 text-slate-300"
+                              ? "bg-gradient-to-r from-accent to-accent-hover text-white shadow-md shadow-accent/20"
+                              : "hover:bg-slate-800/60 hover:text-white text-slate-300"
                           }`}
                         >
                           <div className="flex items-center space-x-3">
@@ -331,14 +350,14 @@ const Sidebar = ({ children }) => {
                                   key={sub.path}
                                   to={sub.path}
                                   onClick={() => setMobileMenuOpen(false)}
-                                  className={`flex items-center space-x-3 p-2 rounded-lg text-sm transition-colors ${
+                                  className={`flex items-center space-x-3 p-2 rounded-xl text-sm transition-all duration-200 ${
                                     isSubActive
                                       ? isFuelSub
-                                        ? "bg-amber-600 text-white"
-                                        : "bg-accent text-white"
+                                        ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-500/20"
+                                        : "bg-gradient-to-r from-accent to-accent-hover text-white shadow-md shadow-accent/20"
                                       : isFuelSub
-                                        ? "hover:bg-amber-700 text-amber-100"
-                                        : "hover:bg-slate-800 text-slate-300"
+                                        ? "hover:bg-amber-700/50 hover:text-amber-100 text-amber-200/70"
+                                        : "hover:bg-slate-800/60 hover:text-white text-slate-300"
                                   }`}
                                 >
                                   <sub.icon
@@ -358,16 +377,16 @@ const Sidebar = ({ children }) => {
                       </div>
                     );
                   }
-                  const isItemActive = isActive(item.path);
+                  const isItemActive = isActive(item.path || "");
                   return (
                     <Link
                       key={item.path}
-                      to={item.path}
+                      to={item.path || ""}
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                      className={`flex items-center space-x-3 p-3 rounded-xl transition-all duration-200 ${
                         isItemActive
-                          ? "bg-accent text-white"
-                          : "hover:bg-slate-800 text-slate-300"
+                          ? "bg-gradient-to-r from-accent to-accent-hover text-white shadow-md shadow-accent/20"
+                          : "hover:bg-slate-800/60 hover:text-white text-slate-300"
                       }`}
                     >
                       <item.icon size={20} />
@@ -398,7 +417,7 @@ const Sidebar = ({ children }) => {
     <div className="flex h-screen overflow-hidden bg-brand-light">
       {/* Sidebar */}
       <div
-        className={`h-screen bg-brand-dark text-white transition-all duration-300 ease-in-out flex flex-col ${
+        className={`h-screen glass-sidebar text-white transition-all duration-300 ease-in-out flex flex-col shadow-2xl shadow-slate-900/50 ${
           isOpen ? "w-64" : "w-20"
         }`}
       >
@@ -435,12 +454,12 @@ const Sidebar = ({ children }) => {
                     <>
                       <button
                         onClick={() =>
-                          setExpandedMenu(isExpanded ? null : item.id)
+                          setExpandedMenu(isExpanded ? null : (item.id || null))
                         }
-                        className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
+                        className={`w-full flex items-center justify-between p-3 rounded-xl transition-all duration-200 ${
                           hasActiveChild
-                            ? "bg-accent text-white"
-                            : "hover:bg-slate-800 text-slate-300"
+                            ? "bg-gradient-to-r from-accent to-accent-hover text-white shadow-md shadow-accent/20"
+                            : "hover:bg-slate-800/60 hover:text-white text-slate-300"
                         }`}
                       >
                         <div className="flex items-center space-x-3">
@@ -462,14 +481,14 @@ const Sidebar = ({ children }) => {
                               <Link
                                 key={sub.path}
                                 to={sub.path}
-                                className={`flex items-center space-x-3 p-2 rounded-lg text-sm transition-colors ${
+                                className={`flex items-center space-x-3 p-2 rounded-xl text-sm transition-all duration-200 ${
                                   isSubActive
                                     ? isFuelSub
-                                      ? "bg-amber-600 text-white"
-                                      : "bg-accent text-white"
+                                      ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-500/20"
+                                      : "bg-gradient-to-r from-accent to-accent-hover text-white shadow-md shadow-accent/20"
                                     : isFuelSub
-                                      ? "hover:bg-amber-700 text-amber-100"
-                                      : "hover:bg-slate-800 text-slate-300"
+                                      ? "hover:bg-amber-700/50 hover:text-amber-100 text-amber-200/70"
+                                      : "hover:bg-slate-800/60 hover:text-white text-slate-300"
                                 }`}
                                 title={sub.label}
                               >
@@ -494,13 +513,13 @@ const Sidebar = ({ children }) => {
                       <button
                         onClick={() =>
                           setExpandedMenu(
-                            expandedMenu === item.id ? null : item.id,
+                            expandedMenu === item.id ? null : (item.id || null),
                           )
                         }
-                        className={`w-full flex items-center justify-center p-3 rounded-lg transition-colors ${
+                        className={`w-full flex items-center justify-center p-3 rounded-xl transition-all duration-200 ${
                           hasActiveChild
-                            ? "bg-accent text-white"
-                            : "hover:bg-slate-800 text-slate-300"
+                            ? "bg-gradient-to-r from-accent to-accent-hover text-white shadow-md shadow-accent/20"
+                            : "hover:bg-slate-800/60 hover:text-white text-slate-300"
                         }`}
                         title={item.label}
                       >
@@ -515,15 +534,15 @@ const Sidebar = ({ children }) => {
                 </div>
               );
             }
-            const isItemActive = isActive(item.path);
+            const isItemActive = isActive(item.path || "");
             return (
               <Link
                 key={item.path}
-                to={item.path}
-                className={`flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                to={item.path || ""}
+                className={`flex items-center space-x-3 p-3 rounded-xl transition-all duration-200 ${
                   isItemActive
-                    ? "bg-accent text-white"
-                    : "hover:bg-slate-800 text-slate-300"
+                    ? "bg-gradient-to-r from-accent to-accent-hover text-white shadow-md shadow-accent/20"
+                    : "hover:bg-slate-800/60 hover:text-white text-slate-300"
                 } ${!isOpen && "justify-center"}`}
                 title={!isOpen ? item.label : ""}
               >

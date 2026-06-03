@@ -1,4 +1,4 @@
-export const toLocalDateInput = (value) => {
+export const toLocalDateInput = (value?: string | Date | null) => {
   const date = value ? new Date(value) : new Date();
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -17,14 +17,14 @@ export const toLocalDateTimeString = () => {
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 };
 
-export const formatIDR = (v) =>
+export const formatIDR = (v?: number | string | null) =>
   Number(v ?? 0).toLocaleString("id-ID", {
     style: "currency",
     currency: "IDR",
     minimumFractionDigits: 0,
   });
 
-export const formatDate = (d) => {
+export const formatDate = (d?: string | Date | null) => {
   if (!d) return "-";
   const str = String(d);
   const parts = str.split('T')[0].split('-');

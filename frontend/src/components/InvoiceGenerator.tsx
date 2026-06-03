@@ -19,7 +19,14 @@ const formatDate = (d) => {
   });
 };
 
-const InvoiceGenerator = ({ isOpen, onClose, customers = [], existingInvoice = null }) => {
+interface InvoiceGeneratorProps {
+  isOpen: boolean;
+  onClose: () => void;
+  customers?: any[];
+  existingInvoice?: any;
+}
+
+const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, customers = [], existingInvoice = null }) => {
   const [step, setStep] = useState(1); // 1 = Form, 2 = Preview
   const [loading, setLoading] = useState(false);
   

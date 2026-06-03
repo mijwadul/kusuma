@@ -13,7 +13,13 @@ import {
 } from "recharts";
 import { Fuel } from "lucide-react";
 
-const FuelStatsPanel = ({ fuelChartData, projectData, fuelEquipmentReport }) => {
+interface FuelStatsPanelProps {
+  fuelChartData: any[];
+  projectData: any[];
+  fuelEquipmentReport: any[];
+}
+
+const FuelStatsPanel: React.FC<FuelStatsPanelProps> = ({ fuelChartData, projectData, fuelEquipmentReport }) => {
   return (
     <>
       {/* ── Charts ────────────────────────────────────────────────────────── */}

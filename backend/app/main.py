@@ -20,6 +20,9 @@ from .core.auth import get_password_hash
 from .core.config import settings
 from .core.database import SessionLocal, engine
 from .models import Base, User
+from .core.limiter import limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 
 def bootstrap_database():
@@ -73,6 +76,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title=settings.APP_NAME, lifespan=lifespan)
+app.state.limiter = limiter
+
+app.add_middleware(SlowAPIMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -93,6 +99,14 @@ async def app_exception_handler(request: Request, exc: AppException):
         status_code=exc.status_code,
         content={"detail": exc.detail},
         headers=exc.headers,
+    )
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Too Many Requests. Please try again later."},
     )
 
 

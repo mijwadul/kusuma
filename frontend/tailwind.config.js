@@ -6,6 +6,14 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+      },
+      boxShadow: {
+        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+        'floating': '0 10px 40px -10px rgba(0,0,0,0.08)',
+      },
       colors: {
         brand: {
           dark: '#0F172A',      // Deep Navy
@@ -17,6 +25,7 @@ export default {
           DEFAULT: '#0D9488',   // Sea Teal
           hover: '#0F766E',     // Darker Teal for Hover
           focus: '#2DD4BF',     // Teal Focus Ring
+          light: '#CCFBF1',     // Very light teal for backgrounds
         },
         status: {
           success: {

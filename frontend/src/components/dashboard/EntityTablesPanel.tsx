@@ -1,7 +1,12 @@
 import React from 'react';
 import { Truck, Users } from "lucide-react";
 
-const EntityTablesPanel = ({ equipment, employees }) => {
+interface EntityTablesPanelProps {
+  equipment: any[];
+  employees: any[];
+}
+
+const EntityTablesPanel: React.FC<EntityTablesPanelProps> = ({ equipment, employees }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">

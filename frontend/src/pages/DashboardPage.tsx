@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Truck,
@@ -13,7 +13,6 @@ import {
   AlertTriangle,
   ChevronRight,
   RefreshCw,
-  Loader2,
   Wallet,
   Receipt,
   XCircle,
@@ -61,15 +60,17 @@ export default function DashboardPage() {
   
   // Derived role flags
   const role = currentUser?.role ?? "";
-  const isGM =
+  const isGM = Boolean(
     role === "gm" ||
     role === "direktur" ||
     currentUser?.is_admin ||
-    currentUser?.is_superuser;
-  const canSeePayroll =
+    currentUser?.is_superuser
+  );
+  const canSeePayroll = Boolean(
     ["gm", "finance", "admin", "checker", "direktur"].includes(role) ||
     currentUser?.is_admin ||
-    currentUser?.is_superuser;
+    currentUser?.is_superuser
+  );
 
   const yesterdayDate = useMemo(() => {
     const d = new Date();
@@ -78,9 +79,9 @@ export default function DashboardPage() {
   }, []);
 
   // React Query Fetching
-  const { data: stats = { equipment_count: 0, employee_count: 0, project_count: 0 } } = useDashboardStats();
+  const { data: stats = { equipment_count: 0, employee_count: 0, project_count: 0 }, isLoading: loadingStats } = useDashboardStats();
   const { data: payrollSummary, isLoading: loadingPayroll } = usePayrollSummary();
-  const { data: fuelStats = { total_fuel_consumed: 0, equipment_count: 0 } } = useFuelEfficiency(30);
+  const { data: fuelStats = { total_fuel_consumed: 0, equipment_count: 0 }, isLoading: loadingFuelStats } = useFuelEfficiency(30);
   const { data: fuelEquipmentReport = [] } = useFuelEquipmentReport(30);
   const { data: equipment = [] } = useDashboardEquipment();
   const { data: employees = [] } = useDashboardEmployees();
@@ -419,12 +420,13 @@ export default function DashboardPage() {
       )}
 
       {role !== 'finance' && (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in">
         <StatCard
           icon={Truck}
           label="Total Equipment"
           value={stats.equipment_count}
           color="bg-blue-500"
+          loading={loadingStats}
           onClick={() => navigate("/equipment")}
         />
         <StatCard
@@ -432,6 +434,7 @@ export default function DashboardPage() {
           label="Karyawan Aktif"
           value={stats.employee_count}
           color="bg-emerald-500"
+          loading={loadingStats}
           onClick={() => navigate("/employees")}
         />
         <StatCard
@@ -439,6 +442,7 @@ export default function DashboardPage() {
           label="Total Proyek"
           value={stats.project_count}
           color="bg-purple-500"
+          loading={loadingStats}
         />
         <StatCard
           icon={Gauge}
@@ -446,6 +450,7 @@ export default function DashboardPage() {
           value={`${fuelStats.total_fuel_consumed.toFixed(1)} L`}
           sub={`${fuelStats.equipment_count} unit`}
           color="bg-amber-500"
+          loading={loadingFuelStats}
           onClick={() => navigate("/fuel")}
         />
       </div>
@@ -467,11 +472,20 @@ export default function DashboardPage() {
           </div>
 
           {loadingPayroll ? (
-            <div className="flex items-center gap-2 text-gray-400 py-4">
-              <Loader2 className="w-5 h-5 animate-spin" /> Memuat data payroll…
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fade-in">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-3xl p-6 border border-slate-100 flex items-start gap-4">
+                  <div className="p-3.5 rounded-2xl w-12 h-12 skeleton-box flex-shrink-0"></div>
+                  <div className="flex-1 w-full space-y-2">
+                    <div className="h-4 w-24 skeleton-box"></div>
+                    <div className="h-8 w-1/2 skeleton-box mt-1.5"></div>
+                    <div className="h-3 w-32 skeleton-box mt-1"></div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
-            <>
+            <div className="animate-fade-in space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <StatCard
                   icon={Clock}
@@ -506,7 +520,7 @@ export default function DashboardPage() {
                 approvingId={approvePayroll.isPending ? payrollApproveModal.id : null}
                 setPayrollApproveModal={setPayrollApproveModal}
               />
-            </>
+            </div>
           )}
         </div>
       )}

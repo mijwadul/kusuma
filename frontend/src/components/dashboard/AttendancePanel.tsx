@@ -2,7 +2,18 @@ import React from 'react';
 import { ClipboardCheck, Loader2, CheckCircle, Trash2 } from "lucide-react";
 import { toLocalDateInput } from "../../utils/formatters";
 
-const AttendancePanel = ({
+interface AttendancePanelProps {
+  role: string;
+  operationEmployees: any[];
+  selectedFieldEmployee: string;
+  setSelectedFieldEmployee: (id: string) => void;
+  todayAttendance: any[];
+  attendanceLoading: boolean;
+  handleAttendanceAction: (id: number, action: string, recordId?: number) => void;
+  setDeleteAttendanceModal: (state: any) => void;
+}
+
+const AttendancePanel: React.FC<AttendancePanelProps> = ({
   role,
   operationEmployees,
   selectedFieldEmployee,

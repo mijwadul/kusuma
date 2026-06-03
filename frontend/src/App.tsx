@@ -31,18 +31,25 @@ import SuratJalanPage from "./pages/SuratJalanPage";
 import Sidebar from "./components/Sidebar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleProtectedRoute from "./components/RoleProtectedRoute";
+import ErrorBoundary from "./components/ErrorBoundary";
+import { useLocation } from "react-router-dom";
 
 const MainLayout: React.FC = () => {
+  const location = useLocation();
+  
   return (
     <Sidebar>
-      <Outlet />
+      <div key={location.pathname} className="page-transition-enter min-h-full">
+        <Outlet />
+      </div>
     </Sidebar>
   );
 };
 
 const App: React.FC = () => {
   return (
-    <Router>
+    <ErrorBoundary>
+      <Router>
       <Toaster />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
@@ -76,6 +83,7 @@ const App: React.FC = () => {
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
+    </ErrorBoundary>
   );
 }
 

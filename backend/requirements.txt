@@ -19,6 +19,7 @@ pydantic-settings          # membaca .env otomatis
 # ─── Auth & Security ──────────────────────────────────────────
 passlib[bcrypt]            # password hashing
 python-jose[cryptography]  # JWT token
+slowapi                    # rate limiting
 
 # ─── Utilities ────────────────────────────────────────────────
 python-multipart           # parsing form data (login)

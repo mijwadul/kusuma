@@ -1,7 +1,12 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 
-const RoleProtectedRoute = ({ children, allowedRoles }) => {
+interface RoleProtectedRouteProps {
+  children: ReactNode;
+  allowedRoles?: string[];
+}
+
+const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({ children, allowedRoles }) => {
   const userStr = localStorage.getItem('user');
   let user = null;
   if (userStr) {

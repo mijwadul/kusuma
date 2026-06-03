@@ -2,7 +2,14 @@ import React from 'react';
 import { BarChart2, TrendingDown, TrendingUp, Wallet, Loader2 } from "lucide-react";
 import { formatIDR, formatDate } from "../../utils/formatters";
 
-const YesterdayReportPanel = ({ role, isGM, loadingYesterday, yesterdayReport }) => {
+interface YesterdayReportPanelProps {
+  role: string;
+  isGM: boolean;
+  loadingYesterday: boolean;
+  yesterdayReport: any;
+}
+
+const YesterdayReportPanel: React.FC<YesterdayReportPanelProps> = ({ role, isGM, loadingYesterday, yesterdayReport }) => {
   if (!(isGM || role === 'finance')) return null;
 
   return (

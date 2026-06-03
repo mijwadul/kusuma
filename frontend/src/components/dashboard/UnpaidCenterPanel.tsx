@@ -2,7 +2,14 @@ import React from 'react';
 import { AlertTriangle } from "lucide-react";
 import { formatIDR, formatDate } from "../../utils/formatters";
 
-const UnpaidCenterPanel = ({ role, isGM, financeSummary, handleMarkPaid }) => {
+interface UnpaidCenterPanelProps {
+  role: string;
+  isGM: boolean;
+  financeSummary: any;
+  handleMarkPaid: (type: string, id: number) => void;
+}
+
+const UnpaidCenterPanel: React.FC<UnpaidCenterPanelProps> = ({ role, isGM, financeSummary, handleMarkPaid }) => {
   if (!(role === 'finance' || isGM) || !financeSummary) return null;
 
   return (

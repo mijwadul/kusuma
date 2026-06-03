@@ -1,11 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { getToken } from "../api/auth";
 import { API_URL } from "../api/apiClient";
 
-const ProtectedRoute = ({ children }) => {
+interface ProtectedRouteProps {
+  children: ReactNode;
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   // null = sedang cek, true = valid, false = tidak valid
-  const [authState, setAuthState] = useState(null);
+  const [authState, setAuthState] = useState<boolean | null>(null);
 
   useEffect(() => {
     const validateToken = async () => {

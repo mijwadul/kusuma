@@ -3,7 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
 import { formatIDR, formatDate } from "../../utils/formatters";
 
-const PendingPayrollPanel = ({ isGM, payrollSummary: ps, approvingId, setPayrollApproveModal }) => {
+interface PendingPayrollPanelProps {
+  isGM: boolean;
+  payrollSummary: any;
+  approvingId: number | null;
+  setPayrollApproveModal: (state: any) => void;
+}
+
+const PendingPayrollPanel: React.FC<PendingPayrollPanelProps> = ({ isGM, payrollSummary: ps, approvingId, setPayrollApproveModal }) => {
   const navigate = useNavigate();
 
   if (!isGM) return null;
