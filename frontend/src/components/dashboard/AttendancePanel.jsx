@@ -30,8 +30,8 @@ const AttendancePanel = ({
             onChange={(e) => setSelectedFieldEmployee(e.target.value)}
           >
             <option value="">-- Pilih Pekerja --</option>
-            {operationEmployees.map(emp => (
-              <option key={emp.id} value={emp.id}>{emp.name}</option>
+            {operationEmployees.slice().sort((a, b) => (a.name || a.full_name || '').localeCompare(b.name || b.full_name || '')).map(emp => (
+              <option key={emp.id} value={emp.id}>{emp.name || emp.full_name}</option>
             ))}
           </select>
         </div>

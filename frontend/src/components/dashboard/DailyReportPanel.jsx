@@ -38,7 +38,7 @@ const DailyReportPanel = ({ isGM, role, dailyReport, dailyReportDate, setDailyRe
           />
         </div>
         <button
-          onClick={() => navigate("/daily-report")}
+          onClick={() => navigate("/reports")}
           className="text-sm text-emerald-600 hover:text-emerald-800 flex items-center gap-1 font-medium"
         >
           Laporan Lengkap <ChevronRight className="w-4 h-4" />
@@ -185,7 +185,7 @@ const DailyReportPanel = ({ isGM, role, dailyReport, dailyReportDate, setDailyRe
               },
               {
                 label: "Laporan Lengkap",
-                path: "/daily-report",
+                path: "/reports",
                 color:
                   "bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200",
               },

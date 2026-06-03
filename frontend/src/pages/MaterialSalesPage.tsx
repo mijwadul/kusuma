@@ -11,8 +11,7 @@ import {
   useUpdateMaterialPrice, useDeleteMaterialPrice, useAddCustomerTruck,
   IncomeRecord, MaterialPrice
 } from "../hooks/useMaterialSales";
-import { useProjectMeta, useCustomersList, useProjectsList, ProjectMeta, Customer } from "../hooks/useProjects";
-import { useEquipment } from "../hooks/useEquipment";
+import { useCustomersList, useProjectsList, Customer } from "../hooks/useProjects";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const formatIDR = (v?: number | string | null) =>
@@ -59,10 +58,10 @@ const MaterialBadge = ({ type }: { type?: string }) => {
 
 // ── Modals ─────────────────────────────────────────────────────────────────────
 const SaleFormModal = ({
-  editData, onClose, meta, customers, projects
+  editData, onClose, customers, projects
 }: {
   editData: IncomeRecord | null, onClose: () => void,
-  meta?: ProjectMeta | null, customers: Customer[], projects: any[]
+  customers: Customer[], projects: any[]
 }) => {
   const [form, setForm] = useState({
     income_date: editData?.income_date ? editData.income_date.split("T")[0] : todayStr(),
@@ -240,7 +239,7 @@ const SaleFormModal = ({
                 className={inputCls} 
               />
               <datalist id="customers-list">
-                {customers.map(c => <option key={c.id} value={c.name} />)}
+                {customers.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((c: any) => <option key={c.id} value={c.name} />)}
               </datalist>
             </div>
           </div>
@@ -363,9 +362,9 @@ const SaleFormModal = ({
                 className={inputCls}
               >
                 <option value="">-- Tanpa Project (General) --</option>
-                {(projects || []).map(p => (
-                  <option key={p.id} value={String(p.id)}>{p.name}</option>
-                ))}
+                  {projects.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((p: any) => (
+                    <option key={p.id} value={String(p.id)}>{p.name}</option>
+                  ))}
               </select>
             </div>
           </div>
@@ -538,10 +537,9 @@ export default function MaterialSalesPage() {
   
   const { data: sales = [], isLoading: loadingSales } = useIncomeRecords({ income_type: "material_sale" }, { enabled: activeTab === "sales" });
   const { data: prices = [], isLoading: loadingPrices } = useMaterialPrices(undefined, { enabled: activeTab === "prices" });
-  const { data: meta } = useProjectMeta();
+
   const { data: customers = [] } = useCustomersList();
   const { data: projects = [] } = useProjectsList();
-  const { data: equipment = [] } = useEquipment();
 
   const deleteIncomeMutation = useDeleteIncomeRecord();
   const deletePriceMutation = useDeleteMaterialPrice();
@@ -696,7 +694,7 @@ export default function MaterialSalesPage() {
         )}
       </div>
 
-      {showSaleModal && <SaleFormModal editData={editDataSale} onClose={() => setShowSaleModal(false)} meta={meta} customers={customers} projects={projects} />}
+      {showSaleModal && <SaleFormModal editData={editDataSale} onClose={() => setShowSaleModal(false)} customers={customers} projects={projects} />}
       {showPriceModal && <PriceFormModal editData={editDataPrice} onClose={() => setShowPriceModal(false)} />}
 
       {/* Sale Detail Modal */}

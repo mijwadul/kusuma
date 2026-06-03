@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
   Fuel,
   Plus,
@@ -29,7 +29,6 @@ import {
 } from "../hooks/useFuel";
 
 const FuelPage = () => {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const preselectedEquipmentId = searchParams.get("equipment");
 
@@ -39,9 +38,11 @@ const FuelPage = () => {
   const [deleteLogId, setDeleteLogId] = useState<number | null>(null);
 
   const { data: equipmentList = [] as any[], isLoading: equipmentLoading } = useEquipment();
-  const { data: fuelLogs = [] as FuelLog[], isLoading: fuelLogsLoading } = useFuelLogs();
+  const { data: rawFuelLogs, isLoading: fuelLogsLoading } = useFuelLogs();
+  const fuelLogs = (rawFuelLogs as FuelLog[]) || [];
   const { data: fuelStock, isLoading: fuelStockLoading } = useFuelStock();
-  const { data: stats = { total_fuel_consumed: 0, equipment_count: 0 } as FuelStats, isLoading: statsLoading } = useFuelEfficiency();
+  const { data: rawStats, isLoading: statsLoading } = useFuelEfficiency();
+  const stats = (rawStats as FuelStats) || { total_fuel_consumed: 0, equipment_count: 0 };
 
   const createMutation = useCreateFuelLog();
   const updateMutation = useUpdateFuelLog();
@@ -358,7 +359,7 @@ const FuelPage = () => {
                   required
                 >
                   <option value="">-- Pilih Alat --</option>
-                  {equipmentList.map((eq: any) => (
+                  {equipmentList.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((eq: any) => (
                     <option key={eq.id} value={eq.id}>
                       {eq.name}
                       {eq.brand ? ` · ${eq.brand}` : ""} · {eq.type}
