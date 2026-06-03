@@ -8,6 +8,7 @@ class Invoice(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     invoice_number = Column(String(50), unique=True, index=True, nullable=False)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True)
     customer_name = Column(String(200), nullable=False)
     invoice_date = Column(Date, nullable=False)
     start_date = Column(Date, nullable=False)  # Periode awal penjualan material

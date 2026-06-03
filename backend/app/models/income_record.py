@@ -16,6 +16,7 @@ class IncomeRecord(Base):
     payment_term = Column(
         String(50), nullable=True
     )  # dp, termin_1, termin_2, pelunasan
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True)
     customer_name = Column(String(200), nullable=True)
     material_type = Column(String(100), nullable=True)
     quantity = Column(Float, nullable=True)

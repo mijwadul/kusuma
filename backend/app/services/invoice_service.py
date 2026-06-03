@@ -17,16 +17,20 @@ from ..api.v1.invoices import (
 
 class InvoiceService:
     @staticmethod
-    def preview_invoice(db: Session, customer_name: str, start_date: date, end_date: date, invoice_id: Optional[int] = None) -> InvoicePreviewResponse:
+    def preview_invoice(db: Session, customer_name: Optional[str], customer_id: Optional[int], start_date: date, end_date: date, invoice_id: Optional[int] = None) -> InvoicePreviewResponse:
         query = (
             db.query(IncomeRecord)
             .filter(
                 IncomeRecord.income_type == "material_sale",
-                IncomeRecord.customer_name == customer_name,
                 IncomeRecord.income_date >= start_date,
                 IncomeRecord.income_date <= end_date,
             )
         )
+        
+        if customer_id is not None:
+            query = query.filter(IncomeRecord.customer_id == customer_id)
+        elif customer_name is not None:
+            query = query.filter(IncomeRecord.customer_name == customer_name)
         
         if invoice_id is not None:
             query = query.filter(
@@ -81,7 +85,8 @@ class InvoiceService:
             total += amt
 
         return InvoicePreviewResponse(
-            customer_name=customer_name,
+            customer_name=customer_name or "",
+            customer_id=customer_id,
             start_date=start_date,
             end_date=end_date,
             items=items,
@@ -123,6 +128,7 @@ class InvoiceService:
         new_invoice = Invoice(
             invoice_number=invoice_number,
             customer_name=data.customer_name,
+            customer_id=data.customer_id,
             invoice_date=data.invoice_date if data.invoice_date else today,
             start_date=data.start_date,
             end_date=data.end_date,
@@ -139,13 +145,19 @@ class InvoiceService:
         db.commit()
         db.refresh(new_invoice)
 
-        records_to_mark = db.query(IncomeRecord).filter(
+        records_query = db.query(IncomeRecord).filter(
             IncomeRecord.income_type == "material_sale",
-            IncomeRecord.customer_name == data.customer_name,
             IncomeRecord.income_date >= data.start_date,
             IncomeRecord.income_date <= data.end_date,
             (IncomeRecord.is_invoiced == False) | (IncomeRecord.is_invoiced == None)
-        ).all()
+        )
+        
+        if data.customer_id is not None:
+            records_query = records_query.filter(IncomeRecord.customer_id == data.customer_id)
+        else:
+            records_query = records_query.filter(IncomeRecord.customer_name == data.customer_name)
+            
+        records_to_mark = records_query.all()
         
         for r in records_to_mark:
             r.is_invoiced = True
@@ -158,6 +170,7 @@ class InvoiceService:
             id=new_invoice.id,
             invoice_number=new_invoice.invoice_number,
             customer_name=new_invoice.customer_name,
+            customer_id=new_invoice.customer_id,
             invoice_date=new_invoice.invoice_date,
             start_date=new_invoice.start_date,
             end_date=new_invoice.end_date,
@@ -179,6 +192,7 @@ class InvoiceService:
                 id=inv.id,
                 invoice_number=inv.invoice_number,
                 customer_name=inv.customer_name,
+                customer_id=inv.customer_id,
                 invoice_date=inv.invoice_date,
                 start_date=inv.start_date,
                 end_date=inv.end_date,
@@ -216,6 +230,7 @@ class InvoiceService:
             id=inv.id,
             invoice_number=inv.invoice_number,
             customer_name=inv.customer_name,
+            customer_id=inv.customer_id,
             invoice_date=inv.invoice_date,
             start_date=inv.start_date,
             end_date=inv.end_date,
@@ -254,6 +269,7 @@ class InvoiceService:
             id=inv.id,
             invoice_number=inv.invoice_number,
             customer_name=inv.customer_name,
+            customer_id=inv.customer_id,
             invoice_date=inv.invoice_date,
             start_date=inv.start_date,
             end_date=inv.end_date,
@@ -290,13 +306,19 @@ class InvoiceService:
         for key, value in update_data.items():
             setattr(inv, key, value)
             
-        records_to_mark = db.query(IncomeRecord).filter(
+        records_query = db.query(IncomeRecord).filter(
             IncomeRecord.income_type == "material_sale",
-            IncomeRecord.customer_name == inv.customer_name,
             IncomeRecord.income_date >= inv.start_date,
             IncomeRecord.income_date <= inv.end_date,
             (IncomeRecord.is_invoiced == False) | (IncomeRecord.is_invoiced == None)
-        ).all()
+        )
+        
+        if inv.customer_id is not None:
+            records_query = records_query.filter(IncomeRecord.customer_id == inv.customer_id)
+        else:
+            records_query = records_query.filter(IncomeRecord.customer_name == inv.customer_name)
+            
+        records_to_mark = records_query.all()
         for r in records_to_mark:
             r.is_invoiced = True
             r.invoice_id = inv.id
@@ -323,6 +345,7 @@ class InvoiceService:
             id=inv.id,
             invoice_number=inv.invoice_number,
             customer_name=inv.customer_name,
+            customer_id=inv.customer_id,
             invoice_date=inv.invoice_date,
             start_date=inv.start_date,
             end_date=inv.end_date,

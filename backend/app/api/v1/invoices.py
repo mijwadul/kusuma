@@ -25,6 +25,7 @@ class InvoicePreviewItem(BaseModel):
 
 class InvoicePreviewResponse(BaseModel):
     customer_name: str
+    customer_id: Optional[int] = None
     start_date: date
     end_date: date
     items: List[InvoicePreviewItem]
@@ -32,6 +33,7 @@ class InvoicePreviewResponse(BaseModel):
 
 class InvoiceCreate(BaseModel):
     customer_name: str
+    customer_id: Optional[int] = None
     start_date: date
     end_date: date
     total_amount: float
@@ -42,6 +44,7 @@ class InvoiceCreate(BaseModel):
 
 class InvoiceUpdate(BaseModel):
     customer_name: Optional[str] = None
+    customer_id: Optional[int] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     invoice_date: Optional[date] = None
@@ -54,6 +57,7 @@ class InvoiceResponse(BaseModel):
     id: int
     invoice_number: str
     customer_name: str
+    customer_id: Optional[int] = None
     invoice_date: date
     start_date: date
     end_date: date
@@ -73,14 +77,15 @@ from ...services.invoice_service import InvoiceService
 
 @router.get("/preview", response_model=InvoicePreviewResponse)
 def preview_invoice(
-    customer_name: str = Query(..., description="Nama customer"),
+    customer_name: Optional[str] = Query(None, description="Nama customer"),
+    customer_id: Optional[int] = Query(None, description="ID customer"),
     start_date: date = Query(..., description="Tanggal awal"),
     end_date: date = Query(..., description="Tanggal akhir"),
     invoice_id: Optional[int] = Query(None, description="ID Invoice (jika edit)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return InvoiceService.preview_invoice(db, customer_name, start_date, end_date, invoice_id)
+    return InvoiceService.preview_invoice(db, customer_name, customer_id, start_date, end_date, invoice_id)
 
 @router.post("", response_model=InvoiceResponse, status_code=status.HTTP_201_CREATED)
 def create_invoice(

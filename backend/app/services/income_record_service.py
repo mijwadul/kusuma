@@ -118,6 +118,7 @@ class IncomeRecordService:
             amount=data.amount,
             project_id=data.project_id,
             payment_term=data.payment_term,
+            customer_id=data.customer_id,
             customer_name=data.customer_name,
             material_type=data.material_type,
             quantity=data.quantity,

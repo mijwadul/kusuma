@@ -172,5 +172,5 @@ class CustomerService:
         cust = db.query(Customer).filter(Customer.id == customer_id).first()
         if not cust:
             raise NotFoundError("Customer tidak ditemukan")
-        db.delete(cust)
+        cust.is_active = False
         db.commit()

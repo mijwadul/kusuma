@@ -7,7 +7,7 @@ from ..core.exceptions import NotFoundError
 class EquipmentService:
     @staticmethod
     def get_equipments(db: Session) -> List[Equipment]:
-        return db.query(Equipment).all()
+        return db.query(Equipment).filter(Equipment.status != "deleted").all()
 
     @staticmethod
     def get_equipment(db: Session, equipment_id: int) -> Equipment:
@@ -43,5 +43,5 @@ class EquipmentService:
         if not equipment:
             raise NotFoundError("Equipment not found")
         
-        db.delete(equipment)
+        equipment.status = "deleted"
         db.commit()

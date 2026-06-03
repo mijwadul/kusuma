@@ -11,6 +11,7 @@ class IncomeRecordBase(BaseModel):
     amount: float
     project_id: Optional[int] = None
     payment_term: Optional[str] = None
+    customer_id: Optional[int] = None
     customer_name: Optional[str] = None
     material_type: Optional[str] = None
     quantity: Optional[float] = None
@@ -44,6 +45,7 @@ class IncomeRecordUpdate(BaseModel):
     amount: Optional[float] = None
     project_id: Optional[int] = None
     payment_term: Optional[str] = None
+    customer_id: Optional[int] = None
     customer_name: Optional[str] = None
     material_type: Optional[str] = None
     quantity: Optional[float] = None

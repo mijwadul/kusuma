@@ -95,7 +95,7 @@ class ProjectService:
 
     @staticmethod
     def list_projects(db: Session, status: Optional[str] = None) -> List[ProjectResponse]:
-        q = db.query(Project)
+        q = db.query(Project).filter(Project.is_active == True)
         if status:
             q = q.filter(Project.status == status)
         projects = q.order_by(Project.created_at.desc()).all()
@@ -183,5 +183,5 @@ class ProjectService:
         proj = db.query(Project).filter(Project.id == project_id).first()
         if not proj:
             raise NotFoundError("Proyek tidak ditemukan")
-        db.delete(proj)
+        proj.is_active = False
         db.commit()

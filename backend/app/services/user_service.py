@@ -8,7 +8,7 @@ from ..core.exceptions import NotFoundError, ValidationError, AuthorizationError
 class UserService:
     @staticmethod
     def get_all_users(db: Session) -> List[UserModel]:
-        return db.query(UserModel).all()
+        return db.query(UserModel).filter(UserModel.is_active == True).all()
 
     @staticmethod
     def create_user(db: Session, user: UserCreate) -> UserModel:
@@ -68,7 +68,7 @@ class UserService:
         if db_user.id == current_user_id:
             raise ValidationError("Cannot delete your own account")
         
-        db.delete(db_user)
+        db_user.is_active = False
         db.commit()
 
     @staticmethod

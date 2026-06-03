@@ -105,7 +105,7 @@ class VendorService:
 
     @staticmethod
     def get_vendors(db: Session) -> List[Vendor]:
-        vendors = db.query(Vendor).order_by(Vendor.name).all()
+        vendors = db.query(Vendor).filter(Vendor.status != "deleted").order_by(Vendor.name).all()
         for v in vendors:
             VendorService._sync_vendor_balance(db, v)
         return vendors
@@ -146,7 +146,7 @@ class VendorService:
         if not vendor:
             raise NotFoundError("Vendor not found")
             
-        db.delete(vendor)
+        vendor.status = "deleted"
         db.commit()
 
     @staticmethod
