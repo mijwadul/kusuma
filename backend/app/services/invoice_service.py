@@ -30,7 +30,7 @@ class InvoiceService:
         if customer_id is not None:
             query = query.filter(IncomeRecord.customer_id == customer_id)
         elif customer_name is not None:
-            query = query.filter(IncomeRecord.customer_name == customer_name)
+            query = query.filter(IncomeRecord.customer_name.ilike(customer_name))
         
         if invoice_id is not None:
             query = query.filter(
@@ -155,7 +155,7 @@ class InvoiceService:
         if data.customer_id is not None:
             records_query = records_query.filter(IncomeRecord.customer_id == data.customer_id)
         else:
-            records_query = records_query.filter(IncomeRecord.customer_name == data.customer_name)
+            records_query = records_query.filter(IncomeRecord.customer_name.ilike(data.customer_name))
             
         records_to_mark = records_query.all()
         
@@ -316,7 +316,7 @@ class InvoiceService:
         if inv.customer_id is not None:
             records_query = records_query.filter(IncomeRecord.customer_id == inv.customer_id)
         else:
-            records_query = records_query.filter(IncomeRecord.customer_name == inv.customer_name)
+            records_query = records_query.filter(IncomeRecord.customer_name.ilike(inv.customer_name))
             
         records_to_mark = records_query.all()
         for r in records_to_mark:

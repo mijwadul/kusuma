@@ -87,7 +87,7 @@ def calculate_material_sales_income(db: Session, start_date: date, end_date: dat
     for ir in material_rows:
         is_invoiced = False
         for inv in invoices_all:
-            if inv.customer_name == ir.customer_name and inv.start_date <= ir.income_date <= inv.end_date:
+            if inv.customer_name and ir.customer_name and inv.customer_name.lower() == ir.customer_name.lower() and inv.start_date <= ir.income_date <= inv.end_date:
                 is_invoiced = True
                 break
         

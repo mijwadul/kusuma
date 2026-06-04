@@ -69,6 +69,9 @@ class IncomeRecordService:
 
     @staticmethod
     def create_income_record(db: Session, current_user: User, data: IncomeRecordCreate) -> IncomeRecordResponse:
+        customer_id_val = data.customer_id
+        customer_name_val = data.customer_name
+
         if data.income_type == "material_sale" and data.customer_name:
             cust_name = data.customer_name.strip()
             customer = db.query(Customer).filter(Customer.name.ilike(cust_name)).first()
@@ -76,6 +79,9 @@ class IncomeRecordService:
                 customer = Customer(name=cust_name, created_by=current_user.id if current_user else None)
                 db.add(customer)
                 db.flush()
+            
+            customer_id_val = customer.id
+            customer_name_val = customer.name
             
             if data.license_plate:
                 plate = data.license_plate.strip().upper()
@@ -118,8 +124,8 @@ class IncomeRecordService:
             amount=data.amount,
             project_id=data.project_id,
             payment_term=data.payment_term,
-            customer_id=data.customer_id,
-            customer_name=data.customer_name,
+            customer_id=customer_id_val,
+            customer_name=customer_name_val,
             material_type=data.material_type,
             quantity=data.quantity,
             unit=data.unit,
@@ -275,6 +281,19 @@ class IncomeRecordService:
             raise AuthorizationError("Not authorized to update this record")
 
         update_data = data.model_dump(exclude_unset=True)
+        
+        if update_data.get("income_type") == "material_sale" or (record.income_type == "material_sale" and "customer_name" in update_data):
+            cust_name = update_data.get("customer_name", record.customer_name)
+            if cust_name:
+                cust_name = cust_name.strip()
+                customer = db.query(Customer).filter(Customer.name.ilike(cust_name)).first()
+                if not customer:
+                    customer = Customer(name=cust_name, created_by=current_user.id if current_user else None)
+                    db.add(customer)
+                    db.flush()
+                update_data["customer_name"] = customer.name
+                update_data["customer_id"] = customer.id
+
         for field, value in update_data.items():
             setattr(record, field, value)
             
