@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import AlertModal from "../components/AlertModal";
+import { toLocalDateInput } from "../utils/formatters";
 
 // Custom hooks
 import { useWorkLogs, useWorkLogStats, useCreateWorkLog, useUpdateWorkLog, useDeleteWorkLog, WorkLog } from "../hooks/useWorkLogs";
@@ -75,7 +76,7 @@ export default function WorkLogsPage() {
     project_id: "",
     operator_name: "",
     work_description: "",
-    work_date: new Date().toISOString().slice(0, 10),
+    work_date: toLocalDateInput(new Date()),
   });
 
   const isLoading = loadingEquipment || loadingProjects || loadingEmployees || loadingLogs || loadingStats;
@@ -187,8 +188,8 @@ export default function WorkLogsPage() {
       operator_name: log.operator_name || "",
       work_description: log.work_description || "",
       work_date: log.work_date
-        ? new Date(log.work_date).toISOString().slice(0, 10)
-        : new Date().toISOString().slice(0, 10),
+        ? toLocalDateInput(log.work_date)
+        : toLocalDateInput(new Date()),
     });
     setShowForm(true);
   };
@@ -221,7 +222,7 @@ export default function WorkLogsPage() {
       project_id: "",
       operator_name: "",
       work_description: "",
-      work_date: new Date().toISOString().slice(0, 10),
+      work_date: toLocalDateInput(new Date()),
     });
   };
 

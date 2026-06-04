@@ -12,6 +12,7 @@ import {
   IncomeRecord, MaterialPrice
 } from "../hooks/useMaterialSales";
 import { useCustomersList, useProjectsList, Customer } from "../hooks/useProjects";
+import { toLocalDateInput } from "../utils/formatters";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const formatIDR = (v?: number | string | null) =>
@@ -29,9 +30,7 @@ const formatDate = (d?: string | null) => {
 };
 
 const todayStr = () => {
-  const d = new Date();
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().split("T")[0];
+  return toLocalDateInput(new Date());
 };
 
 const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300";

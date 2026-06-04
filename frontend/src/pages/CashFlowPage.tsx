@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx';
 
 import { useProjectsList } from '../hooks/useProjects';
 import { useCashFlowReport } from '../hooks/useReports';
+import { toLocalDateInput } from '../utils/formatters';
 
 const formatIDR = (v?: number | string | null) =>
   Number(v ?? 0).toLocaleString('id-ID', {
@@ -22,11 +23,11 @@ const toLocalDate = (d?: string | null) => {
   });
 };
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
+const todayISO = () => toLocalDateInput(new Date());
 
 export default function CashFlowPage() {
   const [startDate, setStartDate] = useState(
-    new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10)
+    toLocalDateInput(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
   );
   const [endDate, setEndDate] = useState(todayISO());
   const [selectedProject, setSelectedProject] = useState('all');

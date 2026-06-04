@@ -12,6 +12,7 @@ export interface IncomeRecord {
   created_by?: number;
   created_at?: string;
   updated_at?: string;
+  payment_term?: string;
   
   // Specific to material sales
   customer_name?: string;

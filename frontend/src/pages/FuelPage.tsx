@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import AlertModal from "../components/AlertModal";
+import { toLocalDateTimeInputString } from "../utils/formatters";
 import { useEquipment } from "../hooks/useEquipment";
 import { 
   useFuelLogs, 
@@ -52,7 +53,7 @@ const FuelPage = () => {
   const [formData, setFormData] = useState({
     equipment_id: preselectedEquipmentId || "",
     liters_filled: "",
-    refuel_date: new Date().toISOString().slice(0, 16),
+    refuel_date: toLocalDateTimeInputString(new Date()),
     location: "",
     photo_url: "",
     notes: "",
@@ -135,7 +136,7 @@ const FuelPage = () => {
     setFormData({
       equipment_id: "",
       liters_filled: "",
-      refuel_date: new Date().toISOString().slice(0, 16),
+      refuel_date: toLocalDateTimeInputString(new Date()),
       location: "",
       photo_url: "",
       notes: "",
@@ -167,8 +168,8 @@ const FuelPage = () => {
       equipment_id: log.equipment_id.toString(),
       liters_filled: log.liters_filled.toString(),
       refuel_date: log.refuel_date
-        ? new Date(log.refuel_date).toISOString().slice(0, 16)
-        : new Date().toISOString().slice(0, 16),
+        ? toLocalDateTimeInputString(log.refuel_date)
+        : toLocalDateTimeInputString(new Date()),
       location: log.location || "",
       photo_url: log.photo_url || "",
       notes: log.notes || "",

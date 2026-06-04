@@ -14,6 +14,7 @@ import {
   RefreshCw,
   FileText,
 } from "lucide-react";
+import { toLocalDateInput } from "../utils/formatters";
 
 import AlertModal from "../components/AlertModal";
 import InvoiceGenerator from "../components/InvoiceGenerator";
@@ -50,11 +51,11 @@ const formatDate = (d?: string | null) => {
   });
 };
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const todayStr = () => toLocalDateInput(new Date());
 const daysAgo = (n: number) => {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  return toLocalDateInput(d);
 };
 
 const PAYMENT_TERMS = ["dp", "termin_1", "termin_2", "pelunasan", "lain-lain"];
@@ -257,7 +258,7 @@ export default function IncomePage() {
     if (r.income_type === "project_payment") {
       setModalTab("project_payment");
       setProjectForm({
-        income_date: r.income_date ? r.income_date.split("T")[0] : todayStr(),
+        income_date: r.income_date ? toLocalDateInput(r.income_date) : todayStr(),
         project_id: String(r.project_id ?? ""),
         payment_term: r.payment_term ?? "dp",
         amount: String(r.amount ?? ""),
@@ -268,7 +269,7 @@ export default function IncomePage() {
     } else {
       setModalTab("material_sale");
       setMaterialForm({
-        income_date: r.income_date ? r.income_date.split("T")[0] : todayStr(),
+        income_date: r.income_date ? toLocalDateInput(r.income_date) : todayStr(),
         customer_name: r.customer_name ?? "",
         material_type: r.material_type ?? "",
         quantity: String(r.quantity ?? "1"),

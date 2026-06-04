@@ -3,11 +3,12 @@ import { Search, Loader2, Save, ChevronDown, ChevronRight, Truck } from "lucide-
 import { toast } from "sonner";
 import { useCustomersList } from "../hooks/useProjects";
 import { useIncomeRecords, useBulkUpdateSJ } from "../hooks/useMaterialSales";
+import { toLocalDateInput } from "../utils/formatters";
 
 export default function SuratJalanPage() {
   const [filters, setFilters] = useState({
-    startDate: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split("T")[0],
-    endDate: new Date().toISOString().split("T")[0],
+    startDate: toLocalDateInput(new Date(new Date().setDate(new Date().getDate() - 30))),
+    endDate: toLocalDateInput(new Date()),
   });
 
   const { data: customers = [], isLoading: loadingCustomers } = useCustomersList();

@@ -1,14 +1,10 @@
 // File deprecated. Component moved to SuratJalanPage.jsx
+import { useState } from "react";
 import { X, Search, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
+import { toLocalDateInput } from "../utils/formatters";
 
-// Helper formatter
-const formatIDR = (val) =>
-  new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-  }).format(val || 0);
+
 
 interface SuratJalanManagerModalProps {
   onClose: () => void;
@@ -26,16 +22,16 @@ export default function SuratJalanManagerModal({
   onSaved
 }: SuratJalanManagerModalProps) {
   const [filters, setFilters] = useState({
-    startDate: new Date().toISOString().split("T")[0],
-    endDate: new Date().toISOString().split("T")[0],
+    startDate: toLocalDateInput(new Date()),
+    endDate: toLocalDateInput(new Date()),
     customer_name: "",
   });
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   
-  const [records, setRecords] = useState([]);
-  const [items, setItems] = useState({});
+  const [records, setRecords] = useState<any[]>([]);
+  const [items, setItems] = useState<Record<string, any>>({});
 
   const handleSearch = async () => {
     if (!filters.customer_name) {
@@ -52,19 +48,19 @@ export default function SuratJalanManagerModal({
       const allRecords = Array.isArray(res) ? res : res?.records || [];
       // Filter by customer only
       const filtered = allRecords.filter(
-        (r) => r.customer_name === filters.customer_name
+        (r: any) => r.customer_name === filters.customer_name
       );
       
       setRecords(filtered);
       
       // Initialize items state
-      const initialItems = {};
-      const cust = customers.find((c) => c.name === filters.customer_name);
+      const initialItems: Record<string, any> = {};
+      const cust = customers.find((c: any) => c.name === filters.customer_name);
       
-      filtered.forEach((r) => {
+      filtered.forEach((r: any) => {
         // Find preferred units for this material
-        const prefs = cust?.material_preferences?.filter(m => m.material_type === r.material_type) || [];
-        const validPrefUnits = prefs.map(p => p.unit).filter(u => u === "m3" || u === "ton");
+        const prefs = cust?.material_preferences?.filter((m: any) => m.material_type === r.material_type) || [];
+        const validPrefUnits = prefs.map((p: any) => p.unit).filter((u: any) => u === "m3" || u === "ton");
         
         let defaultUnit = r.unit;
         // If current unit is invalid for calculation (e.g., ritase) or not set
@@ -79,7 +75,7 @@ export default function SuratJalanManagerModal({
         // Load default P,L,T from truck master if available
         let defaultP = "", defaultL = "", defaultT = "";
         if (r.license_plate) {
-            const truck = cust?.trucks?.find(t => t.license_plate === r.license_plate);
+            const truck = cust?.trucks?.find((t: any) => t.license_plate === r.license_plate);
             if (truck) {
                defaultP = truck.length || "";
                defaultL = truck.width || "";
@@ -111,8 +107,8 @@ export default function SuratJalanManagerModal({
     }
   };
 
-  const handleItemChange = (id, field, value) => {
-    setItems((prev) => ({
+  const handleItemChange = (id: number | string, field: string, value: any) => {
+    setItems((prev: Record<string, any>) => ({
       ...prev,
       [id]: {
         ...prev[id],
@@ -125,7 +121,7 @@ export default function SuratJalanManagerModal({
     if (records.length === 0) return;
     setSaving(true);
     try {
-      const payloadItems = records.map(r => {
+      const payloadItems = records.map((r: any) => {
         const d = items[r.id];
         return {
           id: r.id,
@@ -140,8 +136,8 @@ export default function SuratJalanManagerModal({
         }
       });
       
-      const truckUpdatesMap = {};
-      records.forEach(r => {
+      const truckUpdatesMap: Record<string, any> = {};
+      records.forEach((r: any) => {
          const d = items[r.id];
          if (d.unit === "m3" && r.license_plate) {
             truckUpdatesMap[r.license_plate] = {
@@ -167,7 +163,7 @@ export default function SuratJalanManagerModal({
       toast.success(res.message || "Berhasil menyimpan update Surat Jalan massal.");
       if (onSaved) onSaved();
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       toast.error("Gagal menyimpan data: " + err.message);
     } finally {
       setSaving(false);
@@ -200,17 +196,17 @@ export default function SuratJalanManagerModal({
           <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Dari Tanggal</label>
-              <input type="date" value={filters.startDate} onChange={e => setFilters(p => ({...p, startDate: e.target.value}))} className={inputCls} />
+              <input type="date" value={filters.startDate} onChange={e => setFilters((p: any) => ({...p, startDate: e.target.value}))} className={inputCls} />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Sampai Tanggal</label>
-              <input type="date" value={filters.endDate} onChange={e => setFilters(p => ({...p, endDate: e.target.value}))} className={inputCls} />
+              <input type="date" value={filters.endDate} onChange={e => setFilters((p: any) => ({...p, endDate: e.target.value}))} className={inputCls} />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Customer</label>
-              <select value={filters.customer_name} onChange={e => setFilters(p => ({...p, customer_name: e.target.value}))} className={inputCls}>
+              <select value={filters.customer_name} onChange={e => setFilters((p: any) => ({...p, customer_name: e.target.value}))} className={inputCls}>
                 <option value="">-- Pilih Customer --</option>
-                {customers.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                {customers.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
               </select>
             </div>
             <div className="flex items-end">
@@ -239,7 +235,7 @@ export default function SuratJalanManagerModal({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {records.map(r => {
+                    {records.map((r: any) => {
                       const itemData = items[r.id] || {};
                       const validUnits = itemData._validUnits || [];
                       const showUnitDropdown = validUnits.length > 1;
@@ -273,7 +269,7 @@ export default function SuratJalanManagerModal({
                                     onChange={e => handleItemChange(r.id, "unit", e.target.value)}
                                     className="w-full border border-gray-200 rounded p-1 text-xs"
                                 >
-                                    {validUnits.map(u => <option key={u} value={u}>{u === "m3" ? "Kubikasi (m3)" : "Tonase (ton)"}</option>)}
+                                    {validUnits.map((u: string) => <option key={u} value={u}>{u === "m3" ? "Kubikasi (m3)" : "Tonase (ton)"}</option>)}
                                 </select>
                             ) : (
                                 <div className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded text-[10px] uppercase font-bold w-fit">

@@ -17,6 +17,7 @@ import {
   usePayExpense,
   Expense
 } from '../hooks/useExpenses';
+import { toLocalDateInput } from '../utils/formatters';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const formatIDR = (v?: number | string | null) =>
@@ -35,11 +36,11 @@ const toLocalDate = (d?: string | null) => {
   });
 };
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
+const todayISO = () => toLocalDateInput(new Date());
 const daysAgoISO = (n: number) => {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  return toLocalDateInput(d);
 };
 
 // ─── Config ─────────────────────────────────────────────────────────────────
@@ -86,7 +87,7 @@ const SortIcon = ({ field, sortField, sortDir }: any) => {
 // ─── Modal ───────────────────────────────────────────────────────────────────
 const ExpenseModal = ({ expense, projects, onClose }: any) => {
   const [form, setForm] = useState(expense ? {
-    expense_date: expense.expense_date ? expense.expense_date.split('T')[0] : todayISO(),
+    expense_date: expense.expense_date ? toLocalDateInput(expense.expense_date) : todayISO(),
     category: expense.category || 'koordinasi',
     description: expense.description || '',
     amount: expense.amount ? String(expense.amount) : '',

@@ -595,7 +595,10 @@ def generate_work_logs_pdf(work_logs: list, start_date=None, end_date=None, equi
     for i, wl in enumerate(work_logs):
         tanggal = _fmt_date(wl.work_date)
         operator = wl.operator_name or "-"
-        alat = getattr(wl.equipment, "name", "-") if hasattr(wl, "equipment") else "-"
+        alat = getattr(wl, "equipment_name", None)
+        if alat is None:
+            alat = getattr(wl.equipment, "name", "-") if hasattr(wl, "equipment") else "-"
+            
         input_method = wl.input_method or "HM"
         hm_awal = str(wl.hm_start) if wl.hm_start is not None else "-"
         hm_akhir = str(wl.hm_end) if wl.hm_end is not None else "-"
@@ -604,7 +607,11 @@ def generate_work_logs_pdf(work_logs: list, start_date=None, end_date=None, equi
         disc_hours = float(wl.rental_discount_hours or 0)
         jam_bersih = tot_hours - disc_hours
         
-        rental_rate = float(getattr(wl.equipment, "rental_rate_per_hour", 0)) if hasattr(wl, "equipment") and wl.equipment else 0
+        rental_rate = getattr(wl, "rental_rate_per_hour", None)
+        if rental_rate is None:
+            rental_rate = getattr(wl.equipment, "rental_rate_per_hour", 0) if hasattr(wl, "equipment") and wl.equipment else 0
+        rental_rate = float(rental_rate or 0)
+        
         biaya_sewa = jam_bersih * rental_rate
         
         total_jam_bersih += jam_bersih

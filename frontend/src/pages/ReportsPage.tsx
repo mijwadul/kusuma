@@ -14,6 +14,7 @@ import {
   BarChart2,
   ChevronDown,
   ChevronRight,
+  PieChart as PieChartIcon,
 } from "lucide-react";
 import {
   BarChart as RechartsBarChart,
@@ -29,6 +30,7 @@ import {
 } from "recharts";
 
 import { useOperationalReport } from "../hooks/useReports";
+import { toLocalDateInput } from "../utils/formatters";
 
 const formatRupiah = (n?: number | null) =>
   new Intl.NumberFormat("id-ID", {
@@ -114,7 +116,7 @@ const Section = ({ title, children, defaultOpen = true }: any) => {
 };
 
 export default function ReportsPage() {
-  const today = new Date().toISOString().split("T")[0];
+  const today = toLocalDateInput(new Date());
   const firstOfMonth = today.slice(0, 8) + "01";
 
   const [startDate, setStartDate] = useState(firstOfMonth);
@@ -368,7 +370,7 @@ export default function ReportsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 mt-6">
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
                 <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <PieChart size={18} className="text-purple-500" /> Komposisi Beban Operasional
+                  <PieChartIcon size={18} className="text-purple-500" /> Komposisi Beban Operasional
                 </h3>
                 {pieData.length === 0 ? (
                   <p className="text-xs text-gray-400 text-center py-10">Tidak ada pengeluaran di periode ini.</p>

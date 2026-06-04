@@ -5,6 +5,7 @@ import apiClient from '../api/apiClient';
 import { Building2, Plus, Edit, Trash2, CheckCircle, XCircle, Pencil, Truck, ChevronDown, ChevronRight, AlertTriangle } from "lucide-react";
 import { useVendors, useCreateVendor, useUpdateVendor, useDeleteVendor, useVendorTopups, useCreateVendorTopup, useUpdateVendorTopup, useDeleteVendorTopup, useApproveVendorTopup, useEquipmentBalances, Vendor } from "../hooks/useVendors";
 import { useEquipment } from "../hooks/useEquipment";
+import { toLocalDateInput } from "../utils/formatters";
 
 const formatIDR = (v: any) =>
   Number(v ?? 0).toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 });
@@ -108,7 +109,7 @@ export default function VendorManagement({ userRole }: Props) {
     setTopupData({
       amount: "",
       notes: "",
-      topup_date: new Date().toISOString().slice(0, 10),
+      topup_date: toLocalDateInput(new Date()),
       equipment_id: eqs.length === 1 ? String(eqs[0].id) : "",
       project_id: ""
     });
@@ -126,7 +127,7 @@ export default function VendorManagement({ userRole }: Props) {
         vendor_id: selectedVendorForTopup?.id,
         equipment_id: parseInt(topupData.equipment_id),
         amount: parseFloat(topupData.amount),
-        topup_date: topupData.topup_date ? new Date(topupData.topup_date).toISOString() : undefined,
+        topup_date: topupData.topup_date ? toLocalDateInput(topupData.topup_date) : undefined,
         notes: topupData.notes,
         project_id: topupData.project_id ? parseInt(topupData.project_id) : null
       },
@@ -157,7 +158,7 @@ export default function VendorManagement({ userRole }: Props) {
     setEditTopupData({
       amount: t.amount,
       notes: t.notes || "",
-      topup_date: t.topup_date ? new Date(t.topup_date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+      topup_date: t.topup_date ? toLocalDateInput(t.topup_date) : toLocalDateInput(new Date()),
       equipment_id: t.equipment_id ? String(t.equipment_id) : "",
       project_id: t.project_id ? String(t.project_id) : ""
     });
@@ -176,7 +177,7 @@ export default function VendorManagement({ userRole }: Props) {
           vendor_id: editingTopup.vendor_id,
           equipment_id: parseInt(editTopupData.equipment_id),
           amount: parseFloat(editTopupData.amount),
-          topup_date: editTopupData.topup_date ? new Date(editTopupData.topup_date).toISOString() : undefined,
+          topup_date: editTopupData.topup_date ? toLocalDateInput(editTopupData.topup_date) : undefined,
           notes: editTopupData.notes,
           project_id: editTopupData.project_id ? parseInt(editTopupData.project_id) : null
         }

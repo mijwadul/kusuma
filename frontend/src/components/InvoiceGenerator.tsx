@@ -2,15 +2,16 @@ import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { X, FileText, Download, Loader2 } from "lucide-react";
 import { API_URL } from "../api/auth";
+import { toLocalDateInput } from "../utils/formatters";
 
-const formatIDR = (v) =>
+const formatIDR = (v: any) =>
   Number(v ?? 0).toLocaleString("id-ID", {
     style: "currency",
     currency: "IDR",
     minimumFractionDigits: 0,
   });
 
-const formatDate = (d) => {
+const formatDate = (d: any) => {
   if (!d) return "-";
   return new Date(d).toLocaleDateString("id-ID", {
     day: "2-digit",
@@ -32,7 +33,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
   
   // Form State
   const [customerName, setCustomerName] = useState("");
-  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().slice(0, 10));
+  const [invoiceDate, setInvoiceDate] = useState(toLocalDateInput(new Date()));
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [notes, setNotes] = useState("");
@@ -40,13 +41,13 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
   const [discountValue, setDiscountValue] = useState("");
   
   // Preview State
-  const [previewData, setPreviewData] = useState(null);
+  const [previewData, setPreviewData] = useState<any>(null);
 
   useEffect(() => {
     if (isOpen) {
       if (existingInvoice) {
         setCustomerName(existingInvoice.customer_name);
-        setInvoiceDate(existingInvoice.invoice_date || new Date().toISOString().slice(0, 10));
+        setInvoiceDate(existingInvoice.invoice_date || toLocalDateInput(new Date()));
         setStartDate(existingInvoice.start_date);
         setEndDate(existingInvoice.end_date);
         setNotes(existingInvoice.notes || "");
@@ -56,7 +57,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
         setStep(1);
         setPreviewData(null);
         setCustomerName("");
-        setInvoiceDate(new Date().toISOString().slice(0, 10));
+        setInvoiceDate(toLocalDateInput(new Date()));
         setStartDate("");
         setEndDate("");
         setNotes("");
@@ -66,7 +67,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
     }
   }, [isOpen, existingInvoice]);
 
-  const fetchPreviewForExisting = async (invoice) => {
+  const fetchPreviewForExisting = async (invoice: any) => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
@@ -81,7 +82,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
         setDiscountType(invoice.discount_type);
         setDiscountValue(invoice.discount_value);
       }
-    } catch (err) {
+    } catch (err: any) {
       toast.error("Gagal memuat detail invoice: " + err.message);
     } finally {
       setLoading(false);
@@ -90,7 +91,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
 
   if (!isOpen) return null;
 
-  const authFetch = async (url, options = {}) => {
+  const authFetch = async (url: string, options: any = {}) => {
     const token = localStorage.getItem("token");
     const res = await fetch(url, {
       ...options,
@@ -107,7 +108,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
     return res.json();
   };
 
-  const handlePreview = async (e) => {
+  const handlePreview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerName || !startDate || !endDate) {
       toast.error("Harap lengkapi form");
@@ -131,17 +132,18 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
         setPreviewData(data);
         setStep(2);
       }
-    } catch (err) {
+    } catch (err: any) {
       toast.error("Gagal membuat preview: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const generatePrintHTML = (invoiceNumber) => {
+  const generatePrintHTML = (invoiceNumber: string) => {
+    if (!previewData) return "";
     const { items, total_amount, start_date, end_date, customer_name } = previewData;
     
-    let itemsHTML = items.map((item, idx) => `
+    let itemsHTML = items.map((item: any, idx: number) => `
       <tr>
         <td style="padding: 6px 10px; border: 1px solid #ddd; text-align: center;">${idx + 1}</td>
         <td style="padding: 6px 10px; border: 1px solid #ddd;">${formatDate(item.income_date)}</td>
@@ -326,8 +328,8 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
       }
       
       onClose();
-      if (window.onInvoiceSaved) window.onInvoiceSaved();
-    } catch (err) {
+      if ((window as any).onInvoiceSaved) (window as any).onInvoiceSaved();
+    } catch (err: any) {
       toast.error("Gagal menyimpan invoice: " + err.message);
     } finally {
       setLoading(false);
@@ -377,8 +379,8 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
       }
       
       onClose();
-      if (window.onInvoiceSaved) window.onInvoiceSaved(); // Optional callback
-    } catch (err) {
+      if ((window as any).onInvoiceSaved) (window as any).onInvoiceSaved(); // Optional callback
+    } catch (err: any) {
       if (printWindow) printWindow.close();
       toast.error("Gagal menyimpan invoice: " + err.message);
     } finally {
@@ -386,16 +388,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
     }
   };
 
-  const handlePrintOnly = () => {
-    if (!existingInvoice) return;
-    const printWindow = window.open("", "_blank");
-    if (printWindow) {
-      printWindow.document.write(generatePrintHTML(existingInvoice.invoice_number));
-      printWindow.document.close();
-    } else {
-      toast.error("Pop-up diblokir oleh browser. Izinkan pop-up untuk mencetak PDF.");
-    }
-  };
+
 
   const inputCls = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300";
 
@@ -534,7 +527,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 bg-white">
-                        {previewData.items.map((item, i) => (
+                        {previewData.items.map((item: any, i: number) => (
                           <tr key={i} className="hover:bg-gray-50">
                             <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatDate(item.income_date)}</td>
                             <td className="px-4 py-3 text-gray-800">{item.material_type}</td>
@@ -549,12 +542,12 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
                       </tbody>
                       <tfoot>
                         <tr className="bg-gray-50 font-medium">
-                          <td colSpan="7" className="px-4 py-3 text-right text-gray-700">Subtotal</td>
+                          <td colSpan={7} className="px-4 py-3 text-right text-gray-700">Subtotal</td>
                           <td className="px-4 py-3 text-right text-gray-800 whitespace-nowrap">{formatIDR(previewData.total_amount)}</td>
                         </tr>
                         {discountType && discountValue && (
                           <tr className="bg-red-50 font-medium text-red-600">
-                            <td colSpan="7" className="px-4 py-3 text-right">
+                            <td colSpan={7} className="px-4 py-3 text-right">
                               Diskon {discountType === 'percentage' ? `(${discountValue}%)` : '(Nominal)'}
                             </td>
                             <td className="px-4 py-3 text-right whitespace-nowrap">
@@ -567,7 +560,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
                           </tr>
                         )}
                         <tr className="bg-emerald-50 font-bold text-emerald-700">
-                          <td colSpan="7" className="px-4 py-3 text-right">Total Akhir</td>
+                          <td colSpan={7} className="px-4 py-3 text-right">Total Akhir</td>
                           <td className="px-4 py-3 text-right whitespace-nowrap">
                             {formatIDR(previewData.total_amount - (
                               discountType === 'percentage' && discountValue 

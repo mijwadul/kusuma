@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Fuel, Save, History, AlertCircle, CheckCircle, Package, XCircle, Trash2, Info, Edit, Eye, Download, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import AlertModal from '../components/AlertModal';
+import { toLocalDateInput } from '../utils/formatters';
 import { useCurrentUser } from '../hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/apiClient';
@@ -28,7 +29,7 @@ const FuelPricePage = () => {
   const [vendorName, setVendorName] = useState('');
   const [projectId, setProjectId] = useState('');
   const [notes, setNotes] = useState('');
-  const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
+  const [purchaseDate, setPurchaseDate] = useState(toLocalDateInput(new Date()));
   
   const [selectedPurchase, setSelectedPurchase] = useState<FuelPurchase | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -48,7 +49,7 @@ const FuelPricePage = () => {
     projectId: ''
   });
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalDateInput(new Date());
   const firstOfMonth = today.slice(0, 8) + '01';
   const [filterStart, setFilterStart] = useState(firstOfMonth);
   const [filterEnd, setFilterEnd] = useState(today);
@@ -128,7 +129,7 @@ const FuelPricePage = () => {
         setVendorName('');
         setProjectId('');
         setNotes('');
-        setPurchaseDate(new Date().toISOString().split('T')[0]);
+        setPurchaseDate(toLocalDateInput(new Date()));
         setShowForm(false);
         if (isGM) {
           toast.success('Pembelian BBM berhasil dicatat dan langsung disetujui');
@@ -467,7 +468,7 @@ const FuelPricePage = () => {
                   <input
                     type="date"
                     value={purchaseDate}
-                    max={new Date().toISOString().split('T')[0]}
+                    max={toLocalDateInput(new Date())}
                     onChange={(e) => setPurchaseDate(e.target.value)}
                     className="w-full px-3 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
                   />
