@@ -46,11 +46,71 @@ const MainLayout: React.FC = () => {
   );
 };
 
+const GlobalShortcuts: React.FC = () => {
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 1. ESCAPE: Tutup modal aktif teratas
+      if (e.key === 'Escape') {
+        const modals = document.querySelectorAll('div.fixed.inset-0');
+        if (modals.length > 0) {
+          const topModal = modals[modals.length - 1];
+          const buttons = Array.from(topModal.querySelectorAll('button'));
+          const closeBtn = buttons.find(b => {
+            const text = b.textContent?.toLowerCase() || '';
+            const hasXIcon = b.querySelector('svg.lucide-x') !== null;
+            return text.includes('batal') || text.includes('tutup') || text.includes('cancel') || hasXIcon;
+          });
+          if (closeBtn) {
+            e.preventDefault();
+            (closeBtn as HTMLElement).click();
+          }
+        }
+      }
+      
+      // 2. ENTER: Accept/Submit modal aktif
+      if (e.key === 'Enter') {
+        // Jangan intercept jika user sedang mengetik di textarea atau fokus di select
+        if (['TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) {
+          return;
+        }
+        
+        const modals = document.querySelectorAll('div.fixed.inset-0');
+        if (modals.length > 0) {
+          const topModal = modals[modals.length - 1];
+          const buttons = Array.from(topModal.querySelectorAll('button'));
+          
+          const submitBtn = buttons.find(b => {
+            const text = b.textContent?.toLowerCase() || '';
+            return b.type === 'submit' || text.includes('simpan') || text.includes('tambah') || text.includes('approve') || text.includes('ya');
+          });
+          
+          if (submitBtn) {
+            // Jika input ada di dalam tag form, biarkan HTML native yang handle submit
+            if ((e.target as HTMLElement).tagName === 'INPUT') {
+              const form = (e.target as HTMLElement).closest('form');
+              if (form) return;
+            }
+            
+            e.preventDefault();
+            (submitBtn as HTMLElement).click();
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  return null;
+};
+
 const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <Router>
       <Toaster />
+      <GlobalShortcuts />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route
