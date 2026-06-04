@@ -86,8 +86,12 @@ class PayrollService:
                 eq_type = equipment.type.lower() if equipment.type else ""
                 
                 if "breaker" in eq_type:
-                    rate = float(equipment.rental_rate_per_hour or 0)
-                    auto_operator_bonus += discount_hours * (0.5 * rate)
+                    capacity = equipment.capacity or 0
+                    if capacity >= 30:
+                        auto_operator_bonus += discount_hours * 200000.0
+                    else:
+                        rate = float(equipment.rental_rate_per_hour or 0)
+                        auto_operator_bonus += discount_hours * (0.5 * rate)
                 elif "bucket" in eq_type:
                     capacity = equipment.capacity or 0
                     if capacity >= 30:
