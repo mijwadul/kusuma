@@ -69,19 +69,7 @@ class IncomeRecordService:
 
     @staticmethod
     def create_income_record(db: Session, current_user: User, data: IncomeRecordCreate) -> IncomeRecordResponse:
-        if data.income_type == "material_sale":
-            existing = db.query(IncomeRecord).filter(
-                IncomeRecord.income_type == data.income_type,
-                IncomeRecord.income_date == data.income_date,
-                IncomeRecord.customer_name == data.customer_name,
-                IncomeRecord.license_plate == data.license_plate,
-                IncomeRecord.material_type == data.material_type,
-                IncomeRecord.quantity == data.quantity,
-                IncomeRecord.amount == data.amount
-            ).first()
-            if existing:
-                raise ValidationError("Surat jalan / Penjualan dengan data yang identik persis sudah ada di sistem.")
-        else:
+        if data.income_type != "material_sale":
             existing = db.query(IncomeRecord).filter(
                 IncomeRecord.income_type == data.income_type,
                 IncomeRecord.income_date == data.income_date,
