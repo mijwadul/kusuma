@@ -25,7 +25,7 @@ import { useEquipment } from "../hooks/useEquipment";
 import { useProjectsList } from "../hooks/useProjects";
 import { useEmployees } from "../hooks/useEmployees";
 import { useCurrentUser } from "../hooks/useAuth";
-import { API_URL } from "../api/apiClient";
+import apiClient from "../api/apiClient";
 
 export default function WorkLogsPage() {
   const [showForm, setShowForm] = useState(false);
@@ -231,15 +231,28 @@ export default function WorkLogsPage() {
     resetForm();
   };
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     const params = new URLSearchParams();
     if (filterStartDate) params.append('start_date', filterStartDate);
     if (filterEndDate) params.append('end_date', filterEndDate);
     if (filterEquipmentId) params.append('equipment_id', filterEquipmentId);
     
     const queryString = params.toString();
-    const url = `${API_URL}/work-logs/export/pdf${queryString ? '?' + queryString : ''}`;
-    window.open(url, '_blank');
+    const url = `/work-logs/export/pdf${queryString ? '?' + queryString : ''}`;
+    
+    try {
+      const response = await apiClient.get(url, { responseType: 'blob' });
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.setAttribute('download', `log_jam_kerja_${new Date().getTime()}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      toast.success("PDF berhasil diunduh");
+    } catch (error) {
+      toast.error("Gagal mengunduh PDF");
+    }
   };
 
   if (isLoading && !workLogs.length) {
