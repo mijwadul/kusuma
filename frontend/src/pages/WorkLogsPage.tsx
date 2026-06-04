@@ -25,6 +25,7 @@ import { useEquipment } from "../hooks/useEquipment";
 import { useProjectsList } from "../hooks/useProjects";
 import { useEmployees } from "../hooks/useEmployees";
 import { useCurrentUser } from "../hooks/useAuth";
+import { API_URL } from "../api/apiClient";
 
 export default function WorkLogsPage() {
   const [showForm, setShowForm] = useState(false);
@@ -237,7 +238,7 @@ export default function WorkLogsPage() {
     if (filterEquipmentId) params.append('equipment_id', filterEquipmentId);
     
     const queryString = params.toString();
-    const url = `http://localhost:8000/api/v1/work-logs/export/pdf${queryString ? '?' + queryString : ''}`;
+    const url = `${API_URL}/work-logs/export/pdf${queryString ? '?' + queryString : ''}`;
     window.open(url, '_blank');
   };
 
