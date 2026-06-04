@@ -102,8 +102,14 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
       },
     });
     if (!res.ok) {
-      const err = await res.text();
-      throw new Error(err);
+      let errText = await res.text();
+      try {
+        const errJson = JSON.parse(errText);
+        if (errJson.detail) errText = errJson.detail;
+        else if (errJson.error) errText = errJson.error;
+        else if (errJson.message) errText = errJson.message;
+      } catch (e) {}
+      throw new Error(errText);
     }
     return res.json();
   };

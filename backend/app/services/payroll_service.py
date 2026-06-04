@@ -160,6 +160,15 @@ class PayrollService:
 
     @staticmethod
     def create_payroll(db: Session, current_user: User, payroll: PayrollCreate) -> PayrollRecord:
+        existing_payroll = db.query(PayrollRecord).filter(
+            PayrollRecord.employee_id == payroll.employee_id,
+            PayrollRecord.period_start <= payroll.period_end,
+            PayrollRecord.period_end >= payroll.period_start
+        ).first()
+        
+        if existing_payroll:
+            raise ValidationError(f"Payroll untuk karyawan ini pada periode yang bersinggungan (ID: {existing_payroll.id}, Periode: {existing_payroll.period_start} s/d {existing_payroll.period_end}) sudah ada.")
+
         calc_result = PayrollService.calculate_payroll(
             db=db,
             employee_id=payroll.employee_id,

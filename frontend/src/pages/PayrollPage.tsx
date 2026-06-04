@@ -237,7 +237,7 @@ const PayrollPage: React.FC = () => {
             closeModal();
           },
           onError: (err: any) => {
-            toast.error(err.response?.data?.error ?? err.response?.data?.message ?? "Gagal update payroll");
+            toast.error(err.response?.data?.detail ?? err.response?.data?.error ?? err.response?.data?.message ?? "Gagal update payroll");
           },
         }
       );
@@ -248,7 +248,7 @@ const PayrollPage: React.FC = () => {
           closeModal();
         },
         onError: (err: any) => {
-          toast.error(err.response?.data?.error ?? err.response?.data?.message ?? "Gagal membuat payroll");
+          toast.error(err.response?.data?.detail ?? err.response?.data?.error ?? err.response?.data?.message ?? "Gagal membuat payroll");
         },
       });
     }

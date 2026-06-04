@@ -95,6 +95,15 @@ class InvoiceService:
 
     @staticmethod
     def create_invoice(db: Session, current_user: User, data: InvoiceCreate) -> InvoiceResponse:
+        existing_invoice = db.query(Invoice).filter(
+            Invoice.customer_name.ilike(data.customer_name),
+            Invoice.start_date <= data.end_date,
+            Invoice.end_date >= data.start_date
+        ).first()
+        
+        if existing_invoice:
+            raise ValidationError(f"Invoice untuk customer ini pada periode yang bersinggungan ({existing_invoice.start_date} s/d {existing_invoice.end_date}) sudah pernah dibuat dengan nomor {existing_invoice.invoice_number}. Silakan edit invoice tersebut alih-alih membuat yang baru.")
+
         today = date.today()
         prefix = f"INV-{today.strftime('%Y%m%d')}-"
         
