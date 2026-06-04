@@ -2,7 +2,7 @@ from datetime import date, datetime, timedelta
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, between, func
-from ..models import Employee, PayrollRecord, Project, Attendance, WorkLog, EmployeeLoan, Expense, User
+from ..models import Employee, PayrollRecord, Project, Attendance, WorkLog, EmployeeLoan, Expense, User, Equipment
 from ..schemas import PayrollCalculate, PayrollCalculationResult, PayrollCreate, PayrollUpdate
 from ..core.exceptions import NotFoundError, ValidationError, AuthorizationError
 
@@ -67,17 +67,37 @@ class PayrollService:
 
         auto_operator_bonus = 0
         if employee.position and employee.position.lower() == "operator":
-            work_logs = (
-                db.query(WorkLog)
+            work_logs_with_eq = (
+                db.query(WorkLog, Equipment)
+                .join(Equipment, WorkLog.equipment_id == Equipment.id)
                 .filter(
                     func.lower(WorkLog.operator_name) == func.lower(employee.name),
-                    WorkLog.work_date >= period_start,
-                    WorkLog.work_date <= period_end,
+                    func.date(WorkLog.work_date) >= period_start,
+                    func.date(WorkLog.work_date) <= period_end,
                 )
                 .all()
             )
-            total_discount_hours = sum(float(wl.rental_discount_hours or 0) for wl in work_logs)
-            auto_operator_bonus = total_discount_hours * 150000.0
+            
+            for wl, equipment in work_logs_with_eq:
+                discount_hours = float(wl.rental_discount_hours or 0)
+                if discount_hours <= 0:
+                    continue
+                    
+                eq_type = equipment.type.lower() if equipment.type else ""
+                
+                if "breaker" in eq_type:
+                    rate = float(equipment.rental_rate_per_hour or 0)
+                    auto_operator_bonus += discount_hours * (0.5 * rate)
+                elif "bucket" in eq_type:
+                    capacity = equipment.capacity or 0
+                    if capacity >= 30:
+                        auto_operator_bonus += discount_hours * 150000.0
+                    elif capacity >= 20:
+                        auto_operator_bonus += discount_hours * 100000.0
+                    else:
+                        auto_operator_bonus += discount_hours * 100000.0
+                else:
+                    auto_operator_bonus += discount_hours * 100000.0
 
         total_bonus = bonus + auto_operator_bonus
         overtime_amount = hourly_overtime_rate * total_overtime_hours

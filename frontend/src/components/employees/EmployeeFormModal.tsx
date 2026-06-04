@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { useCreateEmployee, useUpdateEmployee, Employee } from '../../hooks/useEmployees';
+import { useCreateEmployee, useUpdateEmployee, Employee, useEmployee } from '../../hooks/useEmployees';
 
 const POSITION_OPTIONS = [
   'Operator', 'Mechanic', 'Driver', 'Supervisor', 'Manager',
@@ -33,37 +33,50 @@ const EmployeeFormModal: React.FC<Props> = ({ isOpen, onClose, editingEmployee, 
 
   const createMutation = useCreateEmployee();
   const updateMutation = useUpdateEmployee();
+  
+  const { data: fullEmployee } = useEmployee(editingEmployee?.id);
 
   useEffect(() => {
-    if (editingEmployee) {
+    const data = fullEmployee || editingEmployee;
+    if (data) {
       setEmployeeForm({
-        name: editingEmployee.name || '',
-        email: (editingEmployee as any).email || '',
-        phone: (editingEmployee as any).phone || '',
-        nik: (editingEmployee as any).nik || '',
-        address: (editingEmployee as any).address || '',
-        date_of_birth: (editingEmployee as any).date_of_birth || '',
-        place_of_birth: (editingEmployee as any).place_of_birth || '',
-        gender: (editingEmployee as any).gender || '',
-        marital_status: (editingEmployee as any).marital_status || '',
-        position: editingEmployee.position || '',
-        department: editingEmployee.department || '',
-        employment_type: (editingEmployee as any).employment_type || 'permanent',
-        join_date: (editingEmployee as any).join_date || '',
-        emergency_contact_name: (editingEmployee as any).emergency_contact_name || '',
-        emergency_contact_phone: (editingEmployee as any).emergency_contact_phone || '',
-        emergency_contact_relation: (editingEmployee as any).emergency_contact_relation || '',
-        daily_salary: editingEmployee.daily_salary?.toString() || '',
-        hourly_overtime_rate: (editingEmployee as any).hourly_overtime_rate?.toString() || '',
-        loan_balance: editingEmployee.loan_balance?.toString() || '',
-        loan_deduction_per_period: editingEmployee.loan_deduction_per_period?.toString() || '',
-        debt_to_company: (editingEmployee as any).debt_to_company?.toString() || '',
-        bank_name: (editingEmployee as any).bank_name || '',
-        bank_account_number: (editingEmployee as any).bank_account_number || '',
-        bank_account_name: (editingEmployee as any).bank_account_name || ''
+        name: data.name || '',
+        email: (data as any).email || '',
+        phone: (data as any).phone || '',
+        nik: (data as any).nik || '',
+        address: (data as any).address || '',
+        date_of_birth: (data as any).date_of_birth || '',
+        place_of_birth: (data as any).place_of_birth || '',
+        gender: (data as any).gender || '',
+        marital_status: (data as any).marital_status || '',
+        position: data.position || '',
+        department: data.department || '',
+        employment_type: (data as any).employment_type || 'permanent',
+        join_date: (data as any).join_date || '',
+        emergency_contact_name: (data as any).emergency_contact_name || '',
+        emergency_contact_phone: (data as any).emergency_contact_phone || '',
+        emergency_contact_relation: (data as any).emergency_contact_relation || '',
+        daily_salary: data.daily_salary?.toString() || '',
+        hourly_overtime_rate: (data as any).hourly_overtime_rate?.toString() || '',
+        loan_balance: data.loan_balance?.toString() || '',
+        loan_deduction_per_period: data.loan_deduction_per_period?.toString() || '',
+        debt_to_company: (data as any).debt_to_company?.toString() || '',
+        bank_name: (data as any).bank_name || '',
+        bank_account_number: (data as any).bank_account_number || '',
+        bank_account_name: (data as any).bank_account_name || ''
+      });
+    } else {
+      setEmployeeForm({
+        name: '', email: '', phone: '', nik: '', address: '', date_of_birth: '',
+        place_of_birth: '', gender: '', marital_status: '', position: '',
+        department: '', employment_type: 'permanent', join_date: '',
+        emergency_contact_name: '', emergency_contact_phone: '', emergency_contact_relation: '',
+        daily_salary: '', hourly_overtime_rate: '', loan_balance: '',
+        loan_deduction_per_period: '', debt_to_company: '', bank_name: '',
+        bank_account_number: '', bank_account_name: ''
       });
     }
-  }, [editingEmployee]);
+  }, [fullEmployee, editingEmployee]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

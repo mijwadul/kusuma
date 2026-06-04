@@ -26,6 +26,18 @@ export const useEmployees = (params?: { department?: string; status?: string; sh
   });
 };
 
+export const useEmployee = (id?: number) => {
+  return useQuery({
+    queryKey: ['employee', id],
+    queryFn: async () => {
+      if (!id) return null;
+      const response = await apiClient.get<any>(`/employees/employees/${id}`);
+      return response.data;
+    },
+    enabled: !!id,
+  });
+};
+
 export const useCreateEmployee = () => {
   const queryClient = useQueryClient();
   return useMutation({

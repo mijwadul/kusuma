@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import date
+from datetime import date, datetime
+from fastapi import Response
 
 from ...core.database import get_db
 from ...core.auth import get_current_user, require_role
@@ -41,6 +42,31 @@ def get_work_log_stats(
     db: Session = Depends(get_db)
 ):
     return WorkLogService.get_work_log_stats(db, equipment_id, start_date, end_date)
+
+@router.get("/export/pdf")
+def export_work_logs_pdf(
+    equipment_id: Optional[int] = Query(None),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    db: Session = Depends(get_db)
+):
+    from ...services.pdf_service import generate_work_logs_pdf
+    from ...models.equipment import Equipment
+    
+    work_logs = WorkLogService.get_work_logs(db, skip=0, limit=10000, equipment_id=equipment_id, start_date=start_date, end_date=end_date)
+    
+    equipment_name = None
+    if equipment_id:
+        equipment = db.query(Equipment).filter(Equipment.id == equipment_id).first()
+        if equipment:
+            equipment_name = equipment.name
+            
+    pdf_bytes = generate_work_logs_pdf(work_logs, start_date=start_date, end_date=end_date, equipment_name=equipment_name)
+    
+    headers = {
+        "Content-Disposition": f"attachment; filename=log_jam_kerja_{datetime.now().strftime('%Y%m%d%H%M')}.pdf"
+    }
+    return Response(content=pdf_bytes, media_type="application/pdf", headers=headers)
 
 @router.get("/{work_log_id}", response_model=WorkLogWithEquipment)
 def get_work_log(work_log_id: int, db: Session = Depends(get_db)):

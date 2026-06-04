@@ -24,6 +24,7 @@ import { useWorkLogs, useWorkLogStats, useCreateWorkLog, useUpdateWorkLog, useDe
 import { useEquipment } from "../hooks/useEquipment";
 import { useProjectsList } from "../hooks/useProjects";
 import { useEmployees } from "../hooks/useEmployees";
+import { useCurrentUser } from "../hooks/useAuth";
 
 export default function WorkLogsPage() {
   const [showForm, setShowForm] = useState(false);
@@ -31,12 +32,26 @@ export default function WorkLogsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLogId, setDeleteLogId] = useState<number | null>(null);
 
+  // Filters
+  const [filterStartDate, setFilterStartDate] = useState("");
+  const [filterEndDate, setFilterEndDate] = useState("");
+  const [filterEquipmentId, setFilterEquipmentId] = useState("");
+
+  const currentFilters = {
+    start_date: filterStartDate || undefined,
+    end_date: filterEndDate || undefined,
+    equipment_id: filterEquipmentId || undefined,
+  };
+
+  const { data: user } = useCurrentUser();
+  const canDownloadPDF = user?.role === "gm" || user?.is_admin || user?.is_superuser;
+
   // Queries
   const { data: equipment = [], isLoading: loadingEquipment } = useEquipment();
   const { data: projects = [], isLoading: loadingProjects } = useProjectsList();
   const { data: employees = [], isLoading: loadingEmployees } = useEmployees();
-  const { data: workLogs = [], isLoading: loadingLogs } = useWorkLogs();
-  const { data: stats, isLoading: loadingStats } = useWorkLogStats();
+  const { data: workLogs = [], isLoading: loadingLogs } = useWorkLogs(currentFilters);
+  const { data: stats, isLoading: loadingStats } = useWorkLogStats(currentFilters);
 
   // Mutations
   const createLogMutation = useCreateWorkLog();
@@ -215,6 +230,17 @@ export default function WorkLogsPage() {
     resetForm();
   };
 
+  const handleDownloadPDF = () => {
+    const params = new URLSearchParams();
+    if (filterStartDate) params.append('start_date', filterStartDate);
+    if (filterEndDate) params.append('end_date', filterEndDate);
+    if (filterEquipmentId) params.append('equipment_id', filterEquipmentId);
+    
+    const queryString = params.toString();
+    const url = `http://localhost:8000/api/v1/work-logs/export/pdf${queryString ? '?' + queryString : ''}`;
+    window.open(url, '_blank');
+  };
+
   if (isLoading && !workLogs.length) {
     return (
       <div className="text-center py-8 flex flex-col items-center justify-center">
@@ -265,6 +291,54 @@ export default function WorkLogsPage() {
           <Plus size={20} />
           <span>Catat Kerja</span>
         </button>
+      </div>
+
+      {/* Filters (New) */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-col md:flex-row gap-4 items-end">
+        <div className="flex-1 w-full">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Alat (Equipment)</label>
+          <select
+            value={filterEquipmentId}
+            onChange={(e) => setFilterEquipmentId(e.target.value)}
+            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2 px-3 border"
+          >
+            <option value="">Semua Alat</option>
+            {equipment.map((eq) => (
+              <option key={eq.id} value={eq.id}>
+                {eq.name} - {eq.type}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex-1 w-full">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Mulai Tanggal</label>
+          <input
+            type="date"
+            value={filterStartDate}
+            onChange={(e) => setFilterStartDate(e.target.value)}
+            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2 px-3 border"
+          />
+        </div>
+        <div className="flex-1 w-full">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Sampai Tanggal</label>
+          <input
+            type="date"
+            value={filterEndDate}
+            onChange={(e) => setFilterEndDate(e.target.value)}
+            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2 px-3 border"
+          />
+        </div>
+        {canDownloadPDF && (
+          <div className="w-full md:w-auto">
+            <button
+              onClick={handleDownloadPDF}
+              className="w-full bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-lg flex items-center justify-center space-x-2 transition-colors shadow-md"
+            >
+              <FileText size={20} />
+              <span>Unduh PDF</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Stats Cards */}

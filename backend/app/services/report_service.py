@@ -182,7 +182,22 @@ class ReportService:
             ))
 
             if wl.operator_name and d_hours > 0:
-                operator_bonus_dict[wl.operator_name.strip().lower()] += d_hours * 150000.0
+                eq_type = eq.type.lower() if eq and eq.type else ""
+                op_key = wl.operator_name.strip().lower()
+                
+                if "breaker" in eq_type:
+                    rate = float(eq.rental_rate_per_hour or 0)
+                    operator_bonus_dict[op_key] += d_hours * (0.5 * rate)
+                elif "bucket" in eq_type:
+                    capacity = eq.capacity or 0
+                    if capacity >= 30:
+                        operator_bonus_dict[op_key] += d_hours * 150000.0
+                    elif capacity >= 20:
+                        operator_bonus_dict[op_key] += d_hours * 100000.0
+                    else:
+                        operator_bonus_dict[op_key] += d_hours * 100000.0
+                else:
+                    operator_bonus_dict[op_key] += d_hours * 100000.0
 
         work_logs_by_equipment: List[WorkLogByEquipmentItem] = []
         for eq_id, stats in wl_by_eq_dict.items():
@@ -388,7 +403,8 @@ class ReportService:
         exp_q = db.query(Expense).filter(
             Expense.expense_date >= start_date,
             Expense.expense_date <= end_date,
-            Expense.payment_status == 'paid'
+            Expense.payment_status == 'paid',
+            Expense.category != 'gaji'
         )
         if filter_general:
             exp_q = exp_q.filter(Expense.project_id == None)

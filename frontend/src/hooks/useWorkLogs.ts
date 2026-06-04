@@ -28,22 +28,42 @@ export interface WorkLogStats {
   manual_count: number;
 }
 
-export const useWorkLogs = (options?: any) => {
+export interface WorkLogFilterParams {
+  start_date?: string;
+  end_date?: string;
+  equipment_id?: number | string;
+}
+
+export const useWorkLogs = (filters?: WorkLogFilterParams, options?: any) => {
   return useQuery<WorkLog[], Error>({
-    queryKey: ['work-logs'],
+    queryKey: ['work-logs', filters],
     queryFn: async () => {
-      const response = await apiClient.get<WorkLog[]>('/work-logs');
+      const params = new URLSearchParams();
+      if (filters?.start_date) params.append('start_date', filters.start_date);
+      if (filters?.end_date) params.append('end_date', filters.end_date);
+      if (filters?.equipment_id) params.append('equipment_id', filters.equipment_id.toString());
+      
+      const queryString = params.toString();
+      const url = queryString ? `/work-logs?${queryString}` : '/work-logs';
+      const response = await apiClient.get<WorkLog[]>(url);
       return response.data;
     },
     ...options
   });
 };
 
-export const useWorkLogStats = (options?: any) => {
+export const useWorkLogStats = (filters?: WorkLogFilterParams, options?: any) => {
   return useQuery<WorkLogStats, Error>({
-    queryKey: ['work-logs-stats'],
+    queryKey: ['work-logs-stats', filters],
     queryFn: async () => {
-      const response = await apiClient.get<WorkLogStats>('/work-logs/stats/summary');
+      const params = new URLSearchParams();
+      if (filters?.start_date) params.append('start_date', filters.start_date);
+      if (filters?.end_date) params.append('end_date', filters.end_date);
+      if (filters?.equipment_id) params.append('equipment_id', filters.equipment_id.toString());
+      
+      const queryString = params.toString();
+      const url = queryString ? `/work-logs/stats/summary?${queryString}` : '/work-logs/stats/summary';
+      const response = await apiClient.get<WorkLogStats>(url);
       return response.data;
     },
     ...options
