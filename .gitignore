@@ -165,3 +165,19 @@ frontend/dist/
 # ─── Package lock (opsional — uncommit baris ini jika ingin commit lock) ─
 # package-lock.json
 # yarn.lock
+
+# ─── Mobile (Capacitor & Android/iOS Keys) ──────────────────────
+frontend/android/
+*.jks
+*.keystore
+key.properties
+signing.properties
+google-services.json
+GoogleService-Info.plist
+
+# ─── SSL/TLS Certificates & Keys ──────────────────────────────
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx

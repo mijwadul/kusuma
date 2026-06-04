@@ -1,17 +1,14 @@
-import axios from 'axios';
-
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+import apiClient from './apiClient';
 
 export const login = async (email?: string, password?: string) => {
   const formData = new URLSearchParams();
   if (email) formData.append('username', email);
   if (password) formData.append('password', password);
 
-  const response = await axios.post(`${API_URL}/auth/login`, formData, {
+  const response = await apiClient.post(`/auth/login`, formData, {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
-    withCredentials: true,
   });
 
   if (response.data.access_token) {
@@ -32,7 +29,7 @@ export const getUser = () => {
 
 export const logout = async () => {
   try {
-    await axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true });
+    await apiClient.post(`/auth/logout`, {});
   } catch (err) {
     console.error("Logout backend failed", err);
   }

@@ -57,7 +57,7 @@ apiClient.interceptors.response.use(
 
       try {
         // Panggil endpoint refresh (cookie akan terkirim otomatis berkat withCredentials=true)
-        const response = await axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true });
+        const response = await apiClient.post(`/auth/refresh`, {});
         const newToken = response.data.access_token;
         
         localStorage.setItem('token', newToken);

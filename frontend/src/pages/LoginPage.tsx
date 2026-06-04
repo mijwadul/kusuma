@@ -44,11 +44,18 @@ export default function LoginPage() {
       await login(formData.email, formData.password);
       navigate('/dashboard');
     } catch (error: any) {
+      console.error('Login error full:', error);
       let errorMsg = 'Login gagal. Periksa email dan password Anda.';
-      if (error.response?.data?.detail) {
+
+      if (error.code === 'ERR_NETWORK') {
+        errorMsg = 'Gagal terhubung ke server. Pastikan Firewall port 8000 di Google Cloud sudah dibuka dan Anda memiliki koneksi internet.';
+      } else if (error.response?.data?.detail) {
         const detail = error.response.data.detail;
         errorMsg = typeof detail === 'string' ? detail : JSON.stringify(detail);
+      } else if (error.message) {
+        errorMsg = `Error: ${error.message}`;
       }
+
       setErrors({ general: errorMsg });
     } finally {
       setIsLoading(false);
