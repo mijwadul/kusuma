@@ -28,6 +28,11 @@ class WorkLog(Base):
     # Work description
     work_description = Column(String(500), nullable=True)
     
+    # Biaya sewa yang dibekukan pada saat input
+    applied_rate = Column(DECIMAL(15, 2), nullable=True)
+    total_cost = Column(DECIMAL(15, 2), nullable=True)
+    split_details = Column(String(1000), nullable=True)  # Menyimpan detail jika terjadi transisi harga
+
     # Date tracking
     work_date = Column(DateTime(timezone=True), nullable=False)  # Tanggal kerja
     created_at = Column(DateTime(timezone=True), server_default=func.now())

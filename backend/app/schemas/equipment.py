@@ -14,8 +14,9 @@ class EquipmentBase(BaseModel):
     status: Optional[str] = "active"
     ownership_status: Optional[str] = "internal"
     rental_rate_per_hour: Optional[Decimal] = Decimal("0")
+    pending_rental_rate_per_hour: Optional[Decimal] = None
+    locked_balance_for_pending_rate: Optional[Decimal] = None
     vendor_id: Optional[int] = None
-
 
 class EquipmentCreate(EquipmentBase):
     pass
@@ -30,6 +31,8 @@ class EquipmentUpdate(BaseModel):
     status: Optional[str] = None
     ownership_status: Optional[str] = None
     rental_rate_per_hour: Optional[Decimal] = None
+    pending_rental_rate_per_hour: Optional[Decimal] = None
+    locked_balance_for_pending_rate: Optional[Decimal] = None
     vendor_id: Optional[int] = None
 
 

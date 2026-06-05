@@ -395,7 +395,7 @@ const EquipmentDetailModal: React.FC<Props> = ({
                     <>
                       <div className="bg-green-50 rounded-lg p-3">
                         <label className="block text-xs font-medium text-green-700 uppercase tracking-wide">
-                          Tarif Rental per Jam
+                          Tarif Rental Aktif (per Jam)
                         </label>
                         <p className="text-lg font-bold text-green-800 mt-0.5">
                           Rp{" "}
@@ -404,6 +404,28 @@ const EquipmentDetailModal: React.FC<Props> = ({
                           ).toLocaleString("id-ID")}
                         </p>
                       </div>
+                      
+                      {equipment.pending_rental_rate_per_hour != null && (
+                        <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                          <label className="block text-xs font-medium text-yellow-700 uppercase tracking-wide flex items-center gap-1">
+                            <AlertTriangle size={14} />
+                            Harga Dalam Antrian
+                          </label>
+                          <p className="text-lg font-bold text-yellow-800 mt-0.5">
+                            Rp{" "}
+                            {parseFloat(
+                              equipment.pending_rental_rate_per_hour.toString(),
+                            ).toLocaleString("id-ID")}
+                            <span className="text-sm font-normal text-yellow-700 ml-2">
+                              / jam
+                            </span>
+                          </p>
+                          <p className="text-xs text-yellow-600 mt-2 italic">
+                            Akan aktif setelah Saldo Terkunci (Rp {parseFloat(equipment.locked_balance_for_pending_rate?.toString() || "0").toLocaleString("id-ID")}) habis digunakan.
+                          </p>
+                        </div>
+                      )}
+                      
                       <div className="bg-blue-50 rounded-lg p-3">
                         <label className="block text-xs font-medium text-blue-700 uppercase tracking-wide">
                           Nilai Deposit

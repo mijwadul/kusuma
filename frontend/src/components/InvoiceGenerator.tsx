@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { X, FileText, Download, Loader2 } from "lucide-react";
-import { API_URL } from "../api/auth";
+import { API_URL } from "../api/apiClient";
 import { toLocalDateInput } from "../utils/formatters";
 
 const formatIDR = (v: any) =>

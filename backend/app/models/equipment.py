@@ -13,7 +13,15 @@ class Equipment(Base):
     location = Column(String(255))
     status = Column(String(30), default="active")
     ownership_status = Column(String(30), default="internal")
+    
+    # Harga aktif saat ini
     rental_rate_per_hour = Column(DECIMAL(15, 2), default=0)
+    
+    # Harga antrian (pending) jika ada perubahan saat saldo > 0
+    pending_rental_rate_per_hour = Column(DECIMAL(15, 2), nullable=True)
+    # Saldo deposit lama yang harus dihabiskan dengan harga lama
+    locked_balance_for_pending_rate = Column(DECIMAL(15, 2), nullable=True)
+    
     deposit_amount = Column(DECIMAL(15, 2), default=0)
     vendor_id = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

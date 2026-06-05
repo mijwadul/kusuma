@@ -12,6 +12,7 @@ export interface WorkLog {
   total_hours: number;
   rental_discount_hours?: number;
   rental_cost_total?: number;
+  split_details?: string | null;
   project_id?: number | null;
   project_name?: string;
   operator_name?: string;

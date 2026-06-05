@@ -11,6 +11,8 @@ export interface Equipment {
   status: string;
   ownership_status: string;
   rental_rate_per_hour?: number;
+  pending_rental_rate_per_hour?: number | null;
+  locked_balance_for_pending_rate?: number | null;
   vendor_id?: number;
 }
 

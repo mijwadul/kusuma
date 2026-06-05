@@ -15,6 +15,9 @@ class WorkLogBase(BaseModel):
     project_id: Optional[int] = None
     operator_name: Optional[str] = None
     work_description: Optional[str] = None
+    applied_rate: Optional[Decimal] = None
+    total_cost: Optional[Decimal] = None
+    split_details: Optional[str] = None
     work_date: datetime
 
 

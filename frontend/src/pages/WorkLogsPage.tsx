@@ -622,6 +622,12 @@ export default function WorkLogsPage() {
                   <p className="text-gray-700">Jam Ditagih: <span className="font-semibold">{estimatedBillableHours.toLocaleString("id-ID")} Jam</span></p>
                   <p className="text-gray-700">Total Setelah Diskon: <span className="font-semibold text-amber-700">Rp {estimatedRentalTotal.toLocaleString("id-ID")}</span></p>
                 </div>
+                {selectedEquipment?.pending_rental_rate_per_hour != null && (
+                  <div className="mt-3 flex items-start gap-2 bg-yellow-100 p-2 rounded border border-yellow-200 text-yellow-800 text-xs">
+                    <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                    <p>Alat ini dalam masa transisi harga. Total tagihan aktual mungkin dihitung dengan kombinasi harga lama dan baru menyesuaikan sisa saldo deposit.</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -730,6 +736,11 @@ export default function WorkLogsPage() {
                     </td>
                     <td className="px-4 py-3 text-sm font-semibold text-amber-700 whitespace-nowrap">
                       Rp {Number(log.rental_cost_total || 0).toLocaleString("id-ID")}
+                      {log.split_details && (
+                        <span className="block text-[10px] font-normal text-yellow-600 mt-0.5 leading-tight max-w-[150px] whitespace-normal">
+                          (Split: {log.split_details})
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{log.operator_name || "-"}</td>
                     <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{log.project_name || "-"}</td>

@@ -16,7 +16,6 @@ from ..schemas.work_log import (
 class WorkLogService:
     @staticmethod
     def _calculate_rental_costs(work_log: WorkLog, equipment: Equipment) -> dict:
-        rate = Decimal(str(equipment.rental_rate_per_hour or 0))
         hours = Decimal(str(work_log.total_hours or 0))
         discount_hours = Decimal(str(work_log.rental_discount_hours or 0))
 
@@ -25,11 +24,26 @@ class WorkLogService:
         if discount_hours > hours:
             discount_hours = hours
 
+        billable_hours = hours - discount_hours
+
+        if getattr(work_log, 'total_cost', None) is not None:
+            rate = Decimal(str(work_log.applied_rate or 0))
+            total_cost = Decimal(str(work_log.total_cost))
+            return {
+                "rental_rate_per_hour": rate,
+                "rental_billable_hours": billable_hours,
+                "rental_cost_before_discount": total_cost + (discount_hours * rate),
+                "rental_discount_amount": discount_hours * rate,
+                "rental_cost_total": total_cost,
+                "split_details": getattr(work_log, 'split_details', None)
+            }
+
+        # Legacy calculation for old records
+        rate = Decimal(str(equipment.rental_rate_per_hour or 0))
         if (equipment.ownership_status or "internal") != "rental":
             rate = Decimal("0")
 
         gross_cost = hours * rate
-        billable_hours = hours - discount_hours
         discount_amount = discount_hours * rate
         total_cost = gross_cost - discount_amount
 
@@ -39,6 +53,7 @@ class WorkLogService:
             "rental_cost_before_discount": gross_cost,
             "rental_discount_amount": discount_amount,
             "rental_cost_total": total_cost,
+            "split_details": None
         }
 
     @staticmethod
@@ -116,6 +131,41 @@ class WorkLogService:
         if discount_hours > Decimal(str(total_hours or 0)):
             discount_hours = Decimal(str(total_hours or 0))
 
+        hours_to_bill = Decimal(str(total_hours or 0)) - discount_hours
+        total_cost = Decimal("0")
+        applied_rate = equipment.rental_rate_per_hour
+        split_details = None
+
+        if (equipment.ownership_status or "internal") == "rental":
+            pending_rate = getattr(equipment, 'pending_rental_rate_per_hour', None)
+            locked_balance = getattr(equipment, 'locked_balance_for_pending_rate', None)
+            
+            if pending_rate is not None and locked_balance is not None and locked_balance > 0:
+                old_rate = Decimal(str(equipment.rental_rate_per_hour or 0))
+                new_rate = Decimal(str(pending_rate))
+                
+                max_hours_old = locked_balance / old_rate if old_rate > 0 else Decimal("0")
+
+                if hours_to_bill <= max_hours_old:
+                    total_cost = hours_to_bill * old_rate
+                    equipment.locked_balance_for_pending_rate -= total_cost
+                    applied_rate = old_rate
+                else:
+                    cost_old = max_hours_old * old_rate
+                    remaining_hours = hours_to_bill - max_hours_old
+                    cost_new = remaining_hours * new_rate
+                    
+                    total_cost = cost_old + cost_new
+                    applied_rate = new_rate
+                    split_details = f"{max_hours_old:.2f} jam x Rp {old_rate:,.0f}, {remaining_hours:.2f} jam x Rp {new_rate:,.0f}"
+                    
+                    equipment.rental_rate_per_hour = new_rate
+                    equipment.pending_rental_rate_per_hour = None
+                    equipment.locked_balance_for_pending_rate = Decimal("0")
+            else:
+                total_cost = hours_to_bill * Decimal(str(equipment.rental_rate_per_hour or 0))
+                applied_rate = Decimal(str(equipment.rental_rate_per_hour or 0))
+
         db_work_log = WorkLog(
             equipment_id=data.equipment_id,
             input_method=data.input_method,
@@ -126,7 +176,10 @@ class WorkLogService:
             project_id=data.project_id,
             operator_name=data.operator_name,
             work_description=data.work_description,
-            work_date=data.work_date
+            work_date=data.work_date,
+            applied_rate=applied_rate,
+            total_cost=total_cost,
+            split_details=split_details
         )
         
         db.add(db_work_log)

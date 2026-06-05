@@ -49,6 +49,7 @@ const EquipmentPage = () => {
     status: "active",
     ownership_status: "internal",
     rental_rate_per_hour: "",
+    pending_rental_rate_per_hour: "",
     vendor_id: "",
   });
 
@@ -83,6 +84,7 @@ const EquipmentPage = () => {
       ...formData,
       capacity: formData.capacity === "" ? undefined : parseFloat(formData.capacity),
       rental_rate_per_hour: formData.rental_rate_per_hour === "" ? undefined : parseFloat(formData.rental_rate_per_hour),
+      pending_rental_rate_per_hour: formData.pending_rental_rate_per_hour === "" ? null : parseFloat(formData.pending_rental_rate_per_hour),
       vendor_id: formData.vendor_id === "" ? undefined : parseInt(formData.vendor_id),
     };
 
@@ -140,6 +142,7 @@ const EquipmentPage = () => {
       status: item.status,
       ownership_status: item.ownership_status || "internal",
       rental_rate_per_hour: item.rental_rate_per_hour?.toString() || "",
+      pending_rental_rate_per_hour: item.pending_rental_rate_per_hour?.toString() || "",
       vendor_id: item.vendor_id?.toString() || "",
     });
     setShowForm(true);
@@ -218,6 +221,7 @@ const EquipmentPage = () => {
       status: "active",
       ownership_status: "internal",
       rental_rate_per_hour: "",
+      pending_rental_rate_per_hour: "",
       vendor_id: "",
     });
   };
@@ -658,7 +662,45 @@ const EquipmentPage = () => {
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
                         placeholder="0.00"
                       />
+                      {editingEquipment && (
+                         <p className="text-xs text-gray-500 mt-1">
+                           Catatan: Jika ada saldo positif, perubahan harga akan masuk antrian otomatis.
+                         </p>
+                      )}
                     </div>
+                    {editingEquipment?.pending_rental_rate_per_hour != null && (
+                      <div className="bg-yellow-50 p-3 rounded border border-yellow-200">
+                        <label className="block text-sm font-medium text-yellow-800 flex items-center gap-1">
+                          <AlertTriangle size={16} />
+                          Harga Antrian (Edit/Batal)
+                        </label>
+                        <div className="flex items-center gap-2 mt-2">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={formData.pending_rental_rate_per_hour}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                pending_rental_rate_per_hour: e.target.value,
+                              })
+                            }
+                            className="block w-full border border-yellow-300 rounded-md shadow-sm p-2"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, pending_rental_rate_per_hour: "" })}
+                            className="bg-red-100 text-red-600 px-3 py-2 rounded text-sm hover:bg-red-200"
+                            title="Batalkan antrian harga"
+                          >
+                            Batal
+                          </button>
+                        </div>
+                        <p className="text-xs text-yellow-700 mt-1">
+                          Saldo terkunci: {editingEquipment.locked_balance_for_pending_rate?.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
+                        </p>
+                      </div>
+                    )}
                     <div>
                       <label className="block text-sm font-medium text-gray-700">
                         Vendor Perusahaan Sewa

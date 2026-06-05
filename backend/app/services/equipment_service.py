@@ -30,7 +30,41 @@ class EquipmentService:
         if not equipment:
             raise NotFoundError("Equipment not found")
         
-        for key, value in equipment_update.model_dump(exclude_unset=True).items():
+        update_data = equipment_update.model_dump(exclude_unset=True)
+        original_request = equipment_update.model_dump(exclude_unset=True)
+        
+        if "rental_rate_per_hour" in update_data and equipment.ownership_status == "rental":
+            new_rate = update_data["rental_rate_per_hour"]
+            old_rate = equipment.rental_rate_per_hour
+            
+            if new_rate != old_rate:
+                from decimal import Decimal
+                from .vendor_service import VendorService
+                balance_data = VendorService._get_equipment_balance(db, equipment)
+                current_balance = Decimal(str(balance_data["balance"]))
+                
+                if current_balance > 0:
+                    update_data["pending_rental_rate_per_hour"] = new_rate
+                    update_data["locked_balance_for_pending_rate"] = current_balance
+                    update_data["rental_rate_per_hour"] = old_rate # Keep old active
+                    
+                    # Prevent original_request from overwriting what we just calculated
+                    if "pending_rental_rate_per_hour" in original_request:
+                        del original_request["pending_rental_rate_per_hour"]
+                else:
+                    update_data["pending_rental_rate_per_hour"] = None
+                    update_data["locked_balance_for_pending_rate"] = None
+                    
+                    if "pending_rental_rate_per_hour" in original_request:
+                        del original_request["pending_rental_rate_per_hour"]
+
+        # Only apply manual pending rate edits if we didn't just auto-calculate a transition
+        if "pending_rental_rate_per_hour" in original_request:
+            update_data["pending_rental_rate_per_hour"] = original_request["pending_rental_rate_per_hour"]
+            if original_request["pending_rental_rate_per_hour"] is None:
+                update_data["locked_balance_for_pending_rate"] = None
+
+        for key, value in update_data.items():
             setattr(equipment, key, value)
         
         db.commit()
