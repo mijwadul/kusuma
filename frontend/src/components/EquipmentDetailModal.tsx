@@ -9,6 +9,7 @@ import {
   Gauge,
 } from "lucide-react";
 import { Equipment } from "../hooks/useEquipment";
+import { useEquipmentBalances } from "../hooks/useVendors";
 
 interface Props {
   equipment: Equipment | null;
@@ -27,9 +28,11 @@ const EquipmentDetailModal: React.FC<Props> = ({
 }) => {
   const [activeTab, setActiveTab] = useState("general");
 
-  if (!isOpen || !equipment) return null;
-
   const canViewFinancial = userRole === "admin" || userRole === "manager" || userRole === "gm" || userRole === "finance";
+  const { data: equipmentBalances = [] } = useEquipmentBalances({ enabled: canViewFinancial && !!equipment });
+  const currentBalance = equipmentBalances.find((b: any) => b.equipment_id === equipment?.id)?.balance || 0;
+
+  if (!isOpen || !equipment) return null;
 
   const lph = fuelData?.liter_per_hour;
   const isAnomaly = fuelData?.status_anomali;
@@ -430,10 +433,10 @@ const EquipmentDetailModal: React.FC<Props> = ({
                         <label className="block text-xs font-medium text-blue-700 uppercase tracking-wide">
                           Nilai Deposit
                         </label>
-                        <p className="text-lg font-bold text-blue-800 mt-0.5">
+                        <p className={`text-lg font-bold mt-0.5 ${currentBalance < 0 ? 'text-red-600' : 'text-blue-800'}`}>
                           Rp{" "}
                           {parseFloat(
-                            (equipment as any).deposit_amount || 0,
+                            currentBalance.toString(),
                           ).toLocaleString("id-ID")}
                         </p>
                       </div>
