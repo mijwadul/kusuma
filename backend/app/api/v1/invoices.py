@@ -136,3 +136,43 @@ def delete_invoice(
 ):
     InvoiceService.delete_invoice(db, current_user, invoice_id)
     return None
+
+from fastapi.responses import Response
+from ...services.pdf_service import generate_invoice_pdf
+
+@router.get("/{invoice_id}/export/pdf")
+def export_invoice_pdf_endpoint(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    from ...models.invoice import Invoice
+    from ...core.exceptions import NotFoundError
+    inv = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+    if not inv:
+        raise NotFoundError("Invoice not found")
+        
+    # Get items for the invoice
+    preview_data = InvoiceService.preview_invoice(
+        db=db,
+        customer_name=inv.customer_name,
+        customer_id=inv.customer_id,
+        start_date=inv.start_date,
+        end_date=inv.end_date,
+        invoice_id=inv.id
+    )
+    
+    # Attach items to invoice object dynamically so the generator can read them
+    inv.items = preview_data.items
+    
+    pdf_bytes = generate_invoice_pdf(inv)
+    
+    filename = f"Invoice_{inv.invoice_number}.pdf"
+    
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )

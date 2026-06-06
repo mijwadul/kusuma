@@ -109,3 +109,31 @@ def pay_expense(
 ):
     from ...services.expense_service import ExpenseService
     return ExpenseService.pay_expense(db, current_user, expense_id)
+
+@router.get("/export/pdf")
+def export_expense_records_pdf(
+    expense_date: Optional[date] = Query(
+        default=None, description="Filter by exact date"
+    ),
+    start_date: Optional[date] = Query(
+        default=None, description="Filter start date (inklusif)"
+    ),
+    end_date: Optional[date] = Query(
+        default=None, description="Filter end date (inklusif)"
+    ),
+    category: Optional[str] = Query(default=None, description="Filter by category"),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    from fastapi import Response
+    from ...services.expense_service import ExpenseService
+    from ...services.pdf_service import generate_expense_records_pdf
+    
+    records = ExpenseService.get_expenses(db, expense_date, start_date, end_date, category)
+    pdf_bytes = generate_expense_records_pdf(records, start_date, end_date)
+    
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=laporan_pengeluaran.pdf"}
+    )

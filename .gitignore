@@ -181,3 +181,6 @@ GoogleService-Info.plist
 *.crt
 *.p12
 *.pfx
+
+# ─── Native Android App ───────────────────────────────────────
+/Android/

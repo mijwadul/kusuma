@@ -73,7 +73,7 @@ def delete_project(
 
 @router.get("/customers", response_model=List[CustomerResponse])
 def list_customers(
-    is_active: Optional[bool] = None,
+    is_active: Optional[bool] = True,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):

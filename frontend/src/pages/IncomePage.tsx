@@ -13,6 +13,7 @@ import {
   Loader2,
   RefreshCw,
   FileText,
+  Download,
 } from "lucide-react";
 import { toLocalDateInput } from "../utils/formatters";
 
@@ -32,7 +33,7 @@ import {
   Invoice
 } from "../hooks/useInvoices";
 import { useProjectsList, useCustomersList } from "../hooks/useProjects";
-import apiClient from "../api/apiClient";
+import apiClient, { API_URL } from "../api/apiClient";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const formatIDR = (v?: number | string | null) =>
@@ -123,6 +124,7 @@ export default function IncomePage() {
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: number | null }>({ isOpen: false, id: null });
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [isNewCustomer, setIsNewCustomer] = useState(false);
 
   // Forms
   const [projectForm, setProjectForm] = useState({
@@ -237,6 +239,40 @@ export default function IncomePage() {
   }, [records, activeTab]);
 
   // ── Handlers ──
+  const handleExportPDF = async () => {
+    const loadingToast = toast.loading("Generating PDF...");
+    try {
+      const params = new URLSearchParams();
+      if (startDate) params.append("start_date", startDate);
+      if (endDate) params.append("end_date", endDate);
+      
+      const token = localStorage.getItem("token");
+      const url = `${API_URL}/income-records/export/pdf?${params.toString()}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error("Gagal mengunduh PDF");
+      }
+      
+      const blob = await response.blob();
+      const link = document.createElement("a");
+      link.href = window.URL.createObjectURL(blob);
+      link.download = `laporan_pemasukan_${new Date().getTime()}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(link.href);
+      
+      toast.success("PDF berhasil didownload!", { id: loadingToast });
+    } catch (error) {
+      console.error(error);
+      toast.error("Terjadi kesalahan saat mengunduh PDF", { id: loadingToast });
+    }
+  };
+
   const openAddModal = () => {
     setEditId(null);
     setProjectForm({
@@ -308,10 +344,20 @@ export default function IncomePage() {
           notes: projectForm.notes || undefined,
         };
       } else {
+        let finalCustomerName = materialForm.customer_name;
+        if (!isNewCustomer) {
+          const exactCust = customers.find(c => c.name.toLowerCase() === materialForm.customer_name.toLowerCase().trim());
+          if (!exactCust) {
+            toast.error("Nama pelanggan tidak cocok. Pastikan tidak salah ketik, atau pilih 'Pelanggan Baru'.");
+            return;
+          }
+          finalCustomerName = exactCust.name;
+        }
+
         payload = {
           income_type: "material_sale",
           income_date: materialForm.income_date,
-          customer_name: materialForm.customer_name,
+          customer_name: finalCustomerName,
           material_type: materialForm.material_type || undefined,
           quantity: parseFloat(materialForm.quantity) || undefined,
           unit: materialForm.unit || undefined,
@@ -412,6 +458,9 @@ export default function IncomePage() {
           <p className="text-gray-500 text-sm mt-1">Kelola pemasukan dari proyek dan penjualan material</p>
         </div>
         <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2">
+          <button onClick={handleExportPDF} className="flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-medium text-sm transition-colors shadow-sm">
+            <Download className="w-4 h-4" /> Download PDF
+          </button>
           <button onClick={() => setShowInvoiceModal(true)} className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium text-sm transition-colors shadow-sm">
             <FileText className="w-4 h-4" /> Buat Invoice
           </button>
@@ -707,7 +756,44 @@ export default function IncomePage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nama Customer <span className="text-red-500">*</span></label>
-                    <input type="text" required value={materialForm.customer_name} onChange={(e) => setMaterialForm(p => ({ ...p, customer_name: e.target.value }))} placeholder="CV. ABC / Pak Budi" className={inputCls("emerald")} />
+                    <div className="flex gap-4 mb-2">
+                      <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+                        <input type="radio" checked={!isNewCustomer} onChange={() => setIsNewCustomer(false)} className="w-4 h-4 text-emerald-600" />
+                        Pelanggan Terdaftar
+                      </label>
+                      <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+                        <input type="radio" checked={isNewCustomer} onChange={() => {
+                          setIsNewCustomer(true);
+                          setMaterialForm(p => ({...p, customer_name: ""}));
+                        }} className="w-4 h-4 text-emerald-600" />
+                        Pelanggan Baru
+                      </label>
+                    </div>
+                    {!isNewCustomer ? (
+                      <>
+                        <input 
+                          type="text" 
+                          required 
+                          list="income-customers-list"
+                          value={materialForm.customer_name} 
+                          onChange={(e) => setMaterialForm(p => ({ ...p, customer_name: e.target.value }))} 
+                          placeholder="Pilih Pelanggan..." 
+                          className={inputCls("emerald")} 
+                        />
+                        <datalist id="income-customers-list">
+                          {customers.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((c: any) => <option key={c.id} value={c.name} />)}
+                        </datalist>
+                      </>
+                    ) : (
+                      <input 
+                        type="text" 
+                        required 
+                        value={materialForm.customer_name} 
+                        onChange={(e) => setMaterialForm(p => ({ ...p, customer_name: e.target.value }))} 
+                        placeholder="Ketik nama pelanggan baru..." 
+                        className={inputCls("emerald")} 
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Jenis Material <span className="text-red-500">*</span></label>

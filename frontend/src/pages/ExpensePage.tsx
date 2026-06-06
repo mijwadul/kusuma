@@ -3,10 +3,11 @@ import {
   Plus, X, Edit2, Trash2, RefreshCw,
   ChevronUp, ChevronDown, ChevronsUpDown,
   Receipt, BarChart2, Calendar, AlertCircle, CheckCircle,
-  DollarSign
+  DollarSign, Download
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCurrentUser } from '../hooks/useAuth';
+import { API_URL } from '../api/apiClient';
 import { useProjectsList } from '../hooks/useProjects';
 import {
   useExpenses,
@@ -336,6 +337,41 @@ export default function ExpensePage() {
     }
   };
 
+  const handleExportPDF = async () => {
+    const loadingToast = toast.loading("Generating PDF...");
+    try {
+      const params = new URLSearchParams();
+      if (startDate) params.append("start_date", startDate);
+      if (endDate) params.append("end_date", endDate);
+      if (filterCategory) params.append("category", filterCategory);
+      
+      const token = localStorage.getItem("token");
+      const url = `${API_URL}/expenses/export/pdf?${params.toString()}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error("Gagal mengunduh PDF");
+      }
+      
+      const blob = await response.blob();
+      const link = document.createElement("a");
+      link.href = window.URL.createObjectURL(blob);
+      link.download = `laporan_pengeluaran_${new Date().getTime()}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(link.href);
+      
+      toast.success("PDF berhasil didownload!", { id: loadingToast });
+    } catch (error) {
+      console.error(error);
+      toast.error("Terjadi kesalahan saat mengunduh PDF", { id: loadingToast });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -343,9 +379,14 @@ export default function ExpensePage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Pengeluaran Harian</h1>
           <p className="text-gray-500 mt-1 text-sm">Catat &amp; pantau pengeluaran operasional harian</p>
         </div>
-        <button onClick={openAdd} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-accent-focus">
-          <Plus size={16} /> Tambah Pengeluaran
-        </button>
+        <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2">
+          <button onClick={handleExportPDF} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+            <Download size={16} /> Download PDF
+          </button>
+          <button onClick={openAdd} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-accent-focus">
+            <Plus size={16} /> Tambah Pengeluaran
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm p-4">

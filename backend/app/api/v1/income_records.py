@@ -69,3 +69,24 @@ def delete_income_record(
 ):
     IncomeRecordService.delete_income_record(db, current_user, record_id)
     return None
+
+@router.get("/export/pdf")
+def export_income_records_pdf(
+    income_date: Optional[date] = Query(default=None),
+    start_date: Optional[date] = Query(default=None),
+    end_date: Optional[date] = Query(default=None),
+    income_type: Optional[str] = Query(default=None),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    from fastapi import Response
+    from ...services.pdf_service import generate_income_records_pdf
+    
+    records = IncomeRecordService.get_income_records(db, income_date, start_date, end_date, income_type)
+    pdf_bytes = generate_income_records_pdf(records, start_date, end_date)
+    
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=laporan_pemasukan.pdf"}
+    )

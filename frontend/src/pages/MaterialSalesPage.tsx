@@ -86,6 +86,7 @@ const SaleFormModal = ({
   });
 
   const [saveTruckToCustomer, setSaveTruckToCustomer] = useState(true);
+  const [isNewCustomer, setIsNewCustomer] = useState(false);
 
   const createIncomeMutation = useCreateIncomeRecord();
   const updateIncomeMutation = useUpdateIncomeRecord();
@@ -159,12 +160,23 @@ const SaleFormModal = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    let finalCustomerName = form.customer_name;
+    if (!isNewCustomer) {
+      const exactCust = customers.find(c => c.name.toLowerCase() === form.customer_name.toLowerCase().trim());
+      if (!exactCust) {
+        toast.error("Nama pelanggan tidak cocok. Pastikan tidak salah ketik, atau pilih 'Pelanggan Baru'.");
+        return;
+      }
+      finalCustomerName = exactCust.name; // Normalize
+    }
+
     try {
       const payload: Partial<IncomeRecord> = {
         income_date: form.income_date,
         income_type: "material_sale",
-        description: `Penjualan ${form.material_type || "Unknown"} - ${form.customer_name}`,
-        customer_name: form.customer_name,
+        description: `Penjualan ${form.material_type || "Unknown"} - ${finalCustomerName}`,
+        customer_name: finalCustomerName,
         license_plate: form.license_plate,
         driver_name: form.driver_name,
         vehicle_type: form.vehicle_type,
@@ -228,18 +240,44 @@ const SaleFormModal = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Pembeli / Customer</label>
-              <input 
-                type="text" 
-                required 
-                list="customers-list"
-                value={form.customer_name} 
-                onChange={e => setForm(p => ({...p, customer_name: e.target.value}))} 
-                placeholder="Pilih atau ketik baru..."
-                className={inputCls} 
-              />
-              <datalist id="customers-list">
-                {customers.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((c: any) => <option key={c.id} value={c.name} />)}
-              </datalist>
+              <div className="flex gap-4 mb-2">
+                <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+                  <input type="radio" checked={!isNewCustomer} onChange={() => setIsNewCustomer(false)} className="w-4 h-4 text-emerald-600" />
+                  Pelanggan Terdaftar
+                </label>
+                <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+                  <input type="radio" checked={isNewCustomer} onChange={() => {
+                    setIsNewCustomer(true);
+                    setForm(p => ({...p, customer_name: ""}));
+                  }} className="w-4 h-4 text-emerald-600" />
+                  Pelanggan Baru
+                </label>
+              </div>
+              {!isNewCustomer ? (
+                <>
+                  <input 
+                    type="text" 
+                    required 
+                    list="customers-list"
+                    value={form.customer_name} 
+                    onChange={e => setForm(p => ({...p, customer_name: e.target.value}))} 
+                    placeholder="Pilih Pelanggan..."
+                    className={inputCls} 
+                  />
+                  <datalist id="customers-list">
+                    {customers.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((c: any) => <option key={c.id} value={c.name} />)}
+                  </datalist>
+                </>
+              ) : (
+                <input 
+                  type="text" 
+                  required 
+                  value={form.customer_name} 
+                  onChange={e => setForm(p => ({...p, customer_name: e.target.value}))} 
+                  placeholder="Ketik nama pelanggan baru..."
+                  className={inputCls} 
+                />
+              )}
             </div>
           </div>
 

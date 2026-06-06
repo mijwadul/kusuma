@@ -145,165 +145,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
     }
   };
 
-  const generatePrintHTML = (invoiceNumber: string) => {
-    if (!previewData) return "";
-    const { items, total_amount, start_date, end_date, customer_name } = previewData;
-    
-    let itemsHTML = items.map((item: any, idx: number) => `
-      <tr>
-        <td style="padding: 6px 10px; border: 1px solid #ddd; text-align: center;">${idx + 1}</td>
-        <td style="padding: 6px 10px; border: 1px solid #ddd;">${formatDate(item.income_date)}</td>
-        <td style="padding: 6px 10px; border: 1px solid #ddd;">${item.material_type}</td>
-        <td style="padding: 6px 10px; border: 1px solid #ddd;">${item.license_plate || '-'}</td>
-        <td style="padding: 6px 10px; border: 1px solid #ddd;">${item.driver_name || '-'}</td>
-        <td style="padding: 6px 10px; border: 1px solid #ddd;">${item.description}</td>
-        <td style="padding: 6px 10px; border: 1px solid #ddd; text-align: right;">${item.quantity} ${item.unit}</td>
-        <td style="padding: 6px 10px; border: 1px solid #ddd; text-align: right;">${formatIDR(item.unit_price)}</td>
-        <td style="padding: 6px 10px; border: 1px solid #ddd; text-align: right;">${formatIDR(item.amount)}</td>
-      </tr>
-    `).join('');
 
-    let discountHTML = '';
-    let discountAmount = 0;
-    let finalAmount = total_amount;
-    
-    if (discountType === 'percentage' && discountValue) {
-      discountAmount = total_amount * (parseFloat(discountValue) / 100);
-      finalAmount = total_amount - discountAmount;
-      discountHTML = `
-        <tr>
-          <td colspan="8" style="text-align: right; padding: 10px;" class="total-row">Diskon (${discountValue}%)</td>
-          <td style="text-align: right; padding: 10px; color: #ef4444; border: 1px solid #ddd;" class="total-row">- ${formatIDR(discountAmount)}</td>
-        </tr>
-      `;
-    } else if (discountType === 'nominal' && discountValue) {
-      discountAmount = parseFloat(discountValue);
-      finalAmount = total_amount - discountAmount;
-      discountHTML = `
-        <tr>
-          <td colspan="8" style="text-align: right; padding: 10px;" class="total-row">Diskon (Nominal)</td>
-          <td style="text-align: right; padding: 10px; color: #ef4444; border: 1px solid #ddd;" class="total-row">- ${formatIDR(discountAmount)}</td>
-        </tr>
-      `;
-    }
-
-    return `
-      <html>
-        <head>
-          <title>Invoice - ${invoiceNumber}</title>
-          <style>
-            body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; margin: 0; padding: 40px; }
-            .info-grid { display: flex; justify-content: space-between; margin-top: 20px; margin-bottom: 30px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px; }
-            th { background-color: #f3f4f6; color: #374151; font-weight: bold; text-align: center; padding: 8px 10px; border: 1px solid #ddd; }
-            .total-row { font-weight: bold; font-size: 15px; }
-            .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 20px; }
-            .signature { margin-top: 50px; display: flex; justify-content: flex-end; }
-            .signature-box { text-align: center; width: 200px; }
-            @media print {
-              body { padding: 0; }
-              @page { margin: 1cm; }
-              table, th, td { border: 1px solid #333 !important; }
-              th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
-            }
-          </style>
-        </head>
-        <body>
-          <table style="width: 100%; border-collapse: collapse; border: none; margin-bottom: 0;">
-            <tbody>
-              <tr style="border: none;">
-                <td style="width: 85px; padding: 0; border: none; vertical-align: middle;">
-                  <img src="/logo.png" alt="Logo" style="width: 80px; height: 80px; object-fit: contain; display: block;" />
-                </td>
-                <td style="padding-left: 16px; border: none; vertical-align: middle; text-align: left;">
-                  <div style="font-size: 16pt; font-weight: bold; color: #1a3c6e; letter-spacing: 0.5px; line-height: 1.2;">
-                    PT. Kusuma Samudera Berkah
-                  </div>
-                  <div style="font-size: 9pt; color: #4a6fa5; margin-top: 2px; font-style: italic;">
-                    Pertambangan & Konstruksi
-                  </div>
-                  <div style="font-size: 8pt; color: #555; margin-top: 6px; line-height: 1.4;">
-                    Jl. [Alamat Perusahaan], [Kota], [Provinsi]<br />
-                    Telp: [Nomor Telepon] | Email: info@kusumasamuderaberkah.co.id
-                  </div>
-                </td>
-                <td style="width: 220px; border: none; vertical-align: middle; text-align: right;">
-                  <div style="font-size: 14pt; font-weight: bold; color: #1a3c6e; text-transform: uppercase; letter-spacing: 1px;">
-                    INVOICE
-                  </div>
-                  <div style="font-size: 10pt; font-weight: bold; color: #333; margin-top: 4px;">
-                    ${invoiceNumber}
-                  </div>
-                  <div style="font-size: 8pt; color: #777; margin-top: 4px;">
-                    Tanggal Invoice: ${formatDate(invoiceDate)}
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <div style="border-bottom: 3px solid #1a3c6e; margin-top: 10px; margin-bottom: 20px;"></div>
-          
-          <div class="info-grid">
-            <div>
-              <strong>Kepada Yth:</strong><br/>
-              <span style="font-size: 18px; font-weight: bold;">${customer_name}</span>
-            </div>
-            <div style="text-align: right;">
-              <strong>Periode Penjualan:</strong><br/>
-              ${formatDate(start_date)} - ${formatDate(end_date)}
-            </div>
-          </div>
-
-          <table>
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Tanggal</th>
-                <th>Material</th>
-                <th>Nopol</th>
-                <th>Supir</th>
-                <th>Keterangan</th>
-                <th>Qty</th>
-                <th>Harga Satuan</th>
-                <th>Jumlah</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsHTML}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colspan="8" style="text-align: right; padding: 10px;" class="total-row">Subtotal</td>
-                <td style="text-align: right; padding: 10px; border: 1px solid #ddd;" class="total-row">${formatIDR(total_amount)}</td>
-              </tr>
-              ${discountHTML}
-              <tr>
-                <td colspan="8" style="text-align: right; padding: 10px;" class="total-row">Total Tagihan</td>
-                <td style="text-align: right; padding: 10px; color: #10b981; border: 1px solid #ddd;" class="total-row">${formatIDR(finalAmount)}</td>
-              </tr>
-            </tfoot>
-          </table>
-
-          ${notes ? `<div style="margin-bottom: 30px;"><strong>Catatan:</strong><br/>${notes}</div>` : ''}
-
-          <div class="signature">
-            <div class="signature-box">
-              <p>Hormat Kami,</p>
-              <br/><br/><br/><br/>
-              <p><strong>Finance Dept.</strong></p>
-            </div>
-          </div>
-
-          <div class="footer">
-            Invoice generated automatically by System Kusuma
-          </div>
-          <script>
-            window.onload = function() { window.print(); }
-          </script>
-        </body>
-      </html>
-    `;
-  };
 
   const handleSaveOnly = async () => {
     setLoading(true);
@@ -344,8 +186,6 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
 
   const handleSaveAndDownload = async () => {
     setLoading(true);
-    // Buka window terlebih dahulu untuk menghindari blokir popup browser karena asynchronous request
-    const printWindow = window.open("", "_blank");
     
     try {
       const payload = {
@@ -376,19 +216,30 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
         toast.success("Invoice berhasil disimpan");
       }
       
-      // Generate Print HTML
-      if (printWindow) {
-        printWindow.document.write(generatePrintHTML(res.invoice_number));
-        printWindow.document.close();
-      } else {
-        toast.error("Pop-up diblokir oleh browser. Izinkan pop-up untuk mencetak PDF.");
+      const invoiceId = res.id;
+      const token = localStorage.getItem("token");
+      const pdfRes = await fetch(`${API_URL}/invoices/${invoiceId}/export/pdf`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (!pdfRes.ok) {
+        throw new Error(await pdfRes.text());
       }
+      
+      const blob = await pdfRes.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Invoice_${res.invoice_number}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
       
       onClose();
       if ((window as any).onInvoiceSaved) (window as any).onInvoiceSaved(); // Optional callback
     } catch (err: any) {
-      if (printWindow) printWindow.close();
-      toast.error("Gagal menyimpan invoice: " + err.message);
+      toast.error("Gagal mendownload invoice: " + err.message);
     } finally {
       setLoading(false);
     }

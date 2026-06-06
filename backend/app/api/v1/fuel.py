@@ -166,3 +166,23 @@ def delete_fuel_purchase(
 @router.get("/stock", response_model=dict)
 def get_fuel_stock(db: Session = Depends(get_db)):
     return FuelService.get_fuel_stock(db)
+
+@router.get("/export/pdf")
+def export_fuel_purchases_pdf(
+    fuel_type: Optional[str] = None,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    from fastapi import Response
+    from ...services.pdf_service import generate_fuel_purchases_pdf
+    
+    purchases = FuelService.get_fuel_prices(db, fuel_type, start_date, end_date)
+    pdf_bytes = generate_fuel_purchases_pdf(purchases, start_date, end_date)
+    
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=laporan_pembelian_bbm.pdf"}
+    )
