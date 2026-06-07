@@ -104,7 +104,7 @@ def calculate_payroll(
                     Attendance.employee_id == employee.id,
                     between(Attendance.date, period_start, period_end),
                     Attendance.status.in_(["present", "late"]),
-                    (Attendance.is_payroll_generated == False) | (Attendance.is_payroll_generated == None)
+                    (Attendance.is_payroll_generated == False) | (Attendance.is_payroll_generated == None) | (Attendance.payroll_id == None)
                 )
             )
             .all()

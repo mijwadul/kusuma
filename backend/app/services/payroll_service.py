@@ -37,7 +37,7 @@ class PayrollService:
                     Attendance.employee_id == employee.id,
                     between(Attendance.date, period_start, period_end),
                     Attendance.status.in_(["present", "late"]),
-                    (Attendance.is_payroll_generated == False) | (Attendance.is_payroll_generated == None)
+                    (Attendance.is_payroll_generated == False) | (Attendance.is_payroll_generated == None) | (Attendance.payroll_id == None)
                 )
             )
             .all()
@@ -225,7 +225,7 @@ class PayrollService:
             Attendance.employee_id == payroll.employee_id,
             Attendance.date >= payroll.period_start,
             Attendance.date <= payroll.period_end,
-            (Attendance.is_payroll_generated == False) | (Attendance.is_payroll_generated == None)
+            (Attendance.is_payroll_generated == False) | (Attendance.is_payroll_generated == None) | (Attendance.payroll_id == None)
         ).all()
         for att in attendances_to_mark:
             att.is_payroll_generated = True
