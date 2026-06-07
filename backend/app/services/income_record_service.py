@@ -83,12 +83,19 @@ class IncomeRecordService:
         customer_name_val = data.customer_name
 
         if data.income_type == "material_sale" and data.customer_name:
+            from sqlalchemy.sql import func
             cust_name = data.customer_name.strip()
-            customer = db.query(Customer).filter(Customer.name.ilike(cust_name)).first()
+            customer = db.query(Customer).filter(func.trim(Customer.name).ilike(cust_name)).first()
             if not customer:
                 customer = Customer(name=cust_name, created_by=current_user.id if current_user else None)
                 db.add(customer)
                 db.flush()
+            else:
+                # Perbarui nama customer jika sebelumnya ada spasi tambahan
+                if customer.name != cust_name:
+                    customer.name = cust_name
+                    db.add(customer)
+                    db.flush()
             
             customer_id_val = customer.id
             customer_name_val = customer.name

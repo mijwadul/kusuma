@@ -163,7 +163,7 @@ const SaleFormModal = ({
     
     let finalCustomerName = form.customer_name;
     if (!isNewCustomer) {
-      const exactCust = customers.find(c => c.name.toLowerCase() === form.customer_name.toLowerCase().trim());
+      const exactCust = customers.find(c => (c.name || "").toLowerCase().trim() === (form.customer_name || "").toLowerCase().trim());
       if (!exactCust) {
         toast.error("Nama pelanggan tidak cocok. Pastikan tidak salah ketik, atau pilih 'Pelanggan Baru'.");
         return;
