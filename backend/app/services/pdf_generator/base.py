@@ -7,7 +7,7 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.platypus import Paragraph, Image, Table, TableStyle
 
-TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
+TEMPLATES_DIR = Path(__file__).parent.parent.parent.parent.parent / "frontend" / "public"
 LOGO_PATH = TEMPLATES_DIR / "logo.png"
 
 # ── Colors ────────────────────────────────────────────────────────────────
@@ -65,24 +65,41 @@ def get_logo_image(width_cm=8.5, height_cm=3.2):
             pass
     return Paragraph("", get_base_styles()("Normal"))
 
-def create_header(title_text: str, right_paragraphs: list, content_w: float):
-    from reportlab.lib.units import mm
+def create_header(title_text: str, right_paragraphs: list, content_w: float, title_size: int = 16):
+    from reportlab.lib.units import mm, cm
     from reportlab.platypus import Spacer, HRFlowable
     
-    logo_cell = get_logo_image()
+    logo_cell = get_logo_image(width_cm=3.0, height_cm=3.0)
     style = get_base_styles()
     
+    company_name = Paragraph("<font size='14' color='#1a3c6e'><b>PT. Kusuma Samudera Berkah</b></font>", style(alignment=TA_LEFT, spaceAfter=2))
+    company_sub = Paragraph("<font size='9' color='#4a6fa5'><i>Pertambangan & Konstruksi</i></font>", style(alignment=TA_LEFT, spaceAfter=4))
+    company_address = Paragraph("<font size='8' color='#555555'>Jl. Pendidikan Tlogosadang, Kec. Paciran,<br/>Kab. Lamongan Jawa Timur 62264</font>", style(alignment=TA_LEFT, leading=10))
+    
+    company_info = [company_name, company_sub, company_address]
+    
+    left_table = Table([[logo_cell, company_info]], colWidths=[3.2 * cm, content_w * 0.6 - 3.2 * cm])
+    left_table.setStyle(
+        TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ])
+    )
+    
     slip_title = Paragraph(
-        f"<font size='16' color='#1e40af'><b>{title_text}</b></font>",
+        f"<font size='{title_size}' color='#1e40af'><b>{title_text}</b></font>",
         style(alignment=TA_RIGHT, spaceAfter=2),
     )
     
     right_cells = [slip_title, Spacer(1, 4 * mm)] + right_paragraphs
 
     header_data = [
-        [logo_cell, right_cells]
+        [left_table, right_cells]
     ]
-    header_table = Table(header_data, colWidths=[content_w * 0.5, content_w * 0.5])
+    header_table = Table(header_data, colWidths=[content_w * 0.6, content_w * 0.4])
     header_table.setStyle(
         TableStyle(
             [

@@ -23,12 +23,7 @@ def generate_invoice_pdf(invoice) -> bytes:
     style = get_base_styles()
     story = []
 
-    # Header
-    logo_cell = get_logo_image()
-    slip_title = Paragraph(
-        "<font size='22' color='#1e40af'><b>INVOICE</b></font>",
-        style(alignment=TA_RIGHT, spaceAfter=2),
-    )
+    from .base import create_header
     
     invoice_number = getattr(invoice, "invoice_number", "-")
     invoice_num_label = Paragraph(f"<font size='12' color='#111827'><b>{invoice_number}</b></font>", style(alignment=TA_RIGHT))
@@ -36,19 +31,7 @@ def generate_invoice_pdf(invoice) -> bytes:
     invoice_date = fmt_date(getattr(invoice, "invoice_date", getattr(invoice, "created_at", None)))
     date_label = Paragraph(f"<font size='9' color='#6b7280'>Tanggal: {invoice_date}</font>", style(alignment=TA_RIGHT))
 
-    header_table = Table([[logo_cell, [slip_title, Spacer(1, 2 * mm), invoice_num_label, date_label]]], colWidths=[content_w * 0.58, content_w * 0.42])
-    header_table.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("ALIGN", (1, 0), (1, 0), "RIGHT"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, -1), 0),
-    ]))
-    story.append(header_table)
-    story.append(Spacer(1, 3 * mm))
-    story.append(HRFlowable(width="100%", thickness=2, color=BRAND_BLUE))
-    story.append(Spacer(1, 6 * mm))
+    story.extend(create_header("INVOICE", [invoice_num_label, date_label], content_w, title_size=22))
 
     # Customer and Period Info
     customer_name = getattr(invoice, "customer_name", "-")

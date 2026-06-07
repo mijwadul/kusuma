@@ -29,30 +29,14 @@ def generate_payroll_pdf(payroll_data: dict) -> bytes:
     style = get_base_styles()
     story = []
 
-    # Header
-    logo_cell = get_logo_image()
-    slip_title = Paragraph(
-        "<font size='22' color='#1e40af'><b>SLIP GAJI</b></font>",
-        style(alignment=TA_RIGHT, spaceAfter=2),
-    )
+    from .base import create_header
+    
     period_label = Paragraph(
         f"<font size='10' color='#6b7280'>Periode: {fmt_date(g(payroll, 'period_start'))} – {fmt_date(g(payroll, 'period_end'))}</font>",
         style(alignment=TA_RIGHT),
     )
 
-    header_table = Table([[logo_cell, [slip_title, Spacer(1, 8 * mm), period_label]]], colWidths=[content_w * 0.58, content_w * 0.42])
-    header_table.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("ALIGN", (1, 0), (1, 0), "RIGHT"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, -1), 0),
-    ]))
-    story.append(header_table)
-    story.append(Spacer(1, 3 * mm))
-    story.append(HRFlowable(width="100%", thickness=2, color=BRAND_BLUE))
-    story.append(Spacer(1, 4 * mm))
+    story.extend(create_header("SLIP GAJI", [period_label], content_w, title_size=22))
 
     # Employee Info
     emp_name = g(employee, "name", "—")
