@@ -45,21 +45,25 @@ class PayrollService:
         present_days = len(attendances)
         
         for att in attendances:
-            work_hours = att.work_hours or 0
-            if work_hours < 6:
-                basic_salary += (daily_salary * 0.5)
-            else:
-                basic_salary += daily_salary
+            if att.check_in and att.check_out:
+                work_hours = att.work_hours or 0
+                if work_hours < 6:
+                    basic_salary += (daily_salary * 0.5)
+                else:
+                    basic_salary += daily_salary
                 
-            if work_hours > 12:
-                auto_overtime_hours += (work_hours - 12)
+                if work_hours > 12:
+                    auto_overtime_hours += (work_hours - 12)
+            else:
+                # Jika absen manual tanpa jam check in/out, hitung full
+                basic_salary += daily_salary
 
         total_overtime_hours = overtime_hours + auto_overtime_hours
 
         work_days = 0
         current = period_start
         while current <= period_end:
-            if current.weekday() < 5: 
+            if current.weekday() < 6: # Monday to Saturday
                 work_days += 1
             current += timedelta(days=1)
 

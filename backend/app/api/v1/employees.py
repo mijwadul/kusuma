@@ -112,15 +112,19 @@ def calculate_payroll(
         present_days = len(attendances)
         
         for att in attendances:
-            work_hours = att.work_hours or 0
-            if work_hours < 6:
-                # 50% salary if work hours < 6
-                basic_salary += (daily_salary * 0.5)
+            if att.check_in and att.check_out:
+                work_hours = att.work_hours or 0
+                if work_hours < 6:
+                    # 50% salary if work hours < 6
+                    basic_salary += (daily_salary * 0.5)
+                else:
+                    basic_salary += daily_salary
+                    
+                if work_hours > 12:
+                    auto_overtime_hours += (work_hours - 12)
             else:
+                # Jika absen manual tanpa jam check in/out, hitung full
                 basic_salary += daily_salary
-                
-            if work_hours > 12:
-                auto_overtime_hours += (work_hours - 12)
     else:
         # Default behavior without DB
         basic_salary = daily_salary * present_days
@@ -132,7 +136,7 @@ def calculate_payroll(
     work_days = 0
     current = period_start
     while current <= period_end:
-        if current.weekday() < 5:  # Monday = 0, Friday = 4
+        if current.weekday() < 6:  # Monday = 0, Saturday = 5
             work_days += 1
         current += timedelta(days=1)
 
