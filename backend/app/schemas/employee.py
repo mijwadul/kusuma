@@ -374,6 +374,7 @@ class AttendanceCreate(AttendanceBase):
 class AttendanceUpdate(BaseModel):
     """Update attendance"""
 
+    date: Optional[date] = None
     check_in: Optional[datetime] = None
     check_out: Optional[datetime] = None
     status: Optional[str] = None

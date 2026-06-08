@@ -97,10 +97,10 @@ class IncomeRecordService:
                     db.add(customer)
                     db.flush()
             
-            customer_id_val = customer.id
-            customer_name_val = customer.name
+            customer_id_val = customer.id if customer else None
+            customer_name_val = customer.name if customer else cust_name
             
-            if data.license_plate:
+            if data.license_plate and customer:
                 plate = data.license_plate.strip().upper()
                 trucks = []
                 if customer.trucks_json:
