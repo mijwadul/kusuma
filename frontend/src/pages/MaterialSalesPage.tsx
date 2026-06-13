@@ -613,7 +613,8 @@ const DownloadPdfModal = ({ sales, onClose }: { sales: IncomeRecord[], onClose: 
     doc.setFontSize(10);
     doc.text(`Periode: ${formatDate(startDate)} - ${formatDate(endDate)}`, 45, 31);
 
-    const tableData = filtered.map(s => [
+    const tableData = filtered.map((s, index) => [
+      index + 1,
       formatDate(s.income_date),
       s.license_plate || "-",
       s.driver_name || "-",
@@ -623,10 +624,31 @@ const DownloadPdfModal = ({ sales, onClose }: { sales: IncomeRecord[], onClose: 
 
     autoTable(doc, {
       startY: 40,
-      head: [["Tanggal", "Nopol", "Supir", "Jenis Kendaraan", "Material"]],
+      head: [["No.", "Tanggal", "Nopol", "Supir", "Jenis Kendaraan", "Material"]],
       body: tableData,
       theme: "grid",
       headStyles: { fillColor: [16, 185, 129] },
+    });
+
+    // Ringkasan Material
+    const summary: Record<string, number> = {};
+    filtered.forEach(s => {
+      const mat = s.material_type || "Unknown";
+      const qty = Number(s.quantity) || 1;
+      summary[mat] = (summary[mat] || 0) + qty;
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY || 40;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("Ringkasan Total Material:", 14, finalY + 10);
+    doc.setFont("helvetica", "normal");
+    
+    let currentY = finalY + 16;
+    Object.entries(summary).forEach(([mat, total]) => {
+      // Kita asumsikan unit dominan adalah ritase sesuai permintaan
+      doc.text(`- ${mat}: ${total.toLocaleString("id-ID")}`, 14, currentY);
+      currentY += 6;
     });
 
     doc.save(`Laporan_Material_${startDate}_${endDate}.pdf`);
