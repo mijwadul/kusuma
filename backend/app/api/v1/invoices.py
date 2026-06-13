@@ -75,6 +75,25 @@ class InvoiceStatusUpdate(BaseModel):
 
 from ...services.invoice_service import InvoiceService
 
+@router.get("/uninvoiced-customers", response_model=List[str])
+def get_uninvoiced_customers(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    from sqlalchemy import distinct
+    from ...models.income_record import IncomeRecord
+    customers = (
+        db.query(distinct(IncomeRecord.customer_name))
+        .filter(
+            IncomeRecord.income_type == "material_sale",
+            (IncomeRecord.is_invoiced == False) | (IncomeRecord.is_invoiced == None),
+            IncomeRecord.customer_name.isnot(None),
+            IncomeRecord.customer_name != ""
+        )
+        .all()
+    )
+    return [c[0] for c in customers if c[0]]
+
 @router.get("/preview", response_model=InvoicePreviewResponse)
 def preview_invoice(
     customer_name: Optional[str] = Query(None, description="Nama customer"),

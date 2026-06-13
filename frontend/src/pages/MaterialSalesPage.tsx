@@ -630,25 +630,33 @@ const DownloadPdfModal = ({ sales, onClose }: { sales: IncomeRecord[], onClose: 
       headStyles: { fillColor: [16, 185, 129] },
     });
 
-    // Ringkasan Material
-    const summary: Record<string, number> = {};
+    // Ringkasan Material & Kendaraan
+    const summary: Record<string, Record<string, number>> = {};
     filtered.forEach(s => {
       const mat = s.material_type || "Unknown";
+      const veh = s.vehicle_type || "Unknown";
       const qty = Number(s.quantity) || 1;
-      summary[mat] = (summary[mat] || 0) + qty;
+      
+      if (!summary[mat]) summary[mat] = {};
+      summary[mat][veh] = (summary[mat][veh] || 0) + qty;
     });
 
     const finalY = (doc as any).lastAutoTable.finalY || 40;
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    doc.text("Ringkasan Total Material:", 14, finalY + 10);
-    doc.setFont("helvetica", "normal");
+    doc.text("Ringkasan Total Penjualan:", 14, finalY + 10);
     
     let currentY = finalY + 16;
-    Object.entries(summary).forEach(([mat, total]) => {
-      // Kita asumsikan unit dominan adalah ritase sesuai permintaan
-      doc.text(`- ${mat}: ${total.toLocaleString("id-ID")}`, 14, currentY);
+    Object.entries(summary).forEach(([mat, vehs]) => {
+      doc.setFont("helvetica", "bold");
+      doc.text(`- ${mat}:`, 14, currentY);
       currentY += 6;
+      
+      doc.setFont("helvetica", "normal");
+      Object.entries(vehs).forEach(([veh, total]) => {
+        doc.text(`  • ${veh}: ${total.toLocaleString("id-ID")} rit`, 14, currentY);
+        currentY += 6;
+      });
     });
 
     doc.save(`Laporan_Material_${startDate}_${endDate}.pdf`);
@@ -728,16 +736,16 @@ export default function MaterialSalesPage() {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-10">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Penjualan Material</h1>
           <p className="text-sm text-gray-500 mt-1">Catat transaksi material & kelola harga</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {isGM && (
             <button
               onClick={() => setActiveTab(t => t === "sales" ? "prices" : "sales")}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2 ${activeTab === "prices" ? "bg-indigo-100 text-indigo-700" : "bg-white border text-gray-600 hover:bg-gray-50"}`}
+              className={`flex-1 sm:flex-none justify-center px-4 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2 ${activeTab === "prices" ? "bg-indigo-100 text-indigo-700" : "bg-white border text-gray-600 hover:bg-gray-50"}`}
             >
               <Settings size={16} /> Atur Harga (GM)
             </button>
@@ -746,13 +754,13 @@ export default function MaterialSalesPage() {
             <>
               <button
                 onClick={() => setShowPdfModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
+                className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
               >
                 <FileText size={16} /> Download PDF
               </button>
               <button
                 onClick={() => { setEditDataSale(null); setShowSaleModal(true); }}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
+                className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
               >
                 <Plus size={16} /> Catat Penjualan
               </button>
@@ -761,7 +769,7 @@ export default function MaterialSalesPage() {
           {activeTab === "prices" && (
             <button
               onClick={() => { setEditDataPrice(null); setShowPriceModal(true); }}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
+              className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
             >
               <Plus size={16} /> Tambah Harga
             </button>

@@ -43,8 +43,26 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
   // Preview State
   const [previewData, setPreviewData] = useState<any>(null);
 
+  const [uninvoicedCustomers, setUninvoicedCustomers] = useState<string[]>([]);
+
+  const fetchUninvoicedCustomers = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/invoices/uninvoiced-customers`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUninvoicedCustomers(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
+      fetchUninvoicedCustomers();
       if (existingInvoice) {
         setCustomerName(existingInvoice.customer_name);
         setInvoiceDate(existingInvoice.invoice_date || toLocalDateInput(new Date()));
@@ -281,12 +299,15 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
                   className={inputCls}
                 >
                   <option value="">-- Pilih Customer --</option>
-                  {customers.map((c, i) => (
-                    <option key={i} value={c.name}>{c.name}</option>
+                  {uninvoicedCustomers.map((cName, i) => (
+                    <option key={i} value={cName}>{cName}</option>
                   ))}
+                  {existingInvoice && !uninvoicedCustomers.includes(existingInvoice.customer_name) && (
+                    <option value={existingInvoice.customer_name}>{existingInvoice.customer_name}</option>
+                  )}
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
-                  Hanya menampilkan customer yang terdaftar.
+                  Hanya menampilkan customer yang memiliki tagihan belum dibuat invoice.
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-4">
