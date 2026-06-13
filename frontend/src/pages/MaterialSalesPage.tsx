@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import {
-  Plus, Pencil, Trash2, X, Loader2, ShoppingCart, Settings, Truck
+  Plus, Pencil, Trash2, X, Loader2, ShoppingCart, Settings, Truck, FileText, Download
 } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import apiClient from "../api/apiClient";
 import { useCurrentUser } from "../hooks/useAuth";
 import {
@@ -567,6 +569,102 @@ const SaleDetailModal = ({ sale, isGM, currentUser, onClose, onEdit, onDelete }:
 };
 
 
+// ── Modals ─────────────────────────────────────────────────────────────────────
+const DownloadPdfModal = ({ sales, onClose }: { sales: IncomeRecord[], onClose: () => void }) => {
+  const [startDate, setStartDate] = useState(todayStr());
+  const [endDate, setEndDate] = useState(todayStr());
+
+  const handleDownload = async () => {
+    const filtered = sales.filter(s => {
+      if (!s.income_date) return false;
+      const d = s.income_date.split("T")[0];
+      return d >= startDate && d <= endDate;
+    });
+
+    if (filtered.length === 0) {
+      toast.error("Tidak ada data penjualan pada periode ini");
+      return;
+    }
+
+    const doc = new jsPDF();
+    
+    // Load Logo
+    try {
+      const img = new Image();
+      img.src = "/logo.png";
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+      // Add logo (x: 14, y: 10, width: 25, height: 25)
+      doc.addImage(img, "PNG", 14, 10, 25, 25);
+    } catch (e) {
+      console.warn("Failed to load logo", e);
+    }
+    
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("PT KUSUMA SAMUDERA BERKAH", 45, 18);
+    
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text("Laporan Penjualan Material", 45, 25);
+    
+    doc.setFontSize(10);
+    doc.text(`Periode: ${formatDate(startDate)} - ${formatDate(endDate)}`, 45, 31);
+
+    const tableData = filtered.map(s => [
+      formatDate(s.income_date),
+      s.license_plate || "-",
+      s.driver_name || "-",
+      s.vehicle_type || "-",
+      s.material_type || "-"
+    ]);
+
+    autoTable(doc, {
+      startY: 40,
+      head: [["Tanggal", "Nopol", "Supir", "Jenis Kendaraan", "Material"]],
+      body: tableData,
+      theme: "grid",
+      headStyles: { fillColor: [16, 185, 129] },
+    });
+
+    doc.save(`Laporan_Material_${startDate}_${endDate}.pdf`);
+    toast.success("PDF berhasil didownload");
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <FileText size={18} className="text-blue-600" />
+            <h2 className="text-lg font-semibold text-gray-800">Download Report PDF</h2>
+          </div>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"><X size={18} /></button>
+        </div>
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Dari Tanggal</label>
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={inputCls} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Sampai Tanggal</label>
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={inputCls} />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button onClick={onClose} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">Batal</button>
+            <button onClick={handleDownload} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm">
+              <Download size={16} /> Download
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ── MAIN COMPONENT ─────────────────────────────────────────────────────────────
 export default function MaterialSalesPage() {
   const [activeTab, setActiveTab] = useState<"sales" | "prices">("sales");
@@ -583,6 +681,7 @@ export default function MaterialSalesPage() {
 
   const [showSaleModal, setShowSaleModal] = useState(false);
   const [showPriceModal, setShowPriceModal] = useState(false);
+  const [showPdfModal, setShowPdfModal] = useState(false);
   const [editDataSale, setEditDataSale] = useState<IncomeRecord | null>(null);
   const [editDataPrice, setEditDataPrice] = useState<MaterialPrice | null>(null);
   const [viewSale, setViewSale] = useState<IncomeRecord | null>(null);
@@ -622,12 +721,20 @@ export default function MaterialSalesPage() {
             </button>
           )}
           {activeTab === "sales" && (
-            <button
-              onClick={() => { setEditDataSale(null); setShowSaleModal(true); }}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
-            >
-              <Plus size={16} /> Catat Penjualan
-            </button>
+            <>
+              <button
+                onClick={() => setShowPdfModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
+              >
+                <FileText size={16} /> Download PDF
+              </button>
+              <button
+                onClick={() => { setEditDataSale(null); setShowSaleModal(true); }}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
+              >
+                <Plus size={16} /> Catat Penjualan
+              </button>
+            </>
           )}
           {activeTab === "prices" && (
             <button
@@ -733,6 +840,7 @@ export default function MaterialSalesPage() {
 
       {showSaleModal && <SaleFormModal editData={editDataSale} onClose={() => setShowSaleModal(false)} customers={customers} projects={projects} />}
       {showPriceModal && <PriceFormModal editData={editDataPrice} onClose={() => setShowPriceModal(false)} />}
+      {showPdfModal && <DownloadPdfModal sales={sales} onClose={() => setShowPdfModal(false)} />}
 
       {/* Sale Detail Modal */}
       {viewSale && !showSaleModal && (
