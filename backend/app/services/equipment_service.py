@@ -45,7 +45,7 @@ class EquipmentService:
             events.append({
                 "id": f"topup_{t.id}",
                 "type": "topup",
-                "date": t.approved_at or t.topup_date,
+                "date": t.topup_date or t.approved_at,
                 "description": desc,
                 "amount": t.amount,
                 "hours": None,
@@ -71,7 +71,7 @@ class EquipmentService:
             })
 
         for h in histories:
-            date_val = h.applied_at or h.created_at
+            date_val = h.effective_date or h.applied_at or h.created_at
             if h.status == "applied":
                 events.append({
                     "id": f"rate_{h.id}",
