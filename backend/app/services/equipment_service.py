@@ -18,21 +18,22 @@ class EquipmentService:
 
         vendor_id = equipment.vendor_id
         
-        # 1. Fetch Topups for this vendor
+        from sqlalchemy import or_
+        
+        # 1. Fetch Topups for this vendor (only global topups or specific to this equipment)
         topups = db.query(VendorTopUp).filter(
             VendorTopUp.vendor_id == vendor_id,
-            VendorTopUp.status == "approved"
+            VendorTopUp.status == "approved",
+            or_(VendorTopUp.equipment_id == equipment_id, VendorTopUp.equipment_id.is_(None))
         ).all()
 
-        # 2. Fetch WorkLogs for all equipments of this vendor
-        equipments_of_vendor = db.query(Equipment).filter(Equipment.vendor_id == vendor_id).all()
-        equipment_ids = [eq.id for eq in equipments_of_vendor]
-        equipment_names = {eq.id: eq.name for eq in equipments_of_vendor}
+        equipment_names = {equipment.id: equipment.name}
 
-        worklogs = db.query(WorkLog).filter(WorkLog.equipment_id.in_(equipment_ids)).all()
+        # 2. Fetch WorkLogs for THIS equipment only
+        worklogs = db.query(WorkLog).filter(WorkLog.equipment_id == equipment_id).all()
 
-        # 3. Fetch Rate Histories for all equipments of this vendor
-        histories = db.query(EquipmentRateHistory).filter(EquipmentRateHistory.equipment_id.in_(equipment_ids)).all()
+        # 3. Fetch Rate Histories for THIS equipment only
+        histories = db.query(EquipmentRateHistory).filter(EquipmentRateHistory.equipment_id == equipment_id).all()
 
         events = []
 
