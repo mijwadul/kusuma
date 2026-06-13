@@ -192,7 +192,7 @@ class WorkLogService:
                     ).order_by(EquipmentRateHistory.id.desc()).first()
                     if history:
                         history.status = "applied"
-                        history.applied_at = datetime.datetime.now()
+                        history.applied_at = data.work_date
             else:
                 total_cost = hours_to_bill * Decimal(str(equipment.rental_rate_per_hour or 0))
                 applied_rate = Decimal(str(equipment.rental_rate_per_hour or 0))

@@ -56,12 +56,21 @@ class EquipmentService:
                 "split_details": None
             })
 
+        from .work_log_service import WorkLogService
+        
         for w in worklogs:
             hours = float(w.total_hours or 0) - float(w.rental_discount_hours or 0)
             if hours <= 0:
                 continue
-            cost = w.total_cost or 0
-            rate = w.applied_rate or 0
+                
+            if getattr(w, 'total_cost', None) is not None:
+                cost = w.total_cost
+                rate = w.applied_rate or 0
+            else:
+                calc = WorkLogService._calculate_rental_costs(w, equipment)
+                cost = calc["rental_cost_total"]
+                rate = calc["rental_rate_per_hour"]
+                
             events.append({
                 "id": f"worklog_{w.id}",
                 "type": "worklog",
