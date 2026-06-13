@@ -91,10 +91,18 @@ const EquipmentLedgerModal: React.FC<EquipmentLedgerModalProps> = ({
         credit = Math.abs(item.amount);
       }
 
+      let desc = item.description;
+      if (item.type === 'worklog' && item.hours) {
+        desc += `\n(Durasi: ${item.hours} Jam)`;
+      }
+      if (item.split_details) {
+        desc += `\n(Rincian: ${item.split_details})`;
+      }
+
       return [
         index + 1,
         formatDate(item.date),
-        item.description,
+        desc,
         debit > 0 ? formatRupiah(debit) : '-',
         credit > 0 ? formatRupiah(credit) : '-',
         formatRupiah(item.running_balance)
@@ -215,20 +223,32 @@ const EquipmentLedgerModal: React.FC<EquipmentLedgerModalProps> = ({
                         )}
 
                         {item.type === 'worklog' && (
-                          <div className="mt-3 border-t border-gray-50 pt-3 flex items-center justify-between">
-                            <div className="flex gap-4 text-sm">
-                              <div>
-                                <span className="text-gray-500 block text-xs">Pemakaian</span>
-                                <span className="font-medium">{item.hours} Jam</span>
+                          <div className="mt-3 border-t border-gray-50 pt-3 flex flex-col gap-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex gap-4 text-sm">
+                                <div>
+                                  <span className="text-gray-500 block text-xs">Pemakaian</span>
+                                  <span className="font-medium">{item.hours} Jam</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500 block text-xs">Harga Diterapkan</span>
+                                  <span className="font-medium">
+                                    {item.split_details ? 'Harga Kombinasi' : `${formatRupiah(item.applied_rate ?? 0)}/Jam`}
+                                  </span>
+                                </div>
                               </div>
-                              <div>
-                                <span className="text-gray-500 block text-xs">Harga Diterapkan</span>
-                                <span className="font-medium">{formatRupiah(item.applied_rate ?? 0)}/Jam</span>
+                              <div className={`text-base font-bold ${amountClass}`}>
+                                - {formatRupiah(Math.abs(item.amount))}
                               </div>
                             </div>
-                            <div className={`text-base font-bold ${amountClass}`}>
-                              - {formatRupiah(Math.abs(item.amount))}
-                            </div>
+                            
+                            {/* Split details if deposit exhausted mid-worklog */}
+                            {item.split_details && (
+                              <div className="text-xs text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200 mt-1">
+                                <span className="font-semibold block mb-0.5">Beririsan dengan Transisi Harga:</span>
+                                {item.split_details}
+                              </div>
+                            )}
                           </div>
                         )}
 

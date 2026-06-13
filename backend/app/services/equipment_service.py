@@ -52,11 +52,14 @@ class EquipmentService:
                 "hours": None,
                 "applied_rate": None,
                 "old_rate": None,
-                "new_rate": None
+                "new_rate": None,
+                "split_details": None
             })
 
         for w in worklogs:
             hours = float(w.total_hours or 0) - float(w.rental_discount_hours or 0)
+            if hours <= 0:
+                continue
             cost = w.total_cost or 0
             rate = w.applied_rate or 0
             events.append({
@@ -68,7 +71,8 @@ class EquipmentService:
                 "hours": hours,
                 "applied_rate": rate,
                 "old_rate": None,
-                "new_rate": None
+                "new_rate": None,
+                "split_details": w.split_details
             })
 
         for h in histories:
@@ -83,7 +87,8 @@ class EquipmentService:
                     "hours": None,
                     "applied_rate": None,
                     "old_rate": h.old_rate,
-                    "new_rate": h.new_rate
+                    "new_rate": h.new_rate,
+                    "split_details": None
                 })
 
         # Sort all events chronologically

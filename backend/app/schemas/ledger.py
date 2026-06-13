@@ -16,6 +16,7 @@ class LedgerItem(BaseModel):
     applied_rate: Optional[Decimal] = None
     old_rate: Optional[Decimal] = None
     new_rate: Optional[Decimal] = None
+    split_details: Optional[str] = None
 
     class Config:
         from_attributes = True
