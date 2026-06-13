@@ -7,6 +7,10 @@ import {
   Fuel,
   AlertTriangle,
   Gauge,
+  History,
+  BookOpen,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import { Equipment } from "../hooks/useEquipment";
 import { useEquipmentBalances } from "../hooks/useVendors";
@@ -17,6 +21,11 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   userRole?: string;
+  onEdit: (equipment: Equipment) => void;
+  onDelete: (equipmentId: number) => void;
+  onFuel: (equipmentId: number) => void;
+  onRateHistory: (equipment: Equipment) => void;
+  onLedger: (equipment: Equipment) => void;
 }
 
 const EquipmentDetailModal: React.FC<Props> = ({
@@ -25,6 +34,11 @@ const EquipmentDetailModal: React.FC<Props> = ({
   isOpen,
   onClose,
   userRole = "user",
+  onEdit,
+  onDelete,
+  onFuel,
+  onRateHistory,
+  onLedger,
 }) => {
   const [activeTab, setActiveTab] = useState("general");
 
@@ -491,10 +505,47 @@ const EquipmentDetailModal: React.FC<Props> = ({
           )}
         </div>
 
-        <div className="flex justify-end space-x-2 pt-6 mt-6 border-t">
+        <div className="flex flex-col sm:flex-row justify-between items-center pt-6 mt-6 border-t gap-4">
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => { onClose(); onFuel(equipment.id); }}
+              className="flex items-center gap-1 text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-3 py-2 rounded transition-colors text-sm font-medium"
+              title="Isi BBM"
+            >
+              <Fuel size={16} /> BBM
+            </button>
+            <button
+              onClick={() => { onClose(); onRateHistory(equipment); }}
+              className="flex items-center gap-1 text-purple-600 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 px-3 py-2 rounded transition-colors text-sm font-medium"
+              title="Riwayat Harga"
+            >
+              <History size={16} /> Harga
+            </button>
+            <button
+              onClick={() => { onClose(); onLedger(equipment); }}
+              className="flex items-center gap-1 text-teal-600 hover:text-teal-900 bg-teal-50 hover:bg-teal-100 px-3 py-2 rounded transition-colors text-sm font-medium"
+              title="Buku Besar / Ledger"
+            >
+              <BookOpen size={16} /> Ledger
+            </button>
+            <button
+              onClick={() => { onClose(); onEdit(equipment); }}
+              className="flex items-center gap-1 text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded transition-colors text-sm font-medium"
+              title="Edit Equipment"
+            >
+              <Edit size={16} /> Edit
+            </button>
+            <button
+              onClick={() => { onClose(); onDelete(equipment.id); }}
+              className="flex items-center gap-1 text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-2 rounded transition-colors text-sm font-medium"
+              title="Hapus Equipment"
+            >
+              <Trash2 size={16} /> Hapus
+            </button>
+          </div>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+            className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors w-full sm:w-auto font-medium"
           >
             Tutup
           </button>

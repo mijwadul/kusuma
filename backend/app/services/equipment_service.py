@@ -7,6 +7,97 @@ import datetime
 
 class EquipmentService:
     @staticmethod
+    def get_equipment_ledger(db: Session, equipment_id: int):
+        from ..models import VendorTopUp, WorkLog, EquipmentRateHistory, Equipment
+        from ..schemas.ledger import LedgerItem
+        from decimal import Decimal
+
+        equipment = db.query(Equipment).filter(Equipment.id == equipment_id).first()
+        if not equipment or not equipment.vendor_id:
+            return []
+
+        vendor_id = equipment.vendor_id
+        
+        # 1. Fetch Topups for this vendor
+        topups = db.query(VendorTopUp).filter(
+            VendorTopUp.vendor_id == vendor_id,
+            VendorTopUp.status == "approved"
+        ).all()
+
+        # 2. Fetch WorkLogs for all equipments of this vendor
+        equipments_of_vendor = db.query(Equipment).filter(Equipment.vendor_id == vendor_id).all()
+        equipment_ids = [eq.id for eq in equipments_of_vendor]
+        equipment_names = {eq.id: eq.name for eq in equipments_of_vendor}
+
+        worklogs = db.query(WorkLog).filter(WorkLog.equipment_id.in_(equipment_ids)).all()
+
+        # 3. Fetch Rate Histories for all equipments of this vendor
+        histories = db.query(EquipmentRateHistory).filter(EquipmentRateHistory.equipment_id.in_(equipment_ids)).all()
+
+        events = []
+
+        for t in topups:
+            desc = f"Top-Up Deposit"
+            if t.equipment_id:
+                desc += f" (Khusus {equipment_names.get(t.equipment_id, 'Alat')})"
+            if t.notes:
+                desc += f" - {t.notes}"
+            events.append({
+                "id": f"topup_{t.id}",
+                "type": "topup",
+                "date": t.approved_at or t.topup_date,
+                "description": desc,
+                "amount": t.amount,
+                "hours": None,
+                "applied_rate": None,
+                "old_rate": None,
+                "new_rate": None
+            })
+
+        for w in worklogs:
+            hours = float(w.total_hours or 0) - float(w.rental_discount_hours or 0)
+            cost = w.total_cost or 0
+            rate = w.applied_rate or 0
+            events.append({
+                "id": f"worklog_{w.id}",
+                "type": "worklog",
+                "date": w.work_date,
+                "description": f"Pemakaian {equipment_names.get(w.equipment_id, 'Alat')} ({w.input_method})",
+                "amount": -Decimal(str(cost)),
+                "hours": hours,
+                "applied_rate": rate,
+                "old_rate": None,
+                "new_rate": None
+            })
+
+        for h in histories:
+            date_val = h.applied_at or h.created_at
+            if h.status == "applied":
+                events.append({
+                    "id": f"rate_{h.id}",
+                    "type": "rate_change",
+                    "date": date_val,
+                    "description": f"Perubahan Harga {equipment_names.get(h.equipment_id, 'Alat')} ({h.trigger_type})",
+                    "amount": Decimal("0"),
+                    "hours": None,
+                    "applied_rate": None,
+                    "old_rate": h.old_rate,
+                    "new_rate": h.new_rate
+                })
+
+        # Sort all events chronologically
+        events.sort(key=lambda x: (x["date"] if isinstance(x["date"], datetime.datetime) else datetime.datetime.combine(x["date"], datetime.time.min)))
+
+        running_balance = Decimal("0")
+        ledger_items = []
+        for ev in events:
+            running_balance += ev["amount"]
+            ev["running_balance"] = running_balance
+            ledger_items.append(LedgerItem(**ev))
+
+        return ledger_items
+
+    @staticmethod
     def get_equipment_rate_history(db: Session, equipment_id: int) -> List[EquipmentRateHistory]:
         return db.query(EquipmentRateHistory).filter(EquipmentRateHistory.equipment_id == equipment_id).order_by(EquipmentRateHistory.created_at.desc()).all()
 

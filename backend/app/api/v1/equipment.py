@@ -21,6 +21,10 @@ def get_equipment_by_id(equipment_id: int, db: Session = Depends(get_db)):
 def get_equipment_rate_history(equipment_id: int, db: Session = Depends(get_db)):
     return EquipmentService.get_equipment_rate_history(db, equipment_id)
 
+@router.get("/{equipment_id}/ledger")
+def get_equipment_ledger(equipment_id: int, db: Session = Depends(get_db)):
+    return EquipmentService.get_equipment_ledger(db, equipment_id)
+
 @router.post("", response_model=EquipmentSchema, dependencies=[Depends(require_role(["field", "finance", "checker", "admin", "gm", "direktur"]))])
 def create_equipment(equipment: EquipmentCreate, db: Session = Depends(get_db)):
     return EquipmentService.create_equipment(db, equipment)

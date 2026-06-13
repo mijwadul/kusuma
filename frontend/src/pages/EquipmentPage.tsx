@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Edit, Trash2, Fuel, Eye, AlertTriangle, X, History } from "lucide-react";
+import { Plus, Edit, Trash2, Fuel, Eye, AlertTriangle, X, History, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import AlertModal from "../components/AlertModal";
 import EquipmentDetailModal from "../components/EquipmentDetailModal";
 import EquipmentRateHistoryModal from "../components/equipment/EquipmentRateHistoryModal";
+import EquipmentLedgerModal from "../components/equipment/EquipmentLedgerModal";
 import VendorManagement from "../components/VendorManagement";
 import { useCurrentUser } from "../hooks/useAuth";
 import { useEquipment, useCreateEquipment, useUpdateEquipment, useDeleteEquipment, useEquipmentFuelReport, Equipment } from "../hooks/useEquipment";
@@ -20,6 +21,8 @@ const EquipmentPage = () => {
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [historyEquipmentId, setHistoryEquipmentId] = useState<number | null>(null);
   const [historyEquipmentName, setHistoryEquipmentName] = useState<string>("");
+  const [showLedgerModal, setShowLedgerModal] = useState(false);
+  const [ledgerEquipment, setLedgerEquipment] = useState<Equipment | null>(null);
   const [deleteEquipmentId, setDeleteEquipmentId] = useState<number | null>(null);
   const [showBrandDeleteModal, setShowBrandDeleteModal] = useState(false);
   const [brandToDelete, setBrandToDelete] = useState<string | null>(null);
@@ -165,6 +168,11 @@ const EquipmentPage = () => {
     setHistoryEquipmentId(item.id);
     setHistoryEquipmentName(item.name);
     setShowRateHistoryModal(true);
+  };
+
+  const handleOpenLedger = (item: Equipment) => {
+    setLedgerEquipment(item);
+    setShowLedgerModal(true);
   };
 
   const handleViewDetail = (item: Equipment) => {
@@ -316,9 +324,6 @@ const EquipmentPage = () => {
               <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase tracking-wider ">
                 BBM Status
               </th>
-              <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase tracking-wider ">
-                Actions
-              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -411,60 +416,6 @@ const EquipmentPage = () => {
                       {statusLabel}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/fuel?equipment=${item.id}`);
-                        }}
-                        className="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 p-1.5 rounded transition-colors"
-                        title="Isi BBM"
-                      >
-                        <Fuel size={16} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewDetail(item);
-                        }}
-                        className="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 p-1.5 rounded transition-colors"
-                        title="Lihat Detail"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenRateHistory(item);
-                        }}
-                        className="text-purple-600 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 p-1.5 rounded transition-colors"
-                        title="Riwayat Harga"
-                      >
-                        <History size={16} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEdit(item);
-                        }}
-                        className="text-indigo-600 hover:text-indigo-900"
-                        title="Edit Equipment"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(item.id);
-                        }}
-                        className="text-red-600 hover:text-red-900"
-                        title="Hapus Equipment"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
                 </tr>
               );
             })}
@@ -474,6 +425,25 @@ const EquipmentPage = () => {
       </div>
       
       {userRole && <VendorManagement userRole={userRole} />}
+
+      <EquipmentRateHistoryModal
+        equipmentId={historyEquipmentId}
+        equipmentName={historyEquipmentName}
+        isOpen={showRateHistoryModal}
+        onClose={() => {
+          setShowRateHistoryModal(false);
+          setHistoryEquipmentId(null);
+        }}
+      />
+
+      <EquipmentLedgerModal
+        equipment={ledgerEquipment}
+        isOpen={showLedgerModal}
+        onClose={() => {
+          setShowLedgerModal(false);
+          setLedgerEquipment(null);
+        }}
+      />
 
       {showForm && (
         <div
@@ -864,21 +834,26 @@ const EquipmentPage = () => {
         cancelText="Batal"
       />
 
-      <EquipmentDetailModal
-        equipment={selectedEquipment}
-        fuelData={
-          selectedEquipment
-            ? fuelReport.find((r: any) => r.equipment_id === selectedEquipment.id) ||
-              null
-            : null
-        }
-        isOpen={showDetailModal}
-        onClose={() => {
-          setShowDetailModal(false);
-          setSelectedEquipment(null);
-        }}
-        userRole={userRole}
-      />
+        <EquipmentDetailModal
+          equipment={selectedEquipment}
+          fuelData={
+            selectedEquipment
+              ? fuelReport.find((r: any) => r.equipment_id === selectedEquipment.id) ||
+                null
+              : null
+          }
+          isOpen={showDetailModal}
+          onClose={() => {
+            setShowDetailModal(false);
+            setSelectedEquipment(null);
+          }}
+          userRole={userRole}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onFuel={(id) => navigate(`/fuel?equipment=${id}`)}
+          onRateHistory={handleOpenRateHistory}
+          onLedger={handleOpenLedger}
+        />
       
       <EquipmentRateHistoryModal
         equipmentId={historyEquipmentId}

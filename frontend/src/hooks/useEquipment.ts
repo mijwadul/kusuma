@@ -90,3 +90,17 @@ export const useEquipmentRateHistory = (equipmentId: number, options?: any) => {
     ...options
   });
 };
+
+import { LedgerItem } from '../types/ledger';
+
+export const useEquipmentLedger = (equipmentId: number, options?: any) => {
+  return useQuery<LedgerItem[], Error>({
+    queryKey: ['equipment-ledger', equipmentId],
+    queryFn: async () => {
+      const response = await apiClient.get<LedgerItem[]>(`/equipment/${equipmentId}/ledger`);
+      return response.data;
+    },
+    enabled: !!equipmentId,
+    ...options
+  });
+};
