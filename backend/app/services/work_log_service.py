@@ -139,8 +139,29 @@ class WorkLogService:
         if (equipment.ownership_status or "internal") == "rental":
             pending_rate = getattr(equipment, 'pending_rental_rate_per_hour', None)
             locked_balance = getattr(equipment, 'locked_balance_for_pending_rate', None)
+            pending_effective_date = getattr(equipment, 'pending_rate_effective_date', None)
             
-            if pending_rate is not None and locked_balance is not None and locked_balance > 0:
+            # Check date trigger first
+            if pending_rate is not None and pending_effective_date is not None and data.work_date >= pending_effective_date:
+                applied_rate = Decimal(str(pending_rate))
+                total_cost = hours_to_bill * applied_rate
+                
+                equipment.rental_rate_per_hour = pending_rate
+                equipment.pending_rental_rate_per_hour = None
+                equipment.pending_rate_effective_date = None
+                
+                from ..models import EquipmentRateHistory
+                import datetime
+                history = db.query(EquipmentRateHistory).filter(
+                    EquipmentRateHistory.equipment_id == equipment.id,
+                    EquipmentRateHistory.status == "pending"
+                ).order_by(EquipmentRateHistory.id.desc()).first()
+                if history:
+                    history.status = "applied"
+                    history.applied_at = datetime.datetime.now()
+            
+            # If no date trigger, check deposit trigger
+            elif pending_rate is not None and locked_balance is not None and locked_balance > 0:
                 old_rate = Decimal(str(equipment.rental_rate_per_hour or 0))
                 new_rate = Decimal(str(pending_rate))
                 
@@ -162,6 +183,16 @@ class WorkLogService:
                     equipment.rental_rate_per_hour = new_rate
                     equipment.pending_rental_rate_per_hour = None
                     equipment.locked_balance_for_pending_rate = Decimal("0")
+                    
+                    from ..models import EquipmentRateHistory
+                    import datetime
+                    history = db.query(EquipmentRateHistory).filter(
+                        EquipmentRateHistory.equipment_id == equipment.id,
+                        EquipmentRateHistory.status == "pending"
+                    ).order_by(EquipmentRateHistory.id.desc()).first()
+                    if history:
+                        history.status = "applied"
+                        history.applied_at = datetime.datetime.now()
             else:
                 total_cost = hours_to_bill * Decimal(str(equipment.rental_rate_per_hour or 0))
                 applied_rate = Decimal(str(equipment.rental_rate_per_hour or 0))

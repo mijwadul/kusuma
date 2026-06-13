@@ -4,6 +4,7 @@ from typing import List
 from ...core.database import get_db
 from ...core.auth import get_current_user, require_admin, require_role
 from ...schemas.equipment import Equipment as EquipmentSchema, EquipmentCreate, EquipmentUpdate
+from ...schemas.equipment_rate_history import EquipmentRateHistory as EquipmentRateHistorySchema
 from ...services.equipment_service import EquipmentService
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
@@ -15,6 +16,10 @@ def get_equipment(db: Session = Depends(get_db)):
 @router.get("/{equipment_id}", response_model=EquipmentSchema)
 def get_equipment_by_id(equipment_id: int, db: Session = Depends(get_db)):
     return EquipmentService.get_equipment(db, equipment_id)
+
+@router.get("/{equipment_id}/rate-history", response_model=List[EquipmentRateHistorySchema])
+def get_equipment_rate_history(equipment_id: int, db: Session = Depends(get_db)):
+    return EquipmentService.get_equipment_rate_history(db, equipment_id)
 
 @router.post("", response_model=EquipmentSchema, dependencies=[Depends(require_role(["field", "finance", "checker", "admin", "gm", "direktur"]))])
 def create_equipment(equipment: EquipmentCreate, db: Session = Depends(get_db)):

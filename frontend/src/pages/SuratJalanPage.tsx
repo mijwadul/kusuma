@@ -45,8 +45,8 @@ export default function SuratJalanPage() {
       const cust = customers.find((c) => c.name === r.customer_name);
       
       // Find preferred units for this material
-      const prefs = cust?.material_preferences?.filter(m => m.material_type === r.material_type) || [];
-      const validPrefUnits = prefs.map(p => p.unit).filter(u => u === "m3" || u === "ton");
+      const prefs = cust?.material_preferences?.filter((m: any) => m.material_type === r.material_type) || [];
+      let validPrefUnits = prefs.map((p: any) => p.unit).filter((u: string) => u === "m3" || u === "ton");
       
       let defaultUnit = r.unit;
       // If current unit is invalid for calculation (e.g., ritase) or not set
@@ -54,8 +54,13 @@ export default function SuratJalanPage() {
           if (validPrefUnits.length > 0) {
               defaultUnit = validPrefUnits[0];
           } else {
-              defaultUnit = "ton"; // fallback
+              defaultUnit = "m3"; // fallback to m3 for kubikasi by default
           }
+      }
+      
+      // If no preferences found, provide both options to the user
+      if (validPrefUnits.length === 0) {
+          validPrefUnits = ["m3", "ton"];
       }
       
       // Load default P,L,T from truck master if available

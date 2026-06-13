@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Edit, Trash2, Fuel, Eye, AlertTriangle, X } from "lucide-react";
+import { Plus, Edit, Trash2, Fuel, Eye, AlertTriangle, X, History } from "lucide-react";
 import { toast } from "sonner";
 import AlertModal from "../components/AlertModal";
 import EquipmentDetailModal from "../components/EquipmentDetailModal";
+import EquipmentRateHistoryModal from "../components/equipment/EquipmentRateHistoryModal";
 import VendorManagement from "../components/VendorManagement";
 import { useCurrentUser } from "../hooks/useAuth";
 import { useEquipment, useCreateEquipment, useUpdateEquipment, useDeleteEquipment, useEquipmentFuelReport, Equipment } from "../hooks/useEquipment";
@@ -15,7 +16,10 @@ const EquipmentPage = () => {
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showRateHistoryModal, setShowRateHistoryModal] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
+  const [historyEquipmentId, setHistoryEquipmentId] = useState<number | null>(null);
+  const [historyEquipmentName, setHistoryEquipmentName] = useState<string>("");
   const [deleteEquipmentId, setDeleteEquipmentId] = useState<number | null>(null);
   const [showBrandDeleteModal, setShowBrandDeleteModal] = useState(false);
   const [brandToDelete, setBrandToDelete] = useState<string | null>(null);
@@ -51,6 +55,9 @@ const EquipmentPage = () => {
     rental_rate_per_hour: "",
     pending_rental_rate_per_hour: "",
     vendor_id: "",
+    rate_trigger_type: "deposit",
+    rate_effective_date: "",
+    auto_recalculate: false,
   });
 
   const locationSuggestions = useMemo(() => {
@@ -86,6 +93,9 @@ const EquipmentPage = () => {
       rental_rate_per_hour: formData.rental_rate_per_hour === "" ? undefined : parseFloat(formData.rental_rate_per_hour),
       pending_rental_rate_per_hour: formData.pending_rental_rate_per_hour === "" ? null : parseFloat(formData.pending_rental_rate_per_hour),
       vendor_id: formData.vendor_id === "" ? undefined : parseInt(formData.vendor_id),
+      rate_trigger_type: formData.rate_trigger_type,
+      rate_effective_date: formData.rate_effective_date === "" ? undefined : formData.rate_effective_date,
+      auto_recalculate: formData.auto_recalculate,
     };
 
     if (editingEquipment) {
@@ -144,8 +154,17 @@ const EquipmentPage = () => {
       rental_rate_per_hour: item.rental_rate_per_hour?.toString() || "",
       pending_rental_rate_per_hour: item.pending_rental_rate_per_hour?.toString() || "",
       vendor_id: item.vendor_id?.toString() || "",
+      rate_trigger_type: "deposit",
+      rate_effective_date: "",
+      auto_recalculate: false,
     });
     setShowForm(true);
+  };
+
+  const handleOpenRateHistory = (item: Equipment) => {
+    setHistoryEquipmentId(item.id);
+    setHistoryEquipmentName(item.name);
+    setShowRateHistoryModal(true);
   };
 
   const handleViewDetail = (item: Equipment) => {
@@ -223,6 +242,9 @@ const EquipmentPage = () => {
       rental_rate_per_hour: "",
       pending_rental_rate_per_hour: "",
       vendor_id: "",
+      rate_trigger_type: "deposit",
+      rate_effective_date: "",
+      auto_recalculate: false,
     });
   };
 
@@ -414,9 +436,20 @@ const EquipmentPage = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          handleOpenRateHistory(item);
+                        }}
+                        className="text-purple-600 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 p-1.5 rounded transition-colors"
+                        title="Riwayat Harga"
+                      >
+                        <History size={16} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
                           handleEdit(item);
                         }}
                         className="text-indigo-600 hover:text-indigo-900"
+                        title="Edit Equipment"
                       >
                         <Edit size={16} />
                       </button>
@@ -426,6 +459,7 @@ const EquipmentPage = () => {
                           handleDelete(item.id);
                         }}
                         className="text-red-600 hover:text-red-900"
+                        title="Hapus Equipment"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -662,12 +696,76 @@ const EquipmentPage = () => {
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
                         placeholder="0.00"
                       />
-                      {editingEquipment && (
-                         <p className="text-xs text-gray-500 mt-1">
-                           Catatan: Jika ada saldo positif, perubahan harga akan masuk antrian otomatis.
-                         </p>
-                      )}
                     </div>
+                    {editingEquipment && (
+                      <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Kapan Harga Baru Berlaku?
+                        </label>
+                        <div className="space-y-2">
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              value="immediate"
+                              checked={formData.rate_trigger_type === "immediate"}
+                              onChange={(e) => setFormData({ ...formData, rate_trigger_type: e.target.value })}
+                              className="text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-700">Langsung Berlaku (Abaikan Sisa Deposit)</span>
+                          </label>
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              value="deposit"
+                              checked={formData.rate_trigger_type === "deposit"}
+                              onChange={(e) => setFormData({ ...formData, rate_trigger_type: e.target.value })}
+                              className="text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-700">Setelah Deposit Lama Habis (Antrean)</span>
+                          </label>
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              value="date"
+                              checked={formData.rate_trigger_type === "date"}
+                              onChange={(e) => setFormData({ ...formData, rate_trigger_type: e.target.value })}
+                              className="text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-700">Pada Tanggal Tertentu</span>
+                          </label>
+                        </div>
+                        
+                        {formData.rate_trigger_type === "date" && (
+                          <div className="mt-3 p-3 bg-white border border-gray-300 rounded-md">
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Tanggal Mulai Berlaku
+                            </label>
+                            <input
+                              type="date"
+                              value={formData.rate_effective_date}
+                              onChange={(e) => setFormData({ ...formData, rate_effective_date: e.target.value })}
+                              className="block w-full border border-gray-300 rounded shadow-sm p-1.5 text-sm"
+                              required
+                            />
+                            
+                            {formData.rate_effective_date && new Date(formData.rate_effective_date) <= new Date() && (
+                              <div className="mt-3 bg-amber-50 p-2 rounded text-xs text-amber-800 border border-amber-200">
+                                <strong>Peringatan Retroactive:</strong> Tanggal yang dipilih berada di masa lalu.
+                                <label className="flex items-start space-x-2 mt-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={formData.auto_recalculate}
+                                    onChange={(e) => setFormData({ ...formData, auto_recalculate: e.target.checked })}
+                                    className="mt-0.5 text-blue-600 rounded focus:ring-blue-500"
+                                  />
+                                  <span>Otomatis hitung ulang (Recalculate) seluruh Work Log sejak tanggal tersebut dan sesuaikan saldo vendor secara global.</span>
+                                </label>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     {editingEquipment?.pending_rental_rate_per_hour != null && (
                       <div className="bg-yellow-50 p-3 rounded border border-yellow-200">
                         <label className="block text-sm font-medium text-yellow-800 flex items-center gap-1">
@@ -780,6 +878,17 @@ const EquipmentPage = () => {
           setSelectedEquipment(null);
         }}
         userRole={userRole}
+      />
+      
+      <EquipmentRateHistoryModal
+        equipmentId={historyEquipmentId}
+        equipmentName={historyEquipmentName}
+        isOpen={showRateHistoryModal}
+        onClose={() => {
+          setShowRateHistoryModal(false);
+          setHistoryEquipmentId(null);
+          setHistoryEquipmentName("");
+        }}
       />
     </div>
   );

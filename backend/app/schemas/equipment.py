@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal
 from typing import Optional
 
@@ -16,6 +16,7 @@ class EquipmentBase(BaseModel):
     rental_rate_per_hour: Optional[Decimal] = Decimal("0")
     pending_rental_rate_per_hour: Optional[Decimal] = None
     locked_balance_for_pending_rate: Optional[Decimal] = None
+    pending_rate_effective_date: Optional[date] = None
     vendor_id: Optional[int] = None
 
 class EquipmentCreate(EquipmentBase):
@@ -33,7 +34,13 @@ class EquipmentUpdate(BaseModel):
     rental_rate_per_hour: Optional[Decimal] = None
     pending_rental_rate_per_hour: Optional[Decimal] = None
     locked_balance_for_pending_rate: Optional[Decimal] = None
+    pending_rate_effective_date: Optional[date] = None
     vendor_id: Optional[int] = None
+    
+    # Extra fields for rate change logic
+    rate_trigger_type: Optional[str] = None # immediate, deposit, date
+    rate_effective_date: Optional[date] = None
+    auto_recalculate: Optional[bool] = False # for backdated recalculation
 
 
 class Equipment(EquipmentBase):

@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/apiClient';
 
+import { EquipmentRateHistory } from '../types/equipmentRateHistory';
+
 export interface Equipment {
   id: number;
   name: string;
@@ -13,6 +15,7 @@ export interface Equipment {
   rental_rate_per_hour?: number;
   pending_rental_rate_per_hour?: number | null;
   locked_balance_for_pending_rate?: number | null;
+  pending_rate_effective_date?: string | null;
   vendor_id?: number;
 }
 
@@ -72,6 +75,18 @@ export const useEquipmentFuelReport = (options?: any) => {
       const response = await apiClient.get<any[]>('/fuel/equipment-report');
       return response.data;
     },
+    ...options
+  });
+};
+
+export const useEquipmentRateHistory = (equipmentId: number, options?: any) => {
+  return useQuery<EquipmentRateHistory[], Error>({
+    queryKey: ['equipment-rate-history', equipmentId],
+    queryFn: async () => {
+      const response = await apiClient.get<EquipmentRateHistory[]>(`/equipment/${equipmentId}/rate-history`);
+      return response.data;
+    },
+    enabled: !!equipmentId,
     ...options
   });
 };
