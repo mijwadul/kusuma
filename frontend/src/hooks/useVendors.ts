@@ -28,11 +28,12 @@ export interface EquipmentBalance {
 }
 
 
-export const useVendors = (options?: any) => {
+export const useVendors = (vendorType?: string, options?: any) => {
   return useQuery<Vendor[], Error>({
-    queryKey: ['vendors'],
+    queryKey: ['vendors', vendorType],
     queryFn: async () => {
-      const response = await apiClient.get<Vendor[]>('/vendors');
+      const url = vendorType ? `/vendors?type=${vendorType}` : '/vendors';
+      const response = await apiClient.get<Vendor[]>(url);
       return response.data;
     },
     ...options

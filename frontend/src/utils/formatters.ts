@@ -55,3 +55,7 @@ export const formatDate = (d?: string | Date | null) => {
   const mIndex = parseInt(m, 10) - 1;
   return `${dayVal} ${months[mIndex] || m} ${y}`;
 };
+
+export const truncToTwo = (val: number): number => {
+  return Math.trunc(val * 100) / 100;
+};

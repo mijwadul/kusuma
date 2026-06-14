@@ -104,8 +104,12 @@ class VendorService:
         db.refresh(topup)
 
     @staticmethod
-    def get_vendors(db: Session) -> List[Vendor]:
-        vendors = db.query(Vendor).filter(Vendor.status != "deleted").order_by(Vendor.name).all()
+    def get_vendors(db: Session, vendor_type: Optional[str] = None) -> List[Vendor]:
+        query = db.query(Vendor).filter(Vendor.status != "deleted")
+        if vendor_type:
+            query = query.filter(Vendor.vendor_type == vendor_type)
+        vendors = query.order_by(Vendor.name).all()
+        
         for v in vendors:
             VendorService._sync_vendor_balance(db, v)
         return vendors

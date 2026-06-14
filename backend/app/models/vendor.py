@@ -19,6 +19,7 @@ class Vendor(Base):
     balance_deposit = Column(DECIMAL(15, 2), default=0)
     
     status = Column(String(30), default="active")
+    vendor_type = Column(String(50), default="equipment") # "equipment" atau "hauling"
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

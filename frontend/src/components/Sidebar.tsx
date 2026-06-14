@@ -165,9 +165,15 @@ interface MenuItem {
     const equipmentSubmenu = [
       {
         path: "/equipment",
-        icon: Truck,
+        icon: Factory,
         label: "Manajemen Equipment",
         show: true,
+      },
+      {
+        path: "/hauling",
+        icon: Truck,
+        label: "Vendor Hauling",
+        show: isFinance || isAdmin,
       },
       {
         path: "/work-logs",

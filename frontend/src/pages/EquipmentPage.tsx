@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Edit, Trash2, Fuel, Eye, AlertTriangle, X, History, BookOpen } from "lucide-react";
+import { Plus, Fuel, AlertTriangle, X } from "lucide-react";
 import { toast } from "sonner";
 import AlertModal from "../components/AlertModal";
 import EquipmentDetailModal from "../components/EquipmentDetailModal";
@@ -41,7 +41,7 @@ const EquipmentPage = () => {
 
   const { data: equipmentList = [], isLoading: loadingEquipment } = useEquipment();
   const { data: fuelReport = [] } = useEquipmentFuelReport();
-  const { data: vendorsList = [] } = useVendors();
+  const { data: vendorsList = [] } = useVendors('equipment');
 
   const createMutation = useCreateEquipment();
   const updateMutation = useUpdateEquipment();
@@ -230,7 +230,6 @@ const EquipmentPage = () => {
     "Excavator (Bucket)",
     "Excavator (Breaker)",
     "Loader",
-    "Truck",
     "Bulldozer",
     "Crane",
     "Forklift",
@@ -395,11 +394,12 @@ const EquipmentPage = () => {
                     <div className="flex items-center gap-2">
                       <span>{hasLph ? lph.toFixed(2) : "-"}</span>
                       {isAnomaly && (
-                        <AlertTriangle
-                          size={16}
-                          className="text-red-600"
-                          title={report.pesan_alert || "Konsumsi tidak wajar"}
-                        />
+                        <span title={report.pesan_alert || "Konsumsi tidak wajar"}>
+                          <AlertTriangle
+                            size={16}
+                            className="text-red-600"
+                          />
+                        </span>
                       )}
                     </div>
                     <div className="mt-2 h-2 w-full bg-gray-200 rounded-full overflow-hidden">

@@ -18,8 +18,8 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 @router.get("", response_model=List[VendorResponse])
-def get_vendors(db: Session = Depends(get_db)):
-    return VendorService.get_vendors(db)
+def get_vendors(type: str = None, db: Session = Depends(get_db)):
+    return VendorService.get_vendors(db, type)
 
 @router.get("/{vendor_id}", response_model=VendorResponse)
 def get_vendor(vendor_id: int, db: Session = Depends(get_db)):

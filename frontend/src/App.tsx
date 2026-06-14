@@ -29,6 +29,7 @@ import ReportsPage from "./pages/ReportsPage";
 import SuratJalanPage from "./pages/SuratJalanPage";
 import ProjectSuratJalanPage from "./pages/ProjectSuratJalanPage";
 import ProjectEmployeesPage from "./pages/ProjectEmployeesPage";
+import HaulingPage from "./pages/HaulingPage";
 
 import Sidebar from "./components/Sidebar";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -136,7 +137,7 @@ const App: React.FC = () => {
           <Route path="/expenses" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><ExpensePage /></RoleProtectedRoute>} />
           <Route path="/reports" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><ReportsPage /></RoleProtectedRoute>} />
           <Route path="/surat-jalan" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><SuratJalanPage /></RoleProtectedRoute>} />
-          
+          <Route path="/hauling" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><HaulingPage /></RoleProtectedRoute>} />
           <Route path="/employees" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]}><EmployeesPage /></RoleProtectedRoute>} />
           <Route path="/users" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]}><UsersPage /></RoleProtectedRoute>} />
           <Route path="/attendance" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]}><AttendancePage /></RoleProtectedRoute>} />

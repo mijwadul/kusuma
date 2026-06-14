@@ -4,6 +4,9 @@ from sqlalchemy.orm import Session
 from ..models.surat_jalan import SuratJalan
 from ..models.project import Project
 from ..models.user import User
+from ..models.vendor import Vendor
+from ..models.project_hauling_price import ProjectHaulingPrice
+from ..models.vendor_truck import VendorTruck
 from ..schemas.surat_jalan import SuratJalanCreate, SuratJalanUpdate
 from fastapi import HTTPException
 from datetime import datetime
@@ -26,7 +29,7 @@ class SuratJalanService:
             tarra = data.get("tarra")
             if bruto is not None and tarra is not None:
                 minus_berat = data.get("minus_berat") or 0.0
-                netto = bruto - tarra - minus_berat
+                netto = (bruto - tarra - minus_berat) / 1000.0
                 if netto < 0:
                     raise HTTPException(status_code=400, detail="Bruto tidak boleh lebih kecil dari Tarra + Potongan")
         elif project.measurement_type == "kubikasi":
@@ -52,6 +55,38 @@ class SuratJalanService:
 
         data_dict = data.model_dump()
         netto, volume = SuratJalanService._calculate_measurement(project, data_dict)
+        
+        # Calculate Hauling Cost
+        hauling_price = None
+        hauling_cost = None
+        vendor = None
+        
+        # Handle manual vendor creation
+        if not data.vendor_id and getattr(data, "vendor_name", None):
+            vname = data.vendor_name.strip()
+            if vname:
+                vendor = db.query(Vendor).filter(Vendor.name == vname).first()
+                if not vendor:
+                    vendor = Vendor(name=vname, type="hauling")
+                    db.add(vendor)
+                    db.commit()
+                    db.refresh(vendor)
+                data.vendor_id = vendor.id
+
+        if data.vendor_id:
+            vendor = db.query(Vendor).filter(Vendor.id == data.vendor_id).first()
+            if vendor:
+                price_record = db.query(ProjectHaulingPrice).filter(
+                    ProjectHaulingPrice.project_id == project.id,
+                    ProjectHaulingPrice.vendor_id == vendor.id
+                ).first()
+                if price_record:
+                    hauling_price = price_record.price_per_unit
+                    
+                    if project.measurement_type == "tonase" and netto is not None:
+                        hauling_cost = float(hauling_price) * float(netto)
+                    elif project.measurement_type == "kubikasi" and volume is not None:
+                        hauling_cost = float(hauling_price) * float(volume)
 
         sj = SuratJalan(
             project_id=data.project_id,
@@ -59,6 +94,11 @@ class SuratJalanService:
             nopol=data.nopol,
             nama_supir=data.nama_supir,
             asal_tambang=data.asal_tambang,
+            vendor_id=data.vendor_id,
+            truck_id=data.truck_id,
+            truck_type=getattr(data, 'truck_type', None),
+            hauling_price=hauling_price,
+            hauling_cost=hauling_cost,
             bruto=data.bruto if project.measurement_type == "tonase" else None,
             tarra=data.tarra if project.measurement_type == "tonase" else None,
             minus_berat=data.minus_berat if project.measurement_type == "tonase" else 0.0,
@@ -74,6 +114,19 @@ class SuratJalanService:
             sj.created_at = datetime.fromisoformat(data.created_at)
         
         db.add(sj)
+        
+        # Update VendorTruck dimensions if provided
+        if data.truck_id and project.measurement_type == "kubikasi":
+            truck = db.query(VendorTruck).filter(VendorTruck.id == data.truck_id).first()
+            if truck:
+                if data.panjang is not None: truck.panjang = data.panjang
+                if data.lebar is not None: truck.lebar = data.lebar
+                if data.tinggi is not None: truck.tinggi = data.tinggi
+        
+        # Deduct from vendor balance
+        if vendor and hauling_cost:
+            vendor.balance_deposit = float(vendor.balance_deposit or 0) - hauling_cost
+            
         db.commit()
         db.refresh(sj)
         return sj
@@ -97,10 +150,26 @@ class SuratJalanService:
         project = db.query(Project).filter(Project.id == sj.project_id).first()
         SuratJalanService._check_project_access(project, current_user)
 
+        old_vendor_id = sj.vendor_id
+        old_hauling_cost = float(sj.hauling_cost or 0.0)
+
         update_data = data.model_dump(exclude_unset=True)
         
+        # Handle manual vendor creation
+        if not data.vendor_id and getattr(data, "vendor_name", None):
+            vname = data.vendor_name.strip()
+            if vname:
+                vendor = db.query(Vendor).filter(Vendor.name == vname).first()
+                if not vendor:
+                    vendor = Vendor(name=vname, type="hauling")
+                    db.add(vendor)
+                    db.commit()
+                    db.refresh(vendor)
+                data.vendor_id = vendor.id
+                update_data["vendor_id"] = vendor.id
+
         for key, value in update_data.items():
-            if key not in ["bruto", "tarra", "minus_berat", "panjang", "lebar", "tinggi", "minus_tinggi", "created_at"]:
+            if key not in ["bruto", "tarra", "minus_berat", "panjang", "lebar", "tinggi", "minus_tinggi", "created_at", "vendor_name"]:
                 setattr(sj, key, value)
                 
         if "created_at" in update_data and update_data["created_at"]:
@@ -131,6 +200,44 @@ class SuratJalanService:
         if netto is not None: sj.netto = netto
         if volume is not None: sj.volume = volume
 
+        # Recalculate Hauling Cost
+        hauling_price = None
+        hauling_cost = None
+        
+        if sj.vendor_id:
+            price_record = db.query(ProjectHaulingPrice).filter(
+                ProjectHaulingPrice.project_id == project.id,
+                ProjectHaulingPrice.vendor_id == sj.vendor_id
+            ).first()
+            if price_record:
+                hauling_price = price_record.price_per_unit
+                if project.measurement_type == "tonase" and sj.netto is not None:
+                    hauling_cost = float(hauling_price) * float(sj.netto)
+                elif project.measurement_type == "kubikasi" and sj.volume is not None:
+                    hauling_cost = float(hauling_price) * float(sj.volume)
+                    
+        sj.hauling_price = hauling_price
+        sj.hauling_cost = hauling_cost
+
+        # Update VendorTruck dimensions if provided
+        if sj.truck_id and project.measurement_type == "kubikasi":
+            truck = db.query(VendorTruck).filter(VendorTruck.id == sj.truck_id).first()
+            if truck:
+                if sj.panjang is not None: truck.panjang = sj.panjang
+                if sj.lebar is not None: truck.lebar = sj.lebar
+                if sj.tinggi is not None: truck.tinggi = sj.tinggi
+
+        # Handle Deposit Refund and Deduction
+        if old_vendor_id:
+            old_vendor = db.query(Vendor).filter(Vendor.id == old_vendor_id).first()
+            if old_vendor:
+                old_vendor.balance_deposit = float(old_vendor.balance_deposit or 0) + old_hauling_cost
+
+        if sj.vendor_id and hauling_cost:
+            new_vendor = db.query(Vendor).filter(Vendor.id == sj.vendor_id).first()
+            if new_vendor:
+                new_vendor.balance_deposit = float(new_vendor.balance_deposit or 0) - hauling_cost
+
         db.commit()
         db.refresh(sj)
         return sj
@@ -143,6 +250,11 @@ class SuratJalanService:
             
         project = db.query(Project).filter(Project.id == sj.project_id).first()
         SuratJalanService._check_project_access(project, current_user)
+
+        if sj.vendor_id and sj.hauling_cost:
+            vendor = db.query(Vendor).filter(Vendor.id == sj.vendor_id).first()
+            if vendor:
+                vendor.balance_deposit = float(vendor.balance_deposit or 0) + float(sj.hauling_cost)
 
         db.delete(sj)
         db.commit()

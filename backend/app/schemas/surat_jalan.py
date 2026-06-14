@@ -7,6 +7,11 @@ class SuratJalanCreate(BaseModel):
     nama_supir: Optional[str] = None
     asal_tambang: Optional[str] = None
     
+    vendor_id: Optional[int] = None
+    vendor_name: Optional[str] = None
+    truck_id: Optional[int] = None
+    truck_type: Optional[str] = None
+    
     # Tonase
     bruto: Optional[float] = None
     tarra: Optional[float] = None
@@ -25,6 +30,11 @@ class SuratJalanUpdate(BaseModel):
     nama_supir: Optional[str] = None
     asal_tambang: Optional[str] = None
     
+    vendor_id: Optional[int] = None
+    vendor_name: Optional[str] = None
+    truck_id: Optional[int] = None
+    truck_type: Optional[str] = None
+    
     # Tonase
     bruto: Optional[float] = None
     tarra: Optional[float] = None
@@ -42,9 +52,13 @@ class SuratJalanResponse(BaseModel):
     id: int
     project_id: int
     field_staff_id: Optional[int] = None
+    vendor_id: Optional[int] = None
+    truck_id: Optional[int] = None
     nopol: Optional[str]
     nama_supir: Optional[str]
     asal_tambang: Optional[str]
+    hauling_price: Optional[float] = None
+    hauling_cost: Optional[float] = None
     bruto: Optional[float]
     tarra: Optional[float]
     minus_berat: Optional[float]
@@ -55,6 +69,9 @@ class SuratJalanResponse(BaseModel):
     minus_tinggi: Optional[float]
     volume: Optional[float]
     created_at: Optional[str]
+    
+    vendor_name: Optional[str] = None
+    truck_type: Optional[str] = None
 
     class Config:
         from_attributes = True

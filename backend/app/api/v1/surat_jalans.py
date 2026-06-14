@@ -76,7 +76,9 @@ def get_project_surat_jalans(
             tinggi=sj.tinggi,
             minus_tinggi=sj.minus_tinggi,
             volume=sj.volume,
-            created_at=_fmt(sj.created_at)
+            created_at=_fmt(sj.created_at),
+            vendor_name=sj.vendor.name if sj.vendor else None,
+            truck_type=sj.truck.tipe_truk if sj.truck else None
         ))
     return result
 

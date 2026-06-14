@@ -35,7 +35,7 @@ export default function VendorManagement({ userRole }: Props) {
   const isGM = userRole === "gm" || userRole === "admin";
   const canManage = ["gm", "finance", "admin"].includes(userRole);
 
-  const { data: vendors = [] as Vendor[], isLoading: loadingVendors } = useVendors({ enabled: canManage });
+  const { data: vendors = [] as Vendor[], isLoading: loadingVendors } = useVendors('equipment', { enabled: canManage });
   const { data: topups = [] as any[] } = useVendorTopups({ enabled: canManage });
   const { data: allEquipment = [] as any[] } = useEquipment({ enabled: canManage });
   const { data: equipmentBalances = [] as any[] } = useEquipmentBalances({ enabled: canManage });

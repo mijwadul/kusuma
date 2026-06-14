@@ -30,25 +30,12 @@ def bootstrap_database():
     
     # Database migration is now executed manually
     # Database migration is now executed manually
+    Base.metadata.create_all(bind=engine)
     try:
         from sqlalchemy import text
-        from .core.database import engine
         with engine.connect() as conn:
+            # Recalculate existing Surat Jalan netto/volume on startup
             try:
-                conn.execute(text("ALTER TABLE surat_jalan ADD COLUMN minus_berat FLOAT DEFAULT 0.0"))
-                conn.commit()
-            except Exception:
-                pass
-            try:
-                conn.execute(text("ALTER TABLE surat_jalan ADD COLUMN minus_tinggi FLOAT DEFAULT 0.0"))
-                conn.commit()
-            except Exception:
-                pass
-            
-            # Recalculate existing Surat Jalan
-            try:
-                from .models.surat_jalan import SuratJalan
-                from .models.project import Project
                 import math
                 sjs = conn.execute(text("SELECT id, project_id, bruto, tarra, minus_berat, panjang, lebar, tinggi, minus_tinggi FROM surat_jalan")).fetchall()
                 for sj in sjs:
@@ -57,7 +44,7 @@ def bootstrap_database():
                     if project[0] == "tonase":
                         if sj.bruto is not None and sj.tarra is not None:
                             mb = sj.minus_berat or 0.0
-                            net = max(0, sj.bruto - sj.tarra - mb)
+                            net = max(0, (sj.bruto - sj.tarra - mb) / 1000.0)
                             conn.execute(text("UPDATE surat_jalan SET netto = :n WHERE id = :id"), {"n": net, "id": sj.id})
                     elif project[0] == "kubikasi":
                         if sj.panjang is not None and sj.lebar is not None and sj.tinggi is not None:
@@ -66,10 +53,10 @@ def bootstrap_database():
                             vol = math.floor(raw_vol * 100) / 100.0
                             conn.execute(text("UPDATE surat_jalan SET volume = :v WHERE id = :id"), {"v": vol, "id": sj.id})
                 conn.commit()
-            except Exception as e:
+            except Exception:
                 pass
 
-    except Exception as e:
+    except Exception:
         pass
 
     default_admin_email = settings.DEFAULT_ADMIN_EMAIL.strip().lower()
@@ -179,12 +166,14 @@ from .api.v1.projects import router as projects_router
 from .api.v1.invoices import router as invoices_router
 from .api.v1.vendors import router as vendors_router
 from .api.v1.surat_jalans import router as surat_jalans_router
+from .api.v1.hauling import router as hauling_router
 
 # ... inside router inclusion block ...
 app.include_router(material_prices_router, prefix="/api/v1/material-prices", tags=["material-prices"])
 app.include_router(projects_router, prefix="/api/v1/projects-data", tags=["projects"])
 app.include_router(invoices_router, prefix="/api/v1/invoices", tags=["invoices"])
 app.include_router(vendors_router, prefix="/api/v1/vendors", tags=["vendors"])
+app.include_router(hauling_router, prefix="/api/v1/hauling", tags=["hauling"])
 app.include_router(surat_jalans_router, prefix="/api/v1", tags=["surat-jalan"])
 
 @app.get("/")

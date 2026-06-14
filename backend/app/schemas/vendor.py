@@ -9,6 +9,7 @@ class VendorBase(BaseModel):
     contact_person: Optional[str] = None
     phone: Optional[str] = None
     address: Optional[str] = None
+    vendor_type: Optional[str] = "equipment"
 
 class VendorCreate(VendorBase):
     balance_deposit: Optional[Decimal] = Decimal("0")
@@ -19,6 +20,7 @@ class VendorUpdate(BaseModel):
     phone: Optional[str] = None
     address: Optional[str] = None
     status: Optional[str] = None
+    vendor_type: Optional[str] = None
 
 class VendorResponse(VendorBase):
     id: int

@@ -8,6 +8,7 @@ import {
   Trash2,
   X,
   Loader2,
+  Truck,
 } from "lucide-react";
 
 import { usePermissions } from '../hooks/usePermissions';
@@ -25,6 +26,8 @@ import {
   Customer,
 } from "../hooks/useProjects";
 
+import HaulingPricesModal from "../components/HaulingPricesModal";
+
 const formatIDR = (v?: number | string | null) =>
   Number(v ?? 0).toLocaleString("id-ID", {
     style: "currency",
@@ -34,7 +37,7 @@ const formatIDR = (v?: number | string | null) =>
 
 export default function ProjectsPage() {
   const [activeTab, setActiveTab] = useState<"projects" | "customers">("projects");
-  const { currentUser, isGM: isGMPermission } = usePermissions();
+  const { isGM: isGMPermission } = usePermissions();
 
   // Queries
   const { data: meta } = useProjectMeta();
@@ -64,6 +67,7 @@ export default function ProjectsPage() {
   // Modals state
   const [showProjModal, setShowProjModal] = useState(false);
   const [showCustModal, setShowCustModal] = useState(false);
+  const [showHaulingModal, setShowHaulingModal] = useState<Project | null>(null);
   const [editDataProj, setEditDataProj] = useState<Project | null>(null);
   const [editDataCust, setEditDataCust] = useState<Customer | null>(null);
   const [viewCust, setViewCust] = useState<Customer | null>(null);
@@ -126,8 +130,8 @@ export default function ProjectsPage() {
           return { ...m, unit };
         }),
         measurement_type: p.measurement_type || "tonase",
-        assigned_user_ids: p.assigned_users?.map((u: any) => u.id) || [],
-        assigned_employee_ids: p.assigned_employees?.map((e: any) => e.id) || [],
+        assigned_user_ids: p.assigned_user_ids || [],
+        assigned_employee_ids: p.assigned_employee_ids || [],
       });
     } else {
       setProjForm({
@@ -461,7 +465,7 @@ export default function ProjectsPage() {
                 </div>
                 <div>
                   <label className="block text-sm mb-1">Budget (Rp)</label>
-                  <input type="number" value={projForm.budget || ""} onChange={e => setProjForm(p => ({...p, budget: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm" />
+                  <input type="number" value={projForm.budget || ""} onChange={e => setProjForm(p => ({...p, budget: parseFloat(e.target.value) || 0}))} className="w-full border rounded-lg px-3 py-2 text-sm" />
                 </div>
                 <div>
                   <label className="block text-sm mb-1">Status</label>
@@ -862,11 +866,11 @@ export default function ProjectsPage() {
               <div className="mb-6 grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="text-sm font-bold text-gray-800 border-b pb-2 mb-3">Field Staff</h4>
-                  {(!viewProj.assigned_users || viewProj.assigned_users.length === 0) ? (
+                  {(!viewProj.assigned_user_ids || viewProj.assigned_user_ids.length === 0) ? (
                     <p className="text-gray-400 text-sm italic">Tidak ada petugas ditugaskan.</p>
                   ) : (
                     <div className="flex flex-col gap-2">
-                      {viewProj.assigned_users.map((u: any) => (
+                      {allUsers.filter((u: any) => viewProj.assigned_user_ids?.includes(u.id)).map((u: any) => (
                         <div key={u.id} className="text-sm px-2 py-1 bg-emerald-50 text-emerald-800 rounded">
                           {u.full_name || u.email}
                         </div>
@@ -876,11 +880,11 @@ export default function ProjectsPage() {
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-gray-800 border-b pb-2 mb-3">Pekerja Proyek</h4>
-                  {(!viewProj.assigned_employees || viewProj.assigned_employees.length === 0) ? (
+                  {(!viewProj.assigned_employee_ids || viewProj.assigned_employee_ids.length === 0) ? (
                     <p className="text-gray-400 text-sm italic">Tidak ada pekerja ditugaskan.</p>
                   ) : (
                     <div className="flex flex-col gap-2">
-                      {viewProj.assigned_employees.map((emp: any) => (
+                      {allEmployees.filter((emp: any) => viewProj.assigned_employee_ids?.includes(emp.id)).map((emp: any) => (
                         <div key={emp.id} className="text-sm px-2 py-1 bg-blue-50 text-blue-800 rounded">
                           {emp.name} <span className="text-xs opacity-70">({emp.position})</span>
                         </div>
@@ -904,6 +908,14 @@ export default function ProjectsPage() {
                 </button>
                 <button
                   onClick={() => {
+                    setShowHaulingModal(viewProj);
+                  }}
+                  className="flex items-center justify-center gap-2 px-6 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-xl text-sm font-semibold transition-colors"
+                >
+                  <Truck size={15} /> Harga Hauling
+                </button>
+                <button
+                  onClick={() => {
                     openProjModal(viewProj);
                     setViewProj(null);
                   }}
@@ -915,6 +927,14 @@ export default function ProjectsPage() {
             )}
           </div>
         </div>
+      )}
+
+      {showHaulingModal && (
+        <HaulingPricesModal
+          projectId={showHaulingModal.id!}
+          projectName={showHaulingModal.name}
+          onClose={() => setShowHaulingModal(null)}
+        />
       )}
 
       {/* Delete Confirmation */}

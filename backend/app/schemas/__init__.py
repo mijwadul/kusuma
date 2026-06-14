@@ -33,6 +33,9 @@ from .fuel_price import (
     FuelPriceUpdate,
 )
 from .income_record import IncomeRecordCreate, IncomeRecordResponse, IncomeRecordUpdate
+from .vendor import VendorBase, VendorCreate, VendorUpdate, VendorResponse, VendorTopUpCreate, VendorTopUpResponse
+from .vendor_truck import VendorTruckBase, VendorTruckCreate, VendorTruckUpdate, VendorTruckResponse
+from .project_hauling_price import ProjectHaulingPriceBase, ProjectHaulingPriceCreate, ProjectHaulingPriceUpdate, ProjectHaulingPriceResponse
 from .loan import EmployeeLoanCreate, EmployeeLoanResponse, EmployeeLoanUpdate
 from .project import ProjectResponse, ProjectCreate, ProjectUpdate
 from .user import Token, TokenData, User, UserCreate, UserLogin, UserUpdate
