@@ -4,7 +4,9 @@ import { useCreateSuratJalan, useProjectSuratJalans, useUpdateSuratJalan, useDel
 import { toast } from 'sonner';
 import { Plus, X, Loader2, Truck, FileText, ChevronDown, ChevronRight } from 'lucide-react';
 import AlertModal from '../components/AlertModal';
-import { toLocalDateTimeInputString } from '../utils/formatters';
+import { toLocalDateTimeInputString, truncToTwo } from '../utils/formatters';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/apiClient';
 import { useVendorTrucks } from '../hooks/useHauling';
@@ -666,10 +668,6 @@ export default function ProjectSuratJalanPage() {
     }
 
     try {
-      const { jsPDF } = await import('jspdf');
-      const autoTableModule = await import('jspdf-autotable');
-      const { truncToTwo } = await import('../utils/formatters');
-      const autoTable = autoTableModule.default;
       const doc = new jsPDF();
 
       // ── HEADER (seragam dengan laporan lain) ──

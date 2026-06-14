@@ -11,6 +11,7 @@ import {
   Truck,
 } from "lucide-react";
 
+import apiClient from '../api/apiClient';
 import { usePermissions } from '../hooks/usePermissions';
 import {
   useProjectsList,
@@ -49,10 +50,8 @@ export default function ProjectsPage() {
 
   React.useEffect(() => {
     if (activeTab === "projects") {
-      import('../api/apiClient').then(({ default: apiClient }) => {
-        apiClient.get('/auth/users').then(r => setAllUsers(r.data)).catch(() => {});
-        apiClient.get('/employees/employees?limit=1000').then(r => setAllEmployees(r.data)).catch(() => {});
-      });
+      apiClient.get('/auth/users').then(r => setAllUsers(r.data)).catch(() => {});
+      apiClient.get('/employees/employees?limit=1000').then(r => setAllEmployees(r.data)).catch(() => {});
     }
   }, [activeTab]);
 
