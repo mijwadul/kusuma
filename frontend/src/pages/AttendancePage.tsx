@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Calendar, Clock, UserCheck, Users, Plus, Loader2, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import AlertModal from '../components/AlertModal';
-import { useCurrentUser } from '../hooks/useAuth';
+import { usePermissions } from '../hooks/usePermissions';
 import { useEmployees } from '../hooks/useEmployees';
 import {
   useAttendance,
@@ -48,7 +48,7 @@ const formatDateTimeDisplay = (value?: string | null) => {
 };
 
 export default function AttendancePage() {
-  const { data: currentUser, isLoading: loadingUser } = useCurrentUser();
+  const { currentUser, isLoading: loadingUser, isGM } = usePermissions();
   const { data: employees = [], isLoading: loadingEmployees } = useEmployees();
 
   const [filters, setFilters] = useState({
@@ -70,7 +70,7 @@ export default function AttendancePage() {
   const updateMutation = useUpdateAttendance();
   const deleteMutation = useDeleteAttendance();
 
-  const isGMOrSuperuser = currentUser?.is_superuser || currentUser?.role === 'gm';
+  const isGMOrSuperuser = isGM;
   const isHelper = currentUser?.role === 'helper' && !currentUser?.is_superuser;
 
   const [formData, setFormData] = useState({

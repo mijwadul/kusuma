@@ -31,7 +31,7 @@ import EntityTablesPanel from "../components/dashboard/EntityTablesPanel";
 import UnpaidCenterPanel from "../components/dashboard/UnpaidCenterPanel";
 import YesterdayReportPanel from "../components/dashboard/YesterdayReportPanel";
 
-import { useCurrentUser } from "../hooks/useAuth";
+import { usePermissions } from "../hooks/usePermissions";
 import {
   useDashboardStats,
   usePayrollSummary,
@@ -53,16 +53,15 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: currentUser } = useCurrentUser();
+  const { currentUser, isGM } = usePermissions();
   
   // Date States
   const [dailyReportDate, setDailyReportDate] = useState(toLocalDateInput(new Date()));
   
   // Derived role flags
   const role = currentUser?.role ?? "";
-  const isGM = Boolean(
-    role === "gm" ||
-    role === "direktur" ||
+  const canSeePayroll = Boolean(
+    ["gm", "finance", "admin", "checker", "direktur"].includes(role) ||
     currentUser?.is_admin ||
     currentUser?.is_superuser
   );

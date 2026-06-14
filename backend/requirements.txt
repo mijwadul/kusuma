@@ -25,6 +25,7 @@ slowapi                    # rate limiting
 python-multipart           # parsing form data (login)
 jinja2                     # HTML templates
 reportlab                  # generate laporan PDF
+xlsxwriter                 # generate laporan Excel
 
 # ─── Testing ──────────────────────────────────────────────────
 pytest                     # test runner

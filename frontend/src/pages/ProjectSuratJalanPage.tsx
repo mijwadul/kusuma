@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useProjectsList } from '../hooks/useProjects';
-import { useCreateSuratJalan, useProjectSuratJalans, useUpdateSuratJalan, useDeleteSuratJalan } from '../hooks/useSuratJalan';
+import { useCreateSuratJalan, useProjectSuratJalans, useUpdateSuratJalan, useDeleteSuratJalan, useSuratJalanTrucks } from '../hooks/useSuratJalan';
 import { toast } from 'sonner';
 import { Plus, X, Loader2, Truck } from 'lucide-react';
+import AlertModal from '../components/AlertModal';
 
 const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300";
 
@@ -36,8 +37,42 @@ const SuratJalanFormModal = ({
     minus_height: sjToEdit?.minus_tinggi?.toString() || '0'
   });
 
+  const [isAutoFilled, setIsAutoFilled] = useState(false);
+  const [pendingFieldChange, setPendingFieldChange] = useState<{name: string, value: string} | null>(null);
+  const [showEditAlert, setShowEditAlert] = useState(false);
+  
+  const { data: trucksHistory = [] } = useSuratJalanTrucks();
+
+  const handleNopolChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.toUpperCase();
+    setFormData(prev => ({ ...prev, license_plate: val }));
+    
+    // Attempt auto-fill
+    const found = trucksHistory.find((t: any) => t.nopol.toUpperCase() === val);
+    if (found) {
+      setFormData(prev => ({
+        ...prev,
+        driver_name: found.nama_supir || prev.driver_name,
+        length: found.panjang?.toString() || prev.length,
+        width: found.lebar?.toString() || prev.width,
+        height: found.tinggi?.toString() || prev.height,
+      }));
+      setIsAutoFilled(true);
+    } else {
+      setIsAutoFilled(false);
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    
+    if (isAutoFilled && ['driver_name', 'length', 'width', 'height'].includes(name)) {
+      setPendingFieldChange({ name, value });
+      setShowEditAlert(true);
+      return; // Prevent change until confirmed
+    }
+    
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const proj = projects.find(p => p.id.toString() === projectId);
@@ -131,12 +166,19 @@ const SuratJalanFormModal = ({
               <input
                 type="text"
                 name="license_plate"
+                list="truck-history-list"
                 value={formData.license_plate}
-                onChange={handleChange}
+                onChange={handleNopolChange}
                 className={inputCls}
                 required
                 placeholder="Contoh: B 1234 CD"
+                autoComplete="off"
               />
+              <datalist id="truck-history-list">
+                {trucksHistory.map((t: any) => (
+                  <option key={t.nopol} value={t.nopol} />
+                ))}
+              </datalist>
             </div>
           </div>
 
@@ -281,15 +323,34 @@ const SuratJalanFormModal = ({
             </div>
           )}
 
-          <div className="flex gap-3 pt-4 border-t border-gray-100">
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 border rounded-xl text-sm font-medium">Batal</button>
-            <button type="submit" disabled={createSuratJalan.isPending || !proj} className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold disabled:opacity-60 flex justify-center items-center gap-2">
-              {createSuratJalan.isPending ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
-              Simpan Surat Jalan
+          <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">Batal</button>
+            <button type="submit" disabled={createSuratJalan.isPending || updateSuratJalan.isPending} className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors disabled:opacity-50">
+              {createSuratJalan.isPending || updateSuratJalan.isPending ? 'Menyimpan...' : 'Simpan Surat Jalan'}
             </button>
           </div>
         </form>
       </div>
+
+      <AlertModal
+        isOpen={showEditAlert}
+        onClose={() => {
+          setShowEditAlert(false);
+          setPendingFieldChange(null);
+        }}
+        onConfirm={() => {
+          if (pendingFieldChange) {
+            setFormData(prev => ({ ...prev, [pendingFieldChange.name]: pendingFieldChange.value }));
+            setIsAutoFilled(false);
+          }
+          setShowEditAlert(false);
+          setPendingFieldChange(null);
+        }}
+        title="Ubah Data Truk"
+        message="Anda akan merubah data bawaan (supir/ukuran) dari truk ini. Lanjutkan?"
+        confirmText="Ya, Lanjutkan"
+        cancelText="Batal"
+      />
     </div>
   );
 };
@@ -392,6 +453,7 @@ export default function ProjectSuratJalanPage() {
   const [showModal, setShowModal] = useState(false);
   const [selectedSj, setSelectedSj] = useState<any>(null);
   const [sjToEdit, setSjToEdit] = useState<any>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   
   const deleteSuratJalan = useDeleteSuratJalan();
 
@@ -544,19 +606,30 @@ export default function ProjectSuratJalanPage() {
             setSelectedSj(null);
             setShowModal(true);
           }}
-          onDelete={async () => {
-            if (window.confirm('Yakin ingin menghapus surat jalan ini?')) {
-              try {
-                await deleteSuratJalan.mutateAsync(selectedSj.id);
-                toast.success('Surat jalan berhasil dihapus');
-                setSelectedSj(null);
-              } catch (err: any) {
-                toast.error('Gagal menghapus surat jalan');
-              }
-            }
-          }}
+          onDelete={() => setShowDeleteModal(true)}
         />
       )}
+
+      <AlertModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={async () => {
+          if (selectedSj) {
+            try {
+              await deleteSuratJalan.mutateAsync(selectedSj.id);
+              toast.success('Surat jalan berhasil dihapus');
+              setSelectedSj(null);
+            } catch (err: any) {
+              toast.error('Gagal menghapus surat jalan');
+            }
+          }
+          setShowDeleteModal(false);
+        }}
+        title="Hapus Surat Jalan"
+        message="Yakin ingin menghapus surat jalan ini? Data yang dihapus tidak dapat dikembalikan."
+        confirmText={deleteSuratJalan.isPending ? "Menghapus..." : "Hapus"}
+        cancelText="Batal"
+      />
     </div>
   );
 }

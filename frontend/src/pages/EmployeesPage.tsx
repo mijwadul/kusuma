@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Briefcase, Wallet, CreditCard, AlertCircle } from 'lucide-react';
 import EmployeeListTab from '../components/employees/EmployeeListTab';
 import LoansTab from '../components/employees/LoansTab';
-import { useCurrentUser } from '../hooks/useAuth';
+import { usePermissions } from '../hooks/usePermissions';
 
 const TABS = {
   EMPLOYEES: 'employees',
@@ -10,15 +10,8 @@ const TABS = {
 };
 
 const EmployeesPage: React.FC = () => {
-  const { data: currentUser, isLoading: loading } = useCurrentUser();
+  const { currentUser, isLoading: loading, isGM, canAccessFinancial, canManageEmployees, isAdmin } = usePermissions();
   const [activeTab, setActiveTab] = useState(TABS.EMPLOYEES);
-
-  // Role checks
-  const isGM = currentUser?.role === 'gm' || currentUser?.role === 'admin' || currentUser?.is_admin;
-  const isFinance = currentUser?.role === 'finance' || currentUser?.role === 'checker' || isGM;
-  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'gm' || isGM;
-  const canAccessFinancial = isFinance;
-  const canManageEmployees = isAdmin;
 
   if (loading) {
     return <div className="text-center py-8">Loading...</div>;

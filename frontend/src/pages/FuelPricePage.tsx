@@ -3,7 +3,7 @@ import { Fuel, Save, History, AlertCircle, CheckCircle, Package, XCircle, Trash2
 import { toast } from 'sonner';
 import AlertModal from '../components/AlertModal';
 import { toLocalDateInput } from '../utils/formatters';
-import { useCurrentUser } from '../hooks/useAuth';
+import { usePermissions } from '../hooks/usePermissions';
 import { useQuery } from '@tanstack/react-query';
 import apiClient, { API_URL } from '../api/apiClient';
 import { 
@@ -18,10 +18,7 @@ import {
 } from '../hooks/useFuel';
 
 const FuelPricePage = () => {
-  const { data: currentUser } = useCurrentUser();
-  const isGM = currentUser?.role === 'gm' || currentUser?.role === 'admin' || currentUser?.is_superuser;
-  const isFinance = currentUser?.role === 'finance';
-  const isAdmin = currentUser?.role === 'admin' || currentUser?.is_superuser;
+  const { currentUser, isGM, isFinance, isAdmin } = usePermissions();
 
   const [liters, setLiters] = useState('');
   const [totalPrice, setTotalPrice] = useState('');

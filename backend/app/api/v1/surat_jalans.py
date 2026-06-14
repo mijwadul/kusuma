@@ -1,8 +1,10 @@
+import io
 from typing import List
-from fastapi import APIRouter, Depends, status, HTTPException
-from sqlalchemy.orm import Session
 from datetime import datetime
-import math
+from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session
+import xlsxwriter
 
 from ...core.auth import get_current_user
 from ...core.database import get_db
@@ -10,6 +12,8 @@ from ...models.user import User
 from ...models.project import Project
 from ...models.surat_jalan import SuratJalan
 from ...schemas.surat_jalan import SuratJalanCreate, SuratJalanUpdate, SuratJalanResponse
+
+from ...services.surat_jalan_service import SuratJalanService
 
 router = APIRouter()
 
@@ -26,56 +30,7 @@ def create_surat_jalan(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    project = db.query(Project).filter(Project.id == data.project_id).first()
-    if not project:
-        raise HTTPException(status_code=404, detail="Proyek tidak ditemukan")
-        
-    # Validasi apakah user diassign ke project (jika user adalah field staff)
-    if getattr(current_user, "role", "") == "field":
-        # Using list iteration for association proxy or collection
-        is_assigned = any(u.id == current_user.id for u in project.assigned_users)
-        if not is_assigned:
-            raise HTTPException(status_code=403, detail="Anda tidak di-assign ke proyek ini")
-
-    # Kalkulasi
-    netto = None
-    volume = None
-    
-    if project.measurement_type == "tonase":
-        if data.bruto is not None and data.tarra is not None:
-            minus_berat = data.minus_berat or 0.0
-            netto = data.bruto - data.tarra - minus_berat
-            if netto < 0:
-                raise HTTPException(status_code=400, detail="Bruto tidak boleh lebih kecil dari Tarra + Potongan")
-    elif project.measurement_type == "kubikasi":
-        if data.panjang is not None and data.lebar is not None and data.tinggi is not None:
-            minus_tinggi = data.minus_tinggi or 0.0
-            raw_volume = (data.panjang * data.lebar * max(0, data.tinggi - minus_tinggi)) / 1000000.0
-            volume = math.floor(raw_volume * 100) / 100.0
-            if volume < 0:
-                raise HTTPException(status_code=400, detail="Volume tidak valid")
-
-    sj = SuratJalan(
-        project_id=data.project_id,
-        field_staff_id=current_user.id,
-        nopol=data.nopol,
-        nama_supir=data.nama_supir,
-        asal_tambang=data.asal_tambang,
-        bruto=data.bruto if project.measurement_type == "tonase" else None,
-        tarra=data.tarra if project.measurement_type == "tonase" else None,
-        minus_berat=data.minus_berat if project.measurement_type == "tonase" else 0.0,
-        netto=netto,
-        panjang=data.panjang if project.measurement_type == "kubikasi" else None,
-        lebar=data.lebar if project.measurement_type == "kubikasi" else None,
-        tinggi=data.tinggi if project.measurement_type == "kubikasi" else None,
-        minus_tinggi=data.minus_tinggi if project.measurement_type == "kubikasi" else 0.0,
-        volume=volume
-    )
-    
-    db.add(sj)
-    db.commit()
-    db.refresh(sj)
-    
+    sj = SuratJalanService.create_surat_jalan(db, current_user, data)
     return SuratJalanResponse(
         id=sj.id,
         project_id=sj.project_id,
@@ -101,16 +56,7 @@ def get_project_surat_jalans(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    project = db.query(Project).filter(Project.id == project_id).first()
-    if not project:
-        raise HTTPException(status_code=404, detail="Proyek tidak ditemukan")
-        
-    if getattr(current_user, "role", "") == "field":
-        is_assigned = any(u.id == current_user.id for u in project.assigned_users)
-        if not is_assigned:
-            raise HTTPException(status_code=403, detail="Anda tidak memiliki akses ke surat jalan proyek ini")
-
-    sjs = db.query(SuratJalan).filter(SuratJalan.project_id == project_id).order_by(SuratJalan.created_at.desc()).all()
+    sjs = SuratJalanService.get_project_surat_jalans(db, current_user, project_id)
     
     result = []
     for sj in sjs:
@@ -141,52 +87,7 @@ def update_surat_jalan(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    sj = db.query(SuratJalan).filter(SuratJalan.id == sj_id).first()
-    if not sj:
-        raise HTTPException(status_code=404, detail="Surat jalan tidak ditemukan")
-        
-    project = db.query(Project).filter(Project.id == sj.project_id).first()
-    
-    if getattr(current_user, "role", "") == "field":
-        is_assigned = any(u.id == current_user.id for u in project.assigned_users)
-        if not is_assigned:
-            raise HTTPException(status_code=403, detail="Anda tidak memiliki akses untuk mengubah surat jalan ini")
-
-    if data.nopol is not None:
-        sj.nopol = data.nopol
-    if data.nama_supir is not None:
-        sj.nama_supir = data.nama_supir
-    if data.asal_tambang is not None:
-        sj.asal_tambang = data.asal_tambang
-
-    if project.measurement_type == "tonase":
-        if data.bruto is not None: sj.bruto = data.bruto
-        if data.tarra is not None: sj.tarra = data.tarra
-        if data.minus_berat is not None: sj.minus_berat = data.minus_berat
-        
-        if sj.bruto is not None and sj.tarra is not None:
-            mb = sj.minus_berat or 0.0
-            netto = sj.bruto - sj.tarra - mb
-            if netto < 0:
-                raise HTTPException(status_code=400, detail="Bruto tidak boleh lebih kecil dari Tarra + Potongan")
-            sj.netto = netto
-            
-    elif project.measurement_type == "kubikasi":
-        if data.panjang is not None: sj.panjang = data.panjang
-        if data.lebar is not None: sj.lebar = data.lebar
-        if data.tinggi is not None: sj.tinggi = data.tinggi
-        if data.minus_tinggi is not None: sj.minus_tinggi = data.minus_tinggi
-        
-        if sj.panjang is not None and sj.lebar is not None and sj.tinggi is not None:
-            mt = sj.minus_tinggi or 0.0
-            raw_volume = (sj.panjang * sj.lebar * max(0, sj.tinggi - mt)) / 1000000.0
-            volume = math.floor(raw_volume * 100) / 100.0
-            if volume < 0:
-                raise HTTPException(status_code=400, detail="Volume tidak valid")
-            sj.volume = volume
-
-    db.commit()
-    db.refresh(sj)
+    sj = SuratJalanService.update_surat_jalan(db, current_user, sj_id, data)
     
     return SuratJalanResponse(
         id=sj.id,
@@ -213,17 +114,81 @@ def delete_surat_jalan(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    sj = db.query(SuratJalan).filter(SuratJalan.id == sj_id).first()
-    if not sj:
-        raise HTTPException(status_code=404, detail="Surat jalan tidak ditemukan")
-        
-    project = db.query(Project).filter(Project.id == sj.project_id).first()
-    
-    if getattr(current_user, "role", "") == "field":
-        is_assigned = any(u.id == current_user.id for u in project.assigned_users)
-        if not is_assigned:
-            raise HTTPException(status_code=403, detail="Anda tidak memiliki akses untuk menghapus surat jalan ini")
-
-    db.delete(sj)
-    db.commit()
+    SuratJalanService.delete_surat_jalan(db, current_user, sj_id)
     return None
+
+@router.get("/surat-jalan/trucks/history")
+def get_truck_history(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return SuratJalanService.get_truck_history(db, current_user)
+
+@router.get("/surat-jalan/export/excel")
+def export_surat_jalan_excel(
+    project_id: int,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Proyek tidak ditemukan")
+        
+    SuratJalanService._check_project_access(project, current_user)
+        
+    query = db.query(SuratJalan).filter(SuratJalan.project_id == project_id)
+    
+    if start_date:
+        query = query.filter(SuratJalan.created_at >= f"{start_date} 00:00:00")
+    if end_date:
+        query = query.filter(SuratJalan.created_at <= f"{end_date} 23:59:59")
+        
+    sjs = query.order_by(SuratJalan.created_at.asc()).all()
+    
+    output = io.BytesIO()
+    workbook = xlsxwriter.Workbook(output)
+    worksheet = workbook.add_worksheet("Surat Jalan")
+    
+    header_format = workbook.add_format({
+        'bold': True, 'bg_color': '#D3D3D3', 'border': 1
+    })
+    cell_format = workbook.add_format({'border': 1})
+    
+    headers = ["ID", "Waktu", "Nopol", "Nama Supir", "Asal Tambang"]
+    if project.measurement_type == "tonase":
+        headers.extend(["Bruto", "Tarra", "Potongan", "Netto (Ton)"])
+    else:
+        headers.extend(["Panjang", "Lebar", "Tinggi", "Minus Tinggi", "Volume (M3)"])
+        
+    for col_num, header in enumerate(headers):
+        worksheet.write(0, col_num, header, header_format)
+        
+    for row_num, sj in enumerate(sjs, 1):
+        row_data = [
+            sj.id,
+            _fmt(sj.created_at),
+            sj.nopol,
+            sj.nama_supir,
+            sj.asal_tambang,
+        ]
+        
+        if project.measurement_type == "tonase":
+            row_data.extend([sj.bruto, sj.tarra, sj.minus_berat, sj.netto])
+        else:
+            row_data.extend([sj.panjang, sj.lebar, sj.tinggi, sj.minus_tinggi, sj.volume])
+            
+        for col_num, val in enumerate(row_data):
+            worksheet.write(row_num, col_num, val if val is not None else "", cell_format)
+            
+    workbook.close()
+    output.seek(0)
+    
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f"attachment; filename=surat_jalan_project_{project_id}.xlsx"
+        }
+    )

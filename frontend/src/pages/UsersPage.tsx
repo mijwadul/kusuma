@@ -13,7 +13,8 @@ import {
 import { toast } from "sonner";
 import AlertModal from "../components/AlertModal";
 
-import { useCurrentUser, useUsersList, useCreateUser, useUpdateUser, useDeleteUser, User } from "../hooks/useAuth";
+import { useUsersList, useCreateUser, useUpdateUser, useDeleteUser, User } from "../hooks/useAuth";
+import { usePermissions } from "../hooks/usePermissions";
 import { useEmployees } from "../hooks/useEmployees";
 import apiClient from "../api/apiClient";
 
@@ -58,11 +59,9 @@ const ROLE_CONFIG: Record<string, any> = {
 };
 
 export default function UsersPage() {
-  const { data: currentUser, isLoading: loadingCurrentUser } = useCurrentUser();
+  const { currentUser, isLoading: loadingCurrentUser, isGM } = usePermissions();
   
   // Verify access before fetching users if possible
-  const isGM = currentUser?.role === "gm" || currentUser?.role === "admin" || currentUser?.is_admin || currentUser?.is_superuser;
-
   const { data: users = [], isLoading: loadingUsers } = useUsersList({
     enabled: !!isGM,
   });

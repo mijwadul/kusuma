@@ -6,7 +6,7 @@ import {
   DollarSign, Download
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useCurrentUser } from '../hooks/useAuth';
+import { usePermissions } from '../hooks/usePermissions';
 import { API_URL } from '../api/apiClient';
 import { useProjectsList } from '../hooks/useProjects';
 import {
@@ -239,7 +239,7 @@ const PayConfirmModal = ({ expense, onCancel, onConfirm, paying }: any) => (
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function ExpensePage() {
-  const { data: currentUser } = useCurrentUser();
+  const { currentUser, isGM, isFinance } = usePermissions();
   const { data: projects = [] } = useProjectsList();
 
   const [startDate, setStartDate] = useState(daysAgoISO(30));
@@ -269,7 +269,7 @@ export default function ExpensePage() {
     setCurrentPage(1);
   }, [startDate, endDate, filterCategory]);
 
-  const canDelete = currentUser?.role === 'gm' || currentUser?.is_admin === true;
+  const canDelete = isGM;
 
   const sorted = useMemo(() => {
     return [...expenses].sort((a: any, b: any) => {
@@ -517,7 +517,7 @@ export default function ExpensePage() {
                             <CheckCircle size={15} />
                           </button>
                         )}
-                        {(currentUser?.role === 'finance' || canDelete) && exp.approval_status === "approved" && exp.payment_status === "unpaid" && (
+                        {(isFinance || canDelete) && exp.approval_status === "approved" && exp.payment_status === "unpaid" && (
                           <button onClick={() => setPayTarget(exp)} title="Tandai Dibayar" className="p-1.5 text-gray-400 hover:text-accent hover:bg-teal-50 rounded-lg transition-colors">
                             <DollarSign size={15} />
                           </button>

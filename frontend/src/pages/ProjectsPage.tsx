@@ -10,7 +10,7 @@ import {
   Loader2,
 } from "lucide-react";
 
-import { useCurrentUser } from "../hooks/useAuth";
+import { usePermissions } from '../hooks/usePermissions';
 import {
   useProjectsList,
   useCustomersList,
@@ -34,7 +34,7 @@ const formatIDR = (v?: number | string | null) =>
 
 export default function ProjectsPage() {
   const [activeTab, setActiveTab] = useState<"projects" | "customers">("projects");
-  const { data: currentUser } = useCurrentUser();
+  const { currentUser, isGM: isGMPermission } = usePermissions();
 
   // Queries
   const { data: meta } = useProjectMeta();
@@ -85,7 +85,7 @@ export default function ProjectsPage() {
     notes: "", is_active: true, material_preferences: [], trucks: []
   });
 
-  const isGM = currentUser?.is_admin || currentUser?.is_superuser || ["gm", "admin"].includes(currentUser?.role || "");
+  const isGM = isGMPermission;
 
   const isLoading = activeTab === "projects" ? loadingProjects : loadingCustomers;
 

@@ -42,6 +42,16 @@ export const useProjectSuratJalans = (projectId?: number | string) => {
   });
 };
 
+export const useSuratJalanTrucks = () => {
+  return useQuery({
+    queryKey: ['surat-jalan-trucks'],
+    queryFn: async () => {
+      const response = await apiClient.get(`/surat-jalan/trucks/history`);
+      return response.data;
+    },
+  });
+};
+
 export const useUpdateSuratJalan = () => {
   const queryClient = useQueryClient();
   return useMutation({
