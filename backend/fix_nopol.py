@@ -1,7 +1,6 @@
-import asyncio
 import re
 from sqlalchemy import select
-from app.core.database import async_session
+from app.core.database import SessionLocal
 from app.models.surat_jalan import SuratJalan
 from app.models.vendor_truck import VendorTruck
 
@@ -20,10 +19,10 @@ def format_title_case(value: str) -> str:
     if not value: return ""
     return " ".join(word.capitalize() for word in value.split(" ") if word)
 
-async def fix_data():
-    async with async_session() as session:
+def fix_data():
+    with SessionLocal() as session:
         # Update Surat Jalan
-        result = await session.execute(select(SuratJalan))
+        result = session.execute(select(SuratJalan))
         surat_jalans = result.scalars().all()
         sj_updates = 0
         for sj in surat_jalans:
@@ -42,7 +41,7 @@ async def fix_data():
                 sj_updates += 1
                 
         # Update Vendor Trucks
-        result_trucks = await session.execute(select(VendorTruck))
+        result_trucks = session.execute(select(VendorTruck))
         trucks = result_trucks.scalars().all()
         truck_updates = 0
         for t in trucks:
@@ -60,8 +59,9 @@ async def fix_data():
             if updated:
                 truck_updates += 1
 
-        await session.commit()
+        session.commit()
         print(f"BERHASIL: Memperbarui {sj_updates} Surat Jalan dan {truck_updates} Truk Vendor.")
 
 if __name__ == "__main__":
-    asyncio.run(fix_data())
+    fix_data()
+
