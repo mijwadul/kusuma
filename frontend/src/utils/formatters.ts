@@ -59,3 +59,25 @@ export const formatDate = (d?: string | Date | null) => {
 export const truncToTwo = (val: number): number => {
   return Math.trunc(val * 100) / 100;
 };
+
+export const formatNopol = (value: string) => {
+  if (!value) return '';
+  const cleaned = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  const match = cleaned.match(/^([A-Z]{1,2})(\d{1,4})?([A-Z]{0,3})?/);
+  
+  if (match) {
+    let res = match[1] || '';
+    if (match[2]) res += ' ' + match[2];
+    if (match[3]) res += ' ' + match[3];
+    return res;
+  }
+  return value.toUpperCase();
+};
+
+export const formatTitleCase = (value: string) => {
+  if (!value) return '';
+  return value
+    .split(' ')
+    .map(word => word ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : '')
+    .join(' ');
+};

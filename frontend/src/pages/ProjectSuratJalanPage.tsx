@@ -4,7 +4,7 @@ import { useCreateSuratJalan, useProjectSuratJalans, useUpdateSuratJalan, useDel
 import { toast } from 'sonner';
 import { Plus, X, Loader2, Truck, FileText, ChevronDown, ChevronRight } from 'lucide-react';
 import AlertModal from '../components/AlertModal';
-import { toLocalDateTimeInputString, truncToTwo } from '../utils/formatters';
+import { toLocalDateTimeInputString, truncToTwo, formatNopol, formatTitleCase } from '../utils/formatters';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useQuery } from '@tanstack/react-query';
@@ -61,10 +61,10 @@ const SuratJalanFormModal = ({
   const { data: trucksHistory = [] } = useSuratJalanTrucks();
 
   const handleNopolChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.toUpperCase();
+    const val = formatNopol(e.target.value);
     setFormData(prev => ({ ...prev, license_plate: val }));
     
-    // Attempt auto-fill
+    // Auto-fill from selected vendor
     const found = trucksHistory.find((t: any) => t.nopol.toUpperCase() === val);
     if (found) {
       setFormData(prev => ({
@@ -89,7 +89,11 @@ const SuratJalanFormModal = ({
       return; // Prevent change until confirmed
     }
     
-    const newFormData = { ...formData, [name]: value };
+    let formattedValue = value;
+    if (name === 'license_plate') formattedValue = formatNopol(value);
+    else if (name === 'driver_name') formattedValue = formatTitleCase(value);
+    
+    const newFormData = { ...formData, [name]: formattedValue };
     const detected = autoDetectTruckType(measurementType,
       newFormData.gross_weight, newFormData.tare_weight, newFormData.minus_weight,
       newFormData.length, newFormData.width, newFormData.height, newFormData.minus_height
