@@ -65,11 +65,6 @@ export default function DashboardPage() {
     currentUser?.is_admin ||
     currentUser?.is_superuser
   );
-  const canSeePayroll = Boolean(
-    ["gm", "finance", "admin", "checker", "direktur"].includes(role) ||
-    currentUser?.is_admin ||
-    currentUser?.is_superuser
-  );
 
   const yesterdayDate = useMemo(() => {
     const d = new Date();
