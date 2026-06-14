@@ -240,8 +240,20 @@ class WorkLogService:
                 discount_hours = hours_for_cap
             update_data["rental_discount_hours"] = discount_hours
         
+        hours_changed = 'total_hours' in update_data or 'rental_discount_hours' in update_data
+        
         for key, value in update_data.items():
             setattr(work_log, key, value)
+            
+        if hours_changed and getattr(work_log, 'applied_rate', None) is not None:
+            total_hours = Decimal(str(work_log.total_hours or 0))
+            discount_hours = Decimal(str(work_log.rental_discount_hours or 0))
+            billable_hours = total_hours - discount_hours
+            if billable_hours < 0:
+                billable_hours = Decimal("0")
+                
+            rate = Decimal(str(work_log.applied_rate))
+            work_log.total_cost = billable_hours * rate
             
         db.commit()
         db.refresh(work_log)

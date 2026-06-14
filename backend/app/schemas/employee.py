@@ -338,6 +338,7 @@ class PayrollResponse(BaseModel):
     approval_note: Optional[str] = None
 
     notes: Optional[str] = None
+    is_downloaded: bool = False
     created_at: datetime
     updated_at: Optional[datetime] = None
 

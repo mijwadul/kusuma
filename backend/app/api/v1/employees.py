@@ -1043,6 +1043,10 @@ def download_payroll_pdf(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Gagal generate PDF: {str(e)}")
 
+    # Mark as downloaded
+    record.is_downloaded = True
+    db.commit()
+
     from fastapi.responses import Response as FastAPIResponse
 
     safe_name = (employee.name or "karyawan").replace(" ", "_")

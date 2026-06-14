@@ -68,6 +68,7 @@ class InvoiceResponse(BaseModel):
     final_amount: Optional[float]
     status: str
     notes: Optional[str]
+    is_downloaded: bool = False
     created_at: str
 
 class InvoiceStatusUpdate(BaseModel):
@@ -185,6 +186,10 @@ def export_invoice_pdf_endpoint(
     inv.items = preview_data.items
     
     pdf_bytes = generate_invoice_pdf(inv)
+    
+    # Mark as downloaded
+    inv.is_downloaded = True
+    db.commit()
     
     filename = f"Invoice_{inv.invoice_number}.pdf"
     

@@ -99,7 +99,10 @@ def bootstrap_database():
 async def lifespan(app: FastAPI):
     """Lifespan event handler."""
     bootstrap_database()
+    from .core.scheduler import start_scheduler, stop_scheduler
+    start_scheduler()
     yield
+    stop_scheduler()
 
 
 app = FastAPI(title=settings.APP_NAME, lifespan=lifespan)

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Date, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, Date, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.sql import func
 
 from .base import Base
@@ -16,6 +16,7 @@ class Invoice(Base):
     total_amount = Column(Float, nullable=False)
     status = Column(String(20), default="unpaid") # unpaid, paid, cancelled
     notes = Column(Text, nullable=True)
+    is_downloaded = Column(Boolean, default=False)
     
     discount_type = Column(String(20), nullable=True) # 'percentage' or 'nominal'
     discount_value = Column(Float, nullable=True)

@@ -26,6 +26,7 @@ python-multipart           # parsing form data (login)
 jinja2                     # HTML templates
 reportlab                  # generate laporan PDF
 xlsxwriter                 # generate laporan Excel
+apscheduler                # background task scheduling
 
 # ─── Testing ──────────────────────────────────────────────────
 pytest                     # test runner

@@ -190,6 +190,7 @@ class InvoiceService:
             final_amount=new_invoice.final_amount,
             status=new_invoice.status,
             notes=new_invoice.notes,
+            is_downloaded=new_invoice.is_downloaded,
             created_at=str(new_invoice.created_at),
         )
 
@@ -250,6 +251,7 @@ class InvoiceService:
             final_amount=inv.final_amount,
             status=inv.status,
             notes=inv.notes,
+            is_downloaded=inv.is_downloaded,
             created_at=str(inv.created_at),
         )
 
@@ -289,6 +291,7 @@ class InvoiceService:
             final_amount=inv.final_amount,
             status=inv.status,
             notes=inv.notes,
+            is_downloaded=inv.is_downloaded,
             created_at=str(inv.created_at),
         )
 
@@ -367,6 +370,7 @@ class InvoiceService:
             final_amount=inv.final_amount,
             status=inv.status,
             notes=inv.notes,
+            is_downloaded=inv.is_downloaded,
             created_at=str(inv.created_at),
         )
 
