@@ -11,8 +11,9 @@ from ..models.payroll import PayrollRecord
 from ..models.expense import Expense
 from ..models.vendor import VendorTopUp
 from ..models.user import User
+from ..models.employee import Employee
 from ..core.exceptions import AuthorizationError, NotFoundError
-from ..schemas.project import ProjectCreate, ProjectUpdate, ProjectResponse, MaterialItemResponse
+from ..schemas.project import ProjectCreate, ProjectUpdate, ProjectResponse, MaterialItemResponse, UserBasicResponse, EmployeeBasicResponse
 
 def _fmt(dt) -> Optional[str]:
     if dt is None:
@@ -64,6 +65,9 @@ def _build_project_response(proj: Project, db: Session) -> ProjectResponse:
     if proj.budget is not None:
         remaining_budget = float(proj.budget) - budget_used
 
+    assigned_users = [UserBasicResponse.model_validate(u) for u in proj.assigned_users] if proj.assigned_users else []
+    assigned_employees = [EmployeeBasicResponse.model_validate(e) for e in proj.assigned_employees] if proj.assigned_employees else []
+
     return ProjectResponse(
         id=proj.id,
         name=proj.name,
@@ -75,9 +79,12 @@ def _build_project_response(proj: Project, db: Session) -> ProjectResponse:
         budget=proj.budget,
         progress=float(proj.progress or 0),
         status=proj.status or "ongoing",
+        measurement_type=proj.measurement_type or "tonase",
         notes=proj.notes,
         created_at=_fmt(proj.created_at),
         material_items=items,
+        assigned_users=assigned_users,
+        assigned_employees=assigned_employees,
         total_material_value=round(float(total_val), 2),
         realized_amount=round(float(realized or 0), 2),
         budget_used=round(budget_used, 2),
@@ -94,10 +101,15 @@ class ProjectService:
         )
 
     @staticmethod
-    def list_projects(db: Session, status: Optional[str] = None) -> List[ProjectResponse]:
+    def list_projects(db: Session, current_user: User, status: Optional[str] = None) -> List[ProjectResponse]:
         q = db.query(Project).filter(Project.is_active == True)
         if status:
             q = q.filter(Project.status == status)
+            
+        if current_user.role == "field" and current_user.assigned_projects:
+            assigned_ids = [p.id for p in current_user.assigned_projects]
+            q = q.filter(Project.id.in_(assigned_ids))
+            
         projects = q.order_by(Project.created_at.desc()).all()
         return [_build_project_response(p, db) for p in projects]
 
@@ -122,11 +134,19 @@ class ProjectService:
             end_date=_parse_dt(data.end_date),
             budget=data.budget,
             status=data.status or "ongoing",
+            measurement_type=data.measurement_type or "tonase",
             notes=data.notes,
             created_by=current_user.id,
         )
         db.add(proj)
         db.flush()
+
+        if data.assigned_user_ids:
+            users = db.query(User).filter(User.id.in_(data.assigned_user_ids)).all()
+            proj.assigned_users = users
+        if data.assigned_employee_ids:
+            employees = db.query(Employee).filter(Employee.id.in_(data.assigned_employee_ids)).all()
+            proj.assigned_employees = employees
 
         for item in data.material_items:
             db.add(ProjectMaterialItem(
@@ -151,12 +171,19 @@ class ProjectService:
         if not proj:
             raise NotFoundError("Proyek tidak ditemukan")
 
-        fields = data.model_dump(exclude_unset=True, exclude={"material_items"})
+        fields = data.model_dump(exclude_unset=True, exclude={"material_items", "assigned_user_ids", "assigned_employee_ids"})
         for k, v in fields.items():
             if k in ("start_date", "end_date"):
                 setattr(proj, k, _parse_dt(v))
             else:
                 setattr(proj, k, v)
+
+        if data.assigned_user_ids is not None:
+            users = db.query(User).filter(User.id.in_(data.assigned_user_ids)).all()
+            proj.assigned_users = users
+        if data.assigned_employee_ids is not None:
+            employees = db.query(Employee).filter(Employee.id.in_(data.assigned_employee_ids)).all()
+            proj.assigned_employees = employees
 
         if data.material_items is not None:
             for old in proj.material_items:

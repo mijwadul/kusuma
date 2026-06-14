@@ -445,17 +445,23 @@ def create_attendance(
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
 
-    # Field staff can only create for themselves or operation department
     is_operation = employee.department and employee.department.lower().startswith("operation")
+    
+    has_project_overlap = True
+    if current_user.assigned_projects:
+        user_proj_ids = {p.id for p in current_user.assigned_projects}
+        emp_proj_ids = {p.id for p in employee.assigned_projects}
+        has_project_overlap = bool(user_proj_ids & emp_proj_ids)
+
     if (
         current_user.role == "field"
         and not current_user.is_superuser
         and employee.user_id != current_user.id
-        and not is_operation
+        and (not is_operation or not has_project_overlap)
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Can only create attendance for yourself or operation department",
+            detail="Can only create attendance for yourself or operation department employees assigned to your project",
         )
 
     attendance_data = attendance.model_dump(exclude_unset=True)
@@ -515,8 +521,14 @@ def update_attendance(
         employee = db.query(Employee).filter(Employee.id == attendance.employee_id).first()
         is_operation = employee and employee.department and employee.department.lower().startswith("operation")
         
+        has_project_overlap = True
+        if current_user.assigned_projects and employee:
+            user_proj_ids = {p.id for p in current_user.assigned_projects}
+            emp_proj_ids = {p.id for p in employee.assigned_projects}
+            has_project_overlap = bool(user_proj_ids & emp_proj_ids)
+        
         # Field staff validation
-        if (not employee or employee.user_id != current_user.id) and not is_operation:
+        if (not employee or employee.user_id != current_user.id) and (not is_operation or not has_project_overlap):
              raise HTTPException(status_code=403, detail="Cannot edit this employee's attendance")
              
         # Can only update check_out
@@ -568,7 +580,14 @@ def delete_attendance(
              
         employee = db.query(Employee).filter(Employee.id == attendance.employee_id).first()
         is_operation = employee and employee.department and employee.department.lower().startswith("operation")
-        if (not employee or employee.user_id != current_user.id) and not is_operation:
+        
+        has_project_overlap = True
+        if current_user.assigned_projects and employee:
+            user_proj_ids = {p.id for p in current_user.assigned_projects}
+            emp_proj_ids = {p.id for p in employee.assigned_projects}
+            has_project_overlap = bool(user_proj_ids & emp_proj_ids)
+            
+        if (not employee or employee.user_id != current_user.id) and (not is_operation or not has_project_overlap):
              raise HTTPException(status_code=403, detail="Cannot delete this employee's attendance")
              
     db.delete(attendance)
@@ -597,13 +616,29 @@ def get_attendance(
             db.query(Employee).filter(Employee.user_id == current_user.id).first()
         )
         employee_id_filter = employee.id if employee else -1
+        
         query = query.join(Employee, Attendance.employee_id == Employee.id).filter(
-            Employee.is_active == True,  # only show attendance for active employees
-            or_(
-                Attendance.employee_id == employee_id_filter,
-                Employee.department.ilike("operation%")
-            )
+            Employee.is_active == True  # only show attendance for active employees
         )
+        
+        if current_user.assigned_projects:
+            assigned_project_ids = [p.id for p in current_user.assigned_projects]
+            query = query.filter(
+                or_(
+                    Attendance.employee_id == employee_id_filter,
+                    and_(
+                        Employee.department.ilike("operation%"),
+                        Employee.assigned_projects.any(Project.id.in_(assigned_project_ids))
+                    )
+                )
+            )
+        else:
+            query = query.filter(
+                or_(
+                    Attendance.employee_id == employee_id_filter,
+                    Employee.department.ilike("operation%")
+                )
+            )
     elif employee_id:
         query = query.filter(Attendance.employee_id == employee_id)
 

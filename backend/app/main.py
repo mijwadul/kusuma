@@ -29,7 +29,48 @@ def bootstrap_database():
     """Ensure tables exist and seed default admin on fresh setup."""
     
     # Database migration is now executed manually
+    # Database migration is now executed manually
+    try:
+        from sqlalchemy import text
+        from .core.database import engine
+        with engine.connect() as conn:
+            try:
+                conn.execute(text("ALTER TABLE surat_jalan ADD COLUMN minus_berat FLOAT DEFAULT 0.0"))
+                conn.commit()
+            except Exception:
+                pass
+            try:
+                conn.execute(text("ALTER TABLE surat_jalan ADD COLUMN minus_tinggi FLOAT DEFAULT 0.0"))
+                conn.commit()
+            except Exception:
+                pass
+            
+            # Recalculate existing Surat Jalan
+            try:
+                from .models.surat_jalan import SuratJalan
+                from .models.project import Project
+                import math
+                sjs = conn.execute(text("SELECT id, project_id, bruto, tarra, minus_berat, panjang, lebar, tinggi, minus_tinggi FROM surat_jalan")).fetchall()
+                for sj in sjs:
+                    project = conn.execute(text("SELECT measurement_type FROM projects WHERE id = :pid"), {"pid": sj.project_id}).fetchone()
+                    if not project: continue
+                    if project[0] == "tonase":
+                        if sj.bruto is not None and sj.tarra is not None:
+                            mb = sj.minus_berat or 0.0
+                            net = max(0, sj.bruto - sj.tarra - mb)
+                            conn.execute(text("UPDATE surat_jalan SET netto = :n WHERE id = :id"), {"n": net, "id": sj.id})
+                    elif project[0] == "kubikasi":
+                        if sj.panjang is not None and sj.lebar is not None and sj.tinggi is not None:
+                            mt = sj.minus_tinggi or 0.0
+                            raw_vol = (sj.panjang * sj.lebar * max(0, sj.tinggi - mt)) / 1000000.0
+                            vol = math.floor(raw_vol * 100) / 100.0
+                            conn.execute(text("UPDATE surat_jalan SET volume = :v WHERE id = :id"), {"v": vol, "id": sj.id})
+                conn.commit()
+            except Exception as e:
+                pass
 
+    except Exception as e:
+        pass
 
     default_admin_email = settings.DEFAULT_ADMIN_EMAIL.strip().lower()
     default_admin_password = settings.DEFAULT_ADMIN_PASSWORD
@@ -137,12 +178,14 @@ app.include_router(reports_router, prefix="/api/v1/reports", tags=["reports"])
 from .api.v1.projects import router as projects_router
 from .api.v1.invoices import router as invoices_router
 from .api.v1.vendors import router as vendors_router
+from .api.v1.surat_jalans import router as surat_jalans_router
 
 # ... inside router inclusion block ...
 app.include_router(material_prices_router, prefix="/api/v1/material-prices", tags=["material-prices"])
 app.include_router(projects_router, prefix="/api/v1/projects-data", tags=["projects"])
 app.include_router(invoices_router, prefix="/api/v1/invoices", tags=["invoices"])
 app.include_router(vendors_router, prefix="/api/v1/vendors", tags=["vendors"])
+app.include_router(surat_jalans_router, prefix="/api/v1", tags=["surat-jalan"])
 
 @app.get("/")
 def read_root():

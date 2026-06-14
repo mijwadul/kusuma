@@ -27,6 +27,9 @@ export interface Project {
   realized_amount: number;
   budget_used: number;
   remaining_budget: number;
+  measurement_type?: string;
+  assigned_user_ids?: number[];
+  assigned_employee_ids?: number[];
 }
 
 export interface CustomerMaterialPreference {

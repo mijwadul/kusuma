@@ -93,9 +93,16 @@ def logout(response: Response):
     response.delete_cookie(key="refresh_token")
     return {"message": "Logged out successfully"}
 
-@router.get("/me", response_model=User)
+class UserWithProjectStatus(User):
+    is_project_assigned: bool = False
+
+@router.get("/me", response_model=UserWithProjectStatus)
 def get_current_user_info(current_user: UserModel = Depends(get_current_user)):
-    return current_user
+    user_data = User.model_validate(current_user).model_dump()
+    is_assigned = False
+    if current_user.role == "field" and current_user.assigned_projects:
+        is_assigned = len(current_user.assigned_projects) > 0
+    return UserWithProjectStatus(**user_data, is_project_assigned=is_assigned)
 
 from ...services.user_service import UserService
 

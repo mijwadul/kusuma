@@ -23,8 +23,11 @@ class ProjectCreate(BaseModel):
     end_date: Optional[str] = None
     budget: Optional[float] = None
     status: Optional[str] = "ongoing"
+    measurement_type: Optional[str] = "tonase"
     notes: Optional[str] = None
     material_items: List[MaterialItemSchema] = []
+    assigned_user_ids: List[int] = []
+    assigned_employee_ids: List[int] = []
 
 class ProjectUpdate(BaseModel):
     name: Optional[str] = None
@@ -36,8 +39,26 @@ class ProjectUpdate(BaseModel):
     budget: Optional[float] = None
     progress: Optional[float] = None
     status: Optional[str] = None
+    measurement_type: Optional[str] = None
     notes: Optional[str] = None
     material_items: Optional[List[MaterialItemSchema]] = None
+    assigned_user_ids: Optional[List[int]] = None
+    assigned_employee_ids: Optional[List[int]] = None
+
+class UserBasicResponse(BaseModel):
+    id: int
+    email: str
+    full_name: Optional[str]
+    role: str
+    class Config:
+        from_attributes = True
+
+class EmployeeBasicResponse(BaseModel):
+    id: int
+    name: str
+    position: Optional[str]
+    class Config:
+        from_attributes = True
 
 class ProjectResponse(BaseModel):
     id: int
@@ -50,9 +71,12 @@ class ProjectResponse(BaseModel):
     budget: Optional[float]
     progress: float
     status: str
+    measurement_type: str
     notes: Optional[str]
     created_at: Optional[str]
     material_items: List[MaterialItemResponse] = []
+    assigned_users: List[UserBasicResponse] = []
+    assigned_employees: List[EmployeeBasicResponse] = []
     total_material_value: float = 0.0
     realized_amount: float = 0.0
     budget_used: float = 0.0

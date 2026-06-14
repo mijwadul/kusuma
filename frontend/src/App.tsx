@@ -27,6 +27,8 @@ import ExpensePage from "./pages/ExpensePage";
 import CashFlowPage from "./pages/CashFlowPage";
 import ReportsPage from "./pages/ReportsPage";
 import SuratJalanPage from "./pages/SuratJalanPage";
+import ProjectSuratJalanPage from "./pages/ProjectSuratJalanPage";
+import ProjectEmployeesPage from "./pages/ProjectEmployeesPage";
 
 import Sidebar from "./components/Sidebar";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -139,6 +141,9 @@ const App: React.FC = () => {
           <Route path="/users" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]}><UsersPage /></RoleProtectedRoute>} />
           <Route path="/attendance" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]}><AttendancePage /></RoleProtectedRoute>} />
           <Route path="/cashflow" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]}><CashFlowPage /></RoleProtectedRoute>} />
+          
+          <Route path="/projects/surat-jalan" element={<RoleProtectedRoute allowedRoles={["field", "gm", "admin"]}><ProjectSuratJalanPage /></RoleProtectedRoute>} />
+          <Route path="/projects/pekerja" element={<RoleProtectedRoute allowedRoles={["field", "gm", "admin"]}><ProjectEmployeesPage /></RoleProtectedRoute>} />
         </Route>
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>

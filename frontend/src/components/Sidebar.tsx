@@ -131,10 +131,35 @@ interface MenuItem {
     // Field level: field, helper (legacy), and above
     const isField =
       role === "field" || role === "helper" || isAdmin || isFinance;
+      
+    const isAssignedField = role === "field" && currentUser?.is_project_assigned;
 
     const items: MenuItem[] = [
       { path: "/dashboard", icon: Home, label: "Dashboard", show: true },
     ];
+
+    if (isAssignedField) {
+      items.push({
+        id: "projects",
+        icon: FolderOpen,
+        label: "Project",
+        submenu: [
+          {
+            path: "/projects/surat-jalan",
+            icon: Truck,
+            label: "Surat Jalan",
+            show: true
+          },
+          {
+            path: "/projects/pekerja",
+            icon: Users,
+            label: "Pekerja",
+            show: true
+          }
+        ]
+      });
+      return items;
+    }
 
     // 1. Equipment & Operasional submenu (All roles see equipment, Field sees operational logs)
     const equipmentSubmenu = [
@@ -258,6 +283,23 @@ interface MenuItem {
         show: true,
       },
     ];
+    
+    if (isGM) {
+      projectSubmenu.push(
+        {
+          path: "/projects/surat-jalan",
+          icon: Truck,
+          label: "Surat Jalan",
+          show: true,
+        },
+        {
+          path: "/projects/pekerja",
+          icon: Users,
+          label: "Pekerja Proyek",
+          show: true,
+        }
+      );
+    }
     if (projectSubmenu.length > 0) {
       items.push({
         id: "projects",

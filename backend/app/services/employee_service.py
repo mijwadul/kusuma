@@ -26,6 +26,12 @@ class EmployeeService:
         if status:
             query = query.filter(Employee.status == status)
             
+        # Field staff filter
+        from ..models.project import Project
+        if current_user.role == "field" and current_user.assigned_projects:
+            assigned_project_ids = [p.id for p in current_user.assigned_projects]
+            query = query.filter(Employee.assigned_projects.any(Project.id.in_(assigned_project_ids)))
+            
         employees = query.order_by(Employee.name.asc()).offset(skip).limit(limit).all()
         
         # Check finance access

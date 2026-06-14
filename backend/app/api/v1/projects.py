@@ -31,7 +31,7 @@ def list_projects(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return ProjectService.list_projects(db, status)
+    return ProjectService.list_projects(db, current_user, status)
 
 
 @router.get("/projects/{project_id}", response_model=ProjectResponse)

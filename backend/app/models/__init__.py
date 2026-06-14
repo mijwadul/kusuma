@@ -10,7 +10,8 @@ from .income_record import IncomeRecord
 from .loan import EmployeeLoan
 from .material_price import MaterialPrice
 from .payroll import Attendance, BonusDeduction, PayrollRecord
-from .project import Project
+from .project import Project, project_assignments, project_employees
+from .surat_jalan import SuratJalan
 from .user import User
 from .work_log import WorkLog
 from .invoice import Invoice

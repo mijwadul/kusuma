@@ -41,6 +41,18 @@ export default function ProjectsPage() {
   const { data: projects = [], isLoading: loadingProjects } = useProjectsList(undefined, { enabled: activeTab === "projects" });
   const { data: customers = [], isLoading: loadingCustomers } = useCustomersList(undefined, { enabled: activeTab === "customers" });
 
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [allEmployees, setAllEmployees] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (activeTab === "projects") {
+      import('../api/apiClient').then(({ default: apiClient }) => {
+        apiClient.get('/auth/users').then(r => setAllUsers(r.data)).catch(() => {});
+        apiClient.get('/employees/employees?limit=1000').then(r => setAllEmployees(r.data)).catch(() => {});
+      });
+    }
+  }, [activeTab]);
+
   // Mutations
   const createProjectMutation = useCreateProject();
   const updateProjectMutation = useUpdateProject();
@@ -55,6 +67,7 @@ export default function ProjectsPage() {
   const [editDataProj, setEditDataProj] = useState<Project | null>(null);
   const [editDataCust, setEditDataCust] = useState<Customer | null>(null);
   const [viewCust, setViewCust] = useState<Customer | null>(null);
+  const [viewProj, setViewProj] = useState<Project | null>(null);
   
   // Confirm Delete state
   const [confirmDeleteProj, setConfirmDeleteProj] = useState<Project | null>(null);
@@ -64,7 +77,7 @@ export default function ProjectsPage() {
   const [projForm, setProjForm] = useState<Partial<Project>>({
     name: "", client_name: "", description: "", location: "",
     start_date: "", end_date: "", budget: 0, status: "ongoing", notes: "",
-    material_items: []
+    material_items: [], measurement_type: "tonase", assigned_user_ids: [], assigned_employee_ids: []
   });
   
   const [custForm, setCustForm] = useState<Partial<Customer>>({
@@ -111,7 +124,10 @@ export default function ProjectsPage() {
           const validUnits = meta?.material_units?.[m.material_type] || meta?.all_units || [];
           const unit = validUnits.includes(m.unit) ? m.unit : validUnits[0] || "ton";
           return { ...m, unit };
-        })
+        }),
+        measurement_type: p.measurement_type || "tonase",
+        assigned_user_ids: p.assigned_users?.map((u: any) => u.id) || [],
+        assigned_employee_ids: p.assigned_employees?.map((e: any) => e.id) || [],
       });
     } else {
       setProjForm({
@@ -309,12 +325,11 @@ export default function ProjectsPage() {
                   <th className="px-4 py-3 text-left whitespace-nowrap">Budget</th>
                   <th className="px-4 py-3 text-left whitespace-nowrap">Target Material</th>
                   <th className="px-4 py-3 text-left whitespace-nowrap">Status</th>
-                  {isGM && <th className="px-4 py-3 text-center whitespace-nowrap">Aksi</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {projects.map(p => (
-                  <tr key={p.id} className="hover:bg-gray-50">
+                  <tr key={p.id} onClick={() => setViewProj(p)} className="hover:bg-emerald-50/60 cursor-pointer transition-colors">
                     <td className="px-4 py-3 whitespace-nowrap">
                       <p className="font-semibold text-gray-800">{p.name}</p>
                       <p className="text-xs text-gray-500">{p.client_name || "-"}</p>
@@ -352,12 +367,6 @@ export default function ProjectsPage() {
                         {p.status}
                       </span>
                     </td>
-                    {isGM && (
-                      <td className="px-4 py-3 text-center whitespace-nowrap">
-                        <button onClick={() => openProjModal(p)} className="p-1 text-blue-500 hover:bg-blue-50 rounded"><Pencil size={15} /></button>
-                        <button onClick={() => setConfirmDeleteProj(p)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={15} /></button>
-                      </td>
-                    )}
                   </tr>
                 ))}
                 {projects.length === 0 && (
@@ -462,6 +471,54 @@ export default function ProjectsPage() {
                     <option value="paused">Paused</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Tipe Pengukuran</label>
+                  <select value={projForm.measurement_type || "tonase"} onChange={e => setProjForm(p => ({...p, measurement_type: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm">
+                    <option value="tonase">Tonase (Ton)</option>
+                    <option value="kubikasi">Kubikasi (m3)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Tugaskan Field Staff</label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {projForm.assigned_user_ids?.map((id, i) => {
+                      const user = allUsers.find(u => u.id === id);
+                      return <span key={i} className="bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded flex items-center gap-1">{user?.full_name || user?.email} <X size={12} className="cursor-pointer hover:text-emerald-950" onClick={() => setProjForm(p => ({...p, assigned_user_ids: p.assigned_user_ids?.filter(uid => uid !== id)}))}/></span>
+                    })}
+                  </div>
+                  <select value="" onChange={e => {
+                    const val = parseInt(e.target.value);
+                    if (val && !projForm.assigned_user_ids?.includes(val)) {
+                      setProjForm(p => ({...p, assigned_user_ids: [...(p.assigned_user_ids || []), val]}));
+                    }
+                  }} className="w-full border rounded-lg px-3 py-2 text-sm">
+                    <option value="">-- Tambah Field Staff --</option>
+                    {allUsers.filter(u => (u.role === 'field' || u.role === 'helper') && !projForm.assigned_user_ids?.includes(u.id)).map(u => (
+                      <option key={u.id} value={u.id}>{u.full_name || u.email}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm mb-1">Tugaskan Pekerja</label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {projForm.assigned_employee_ids?.map((id, i) => {
+                      const emp = allEmployees.find(e => e.id === id);
+                      return <span key={i} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded flex items-center gap-1">{emp?.name} <X size={12} className="cursor-pointer hover:text-blue-950" onClick={() => setProjForm(p => ({...p, assigned_employee_ids: p.assigned_employee_ids?.filter(eid => eid !== id)}))}/></span>
+                    })}
+                  </div>
+                  <select value="" onChange={e => {
+                    const val = parseInt(e.target.value);
+                    if (val && !projForm.assigned_employee_ids?.includes(val)) {
+                      setProjForm(p => ({...p, assigned_employee_ids: [...(p.assigned_employee_ids || []), val]}));
+                    }
+                  }} className="w-full border rounded-lg px-3 py-2 text-sm">
+                    <option value="">-- Tambah Pekerja --</option>
+                    {allEmployees.filter(emp => emp.is_active && !projForm.assigned_employee_ids?.includes(emp.id)).map(emp => (
+                      <option key={emp.id} value={emp.id}>{emp.name} ({emp.position || '-'})</option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-gray-500 mt-1">Pekerja yang ditugaskan akan tampil di menu Field Staff</p>
                 </div>
               </div>
 
@@ -720,6 +777,139 @@ export default function ProjectsPage() {
                   className="flex items-center justify-center gap-2 px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors"
                 >
                   <Pencil size={15} /> Edit Data
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Project Detail Modal */}
+      {viewProj && !showProjModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setViewProj(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10 rounded-t-2xl">
+              <div className="flex items-center gap-2">
+                <Briefcase size={18} className="text-emerald-600" />
+                <h2 className="text-base font-semibold text-gray-800">Detail Proyek</h2>
+              </div>
+              <button onClick={() => setViewProj(null)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 overflow-y-auto">
+              <div className="mb-6 flex justify-between items-start">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800">{viewProj.name}</h3>
+                  {viewProj.client_name && <p className="text-gray-500 text-sm">{viewProj.client_name}</p>}
+                </div>
+                <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${
+                  viewProj.status === 'completed' ? 'bg-green-100 text-green-700' :
+                  viewProj.status === 'paused' ? 'bg-yellow-100 text-yellow-700' :
+                  'bg-blue-100 text-blue-700'
+                }`}>
+                  {viewProj.status}
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 text-sm mb-6">
+                <div>
+                  <span className="text-gray-400 block text-xs">Lokasi</span>
+                  <span className="font-medium text-gray-800">{viewProj.location || "-"}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400 block text-xs">Tipe Pengukuran</span>
+                  <span className="font-medium text-gray-800 capitalize">{viewProj.measurement_type || "Tonase"}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400 block text-xs">Budget</span>
+                  <span className="font-medium text-emerald-700">{formatIDR(viewProj.budget)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400 block text-xs">Pengeluaran</span>
+                  <span className="font-medium text-rose-600">{formatIDR(viewProj.budget_used)}</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-gray-400 block text-xs">Keterangan / Catatan</span>
+                  <span className="font-medium text-gray-800 whitespace-pre-wrap">{viewProj.notes || "-"}</span>
+                </div>
+              </div>
+
+              {/* Target Material */}
+              <div className="mb-6">
+                <h4 className="text-sm font-bold text-gray-800 border-b pb-2 mb-3">Target Material</h4>
+                {(!viewProj.material_items || viewProj.material_items.length === 0) ? (
+                  <p className="text-gray-400 text-sm italic">Belum ada target material.</p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {viewProj.material_items.map((m, i) => (
+                      <div key={i} className="flex justify-between items-center bg-gray-50 p-2 rounded-lg border border-gray-100">
+                        <div>
+                          <span className="font-bold text-gray-800 block">{m.material_type}</span>
+                          {m.unit_price && <span className="text-xs text-gray-500">{formatIDR(m.unit_price)} / {m.unit}</span>}
+                        </div>
+                        <span className="text-sm font-bold text-blue-600">
+                          {m.target_quantity} {m.unit}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Assignments */}
+              <div className="mb-6 grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-bold text-gray-800 border-b pb-2 mb-3">Field Staff</h4>
+                  {(!viewProj.assigned_users || viewProj.assigned_users.length === 0) ? (
+                    <p className="text-gray-400 text-sm italic">Tidak ada petugas ditugaskan.</p>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      {viewProj.assigned_users.map((u: any) => (
+                        <div key={u.id} className="text-sm px-2 py-1 bg-emerald-50 text-emerald-800 rounded">
+                          {u.full_name || u.email}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-gray-800 border-b pb-2 mb-3">Pekerja Proyek</h4>
+                  {(!viewProj.assigned_employees || viewProj.assigned_employees.length === 0) ? (
+                    <p className="text-gray-400 text-sm italic">Tidak ada pekerja ditugaskan.</p>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      {viewProj.assigned_employees.map((emp: any) => (
+                        <div key={emp.id} className="text-sm px-2 py-1 bg-blue-50 text-blue-800 rounded">
+                          {emp.name} <span className="text-xs opacity-70">({emp.position})</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {isGM && (
+              <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 rounded-b-2xl bg-gray-50 mt-auto">
+                <button
+                  onClick={() => {
+                    setConfirmDeleteProj(viewProj);
+                    setViewProj(null);
+                  }}
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl text-sm font-semibold transition-colors mr-auto"
+                >
+                  <Trash2 size={15} /> Hapus
+                </button>
+                <button
+                  onClick={() => {
+                    openProjModal(viewProj);
+                    setViewProj(null);
+                  }}
+                  className="flex items-center justify-center gap-2 px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors"
+                >
+                  <Pencil size={15} /> Edit Proyek
                 </button>
               </div>
             )}

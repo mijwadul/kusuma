@@ -34,15 +34,18 @@ def get_equipment(db: Session = Depends(get_db)):
 
 
 @router.get("/employees")
-def get_employees(db: Session = Depends(get_db)):
-    employees = DashboardService.get_employees(db)
+def get_employees(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    employees = DashboardService.get_employees(db, current_user)
     return [EmployeeSchema.model_validate(emp) for emp in employees]
 
 
 @router.get("/projects")
-def get_projects(db: Session = Depends(get_db)):
+def get_projects(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     from ...services.project_service import ProjectService
-    return ProjectService.list_projects(db)
+    return ProjectService.list_projects(db, current_user)
 
 
 @router.get("/daily-report")

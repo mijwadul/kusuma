@@ -96,8 +96,12 @@ class DashboardService:
         return db.query(Equipment).all()
 
     @staticmethod
-    def get_employees(db: Session) -> List[Any]:
-        return db.query(Employee).filter(Employee.is_active == True).all()
+    def get_employees(db: Session, current_user: Any = None) -> List[Any]:
+        query = db.query(Employee).filter(Employee.is_active == True)
+        if current_user and current_user.role == "field" and current_user.assigned_projects:
+            assigned_project_ids = [p.id for p in current_user.assigned_projects]
+            query = query.filter(Employee.assigned_projects.any(Project.id.in_(assigned_project_ids)))
+        return query.all()
 
     @staticmethod
     def get_projects(db: Session) -> List[Any]:
