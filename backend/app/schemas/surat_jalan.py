@@ -18,6 +18,8 @@ class SuratJalanCreate(BaseModel):
     tinggi: Optional[float] = None
     minus_tinggi: Optional[float] = 0.0
 
+    created_at: Optional[str] = None
+
 class SuratJalanUpdate(BaseModel):
     nopol: Optional[str] = None
     nama_supir: Optional[str] = None
@@ -33,6 +35,8 @@ class SuratJalanUpdate(BaseModel):
     lebar: Optional[float] = None
     tinggi: Optional[float] = None
     minus_tinggi: Optional[float] = None
+
+    created_at: Optional[str] = None
 
 class SuratJalanResponse(BaseModel):
     id: int

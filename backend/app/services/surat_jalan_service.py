@@ -6,6 +6,7 @@ from ..models.project import Project
 from ..models.user import User
 from ..schemas.surat_jalan import SuratJalanCreate, SuratJalanUpdate
 from fastapi import HTTPException
+from dateutil.parser import parse as parse_date
 
 class SuratJalanService:
     @staticmethod
@@ -69,6 +70,9 @@ class SuratJalanService:
             volume=volume
         )
         
+        if data.created_at:
+            sj.created_at = parse_date(data.created_at)
+        
         db.add(sj)
         db.commit()
         db.refresh(sj)
@@ -96,8 +100,11 @@ class SuratJalanService:
         update_data = data.model_dump(exclude_unset=True)
         
         for key, value in update_data.items():
-            if key not in ["bruto", "tarra", "minus_berat", "panjang", "lebar", "tinggi", "minus_tinggi"]:
+            if key not in ["bruto", "tarra", "minus_berat", "panjang", "lebar", "tinggi", "minus_tinggi", "created_at"]:
                 setattr(sj, key, value)
+                
+        if "created_at" in update_data and update_data["created_at"]:
+            sj.created_at = parse_date(update_data["created_at"])
 
         if project.measurement_type == "tonase":
             if "bruto" in update_data: sj.bruto = update_data["bruto"]

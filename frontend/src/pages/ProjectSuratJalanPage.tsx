@@ -4,6 +4,7 @@ import { useCreateSuratJalan, useProjectSuratJalans, useUpdateSuratJalan, useDel
 import { toast } from 'sonner';
 import { Plus, X, Loader2, Truck } from 'lucide-react';
 import AlertModal from '../components/AlertModal';
+import { toLocalDateTimeInputString } from '../utils/formatters';
 
 const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300";
 
@@ -34,7 +35,8 @@ const SuratJalanFormModal = ({
     width: sjToEdit?.lebar?.toString() || '',
     height: sjToEdit?.tinggi?.toString() || '',
     minus_weight: sjToEdit?.minus_berat?.toString() || '0',
-    minus_height: sjToEdit?.minus_tinggi?.toString() || '0'
+    minus_height: sjToEdit?.minus_tinggi?.toString() || '0',
+    created_at: toLocalDateTimeInputString(sjToEdit?.created_at)
   });
 
   const [isAutoFilled, setIsAutoFilled] = useState(false);
@@ -91,6 +93,7 @@ const SuratJalanFormModal = ({
         nama_supir: formData.driver_name,
         nopol: formData.license_plate,
         asal_tambang: formData.origin,
+        created_at: formData.created_at || undefined,
       };
 
       if (measurementType === 'tonase') {
@@ -127,19 +130,32 @@ const SuratJalanFormModal = ({
         </div>
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Proyek</label>
-            <select
-              value={projectId}
-              onChange={e => setProjectId(e.target.value)}
-              className={inputCls}
-              required
-            >
-              <option value="">-- Pilih Proyek --</option>
-              {projects.map(p => (
-                <option key={p.id} value={p.id}>{p.name} ({p.measurement_type === 'kubikasi' ? 'Kubikasi' : 'Tonase'})</option>
-              ))}
-            </select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Tanggal & Waktu</label>
+              <input
+                type="datetime-local"
+                name="created_at"
+                value={formData.created_at}
+                onChange={handleChange}
+                className={inputCls}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Proyek</label>
+              <select
+                value={projectId}
+                onChange={e => setProjectId(e.target.value)}
+                className={inputCls}
+                required
+              >
+                <option value="">-- Pilih Proyek --</option>
+                {projects.map(p => (
+                  <option key={p.id} value={p.id}>{p.name} ({p.measurement_type === 'kubikasi' ? 'Kubikasi' : 'Tonase'})</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {proj && (
