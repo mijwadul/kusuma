@@ -6,7 +6,7 @@ from ..models.project import Project
 from ..models.user import User
 from ..schemas.surat_jalan import SuratJalanCreate, SuratJalanUpdate
 from fastapi import HTTPException
-from dateutil.parser import parse as parse_date
+from datetime import datetime
 
 class SuratJalanService:
     @staticmethod
@@ -71,7 +71,7 @@ class SuratJalanService:
         )
         
         if data.created_at:
-            sj.created_at = parse_date(data.created_at)
+            sj.created_at = datetime.fromisoformat(data.created_at)
         
         db.add(sj)
         db.commit()
@@ -104,7 +104,7 @@ class SuratJalanService:
                 setattr(sj, key, value)
                 
         if "created_at" in update_data and update_data["created_at"]:
-            sj.created_at = parse_date(update_data["created_at"])
+            sj.created_at = datetime.fromisoformat(update_data["created_at"])
 
         if project.measurement_type == "tonase":
             if "bruto" in update_data: sj.bruto = update_data["bruto"]
