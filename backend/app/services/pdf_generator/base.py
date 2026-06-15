@@ -72,9 +72,9 @@ def create_header(title_text: str, right_paragraphs: list, content_w: float, tit
     logo_cell = get_logo_image(width_cm=3.0, height_cm=3.0)
     style = get_base_styles()
     
-    company_name = Paragraph("<font size='14' color='#1a3c6e'><b>PT. Kusuma Samudera Berkah</b></font>", style(alignment=TA_LEFT, spaceAfter=2))
-    company_sub = Paragraph("<font size='9' color='#4a6fa5'><i>Pertambangan & Konstruksi</i></font>", style(alignment=TA_LEFT, spaceAfter=4))
-    company_address = Paragraph("<font size='8' color='#555555'>Jl. Pendidikan Tlogosadang, Kec. Paciran,<br/>Kab. Lamongan Jawa Timur 62264</font>", style(alignment=TA_LEFT, leading=10))
+    company_name = Paragraph("<font size='15' color='#1e293b'><b>PT. Kusuma Samudera Berkah</b></font>", style(alignment=TA_LEFT, spaceAfter=2))
+    company_sub = Paragraph("<font size='9' color='#64748b'><i>Pertambangan & Konstruksi</i></font>", style(alignment=TA_LEFT, spaceAfter=4))
+    company_address = Paragraph("<font size='8' color='#64748b'>Jl. Pendidikan Tlogosadang, Kec. Paciran,<br/>Kab. Lamongan Jawa Timur 62264</font>", style(alignment=TA_LEFT, leading=10))
     
     company_info = [company_name, company_sub, company_address]
     
@@ -90,8 +90,8 @@ def create_header(title_text: str, right_paragraphs: list, content_w: float, tit
     )
     
     slip_title = Paragraph(
-        f"<font size='{title_size}' color='#1e40af'><b>{title_text}</b></font>",
-        style(alignment=TA_RIGHT, spaceAfter=2),
+        f"<font size='{title_size}' color='#1e3a8a'><b>{title_text}</b></font>",
+        style(alignment=TA_RIGHT, spaceAfter=4),
     )
     
     right_cells = [slip_title, Spacer(1, 4 * mm)] + right_paragraphs

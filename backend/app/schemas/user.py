@@ -3,7 +3,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
 
-# Bina-ERP Roles: gm (General Manager), finance (Finance Staff), admin (Admin/HR), field (Field Staff)
+# System Kusuma Roles: gm (General Manager), finance (Finance Staff), admin (Admin/HR), field (Field Staff)
 # Legacy roles (helper, checker) supported for backward compatibility during migration
 UserRole = Literal["gm", "finance", "admin", "field", "helper", "checker"]
 

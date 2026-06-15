@@ -5,8 +5,7 @@ import { toast } from 'sonner';
 import { Plus, X, Loader2, Truck, FileText, ChevronDown, ChevronRight } from 'lucide-react';
 import AlertModal from '../components/AlertModal';
 import { toLocalDateTimeInputString, truncToTwo, formatNopol, formatTitleCase } from '../utils/formatters';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { generatePremiumPDF } from '../utils/pdfGenerator';
 
 import { useVendorTrucks } from '../hooks/useHauling';
 import { useVendors } from '../hooks/useVendors';
@@ -665,34 +664,10 @@ export default function ProjectSuratJalanPage() {
     }
 
     try {
-      const doc = new jsPDF();
-
-      // ── HEADER (seragam dengan laporan lain) ──
-      try {
-        const img = new Image();
-        img.src = '/logo.png';
-        await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
-        doc.addImage(img, 'PNG', 14, 10, 25, 25);
-      } catch { /* logo tidak tersedia */ }
-
-      doc.setFontSize(16);
-      doc.setFont('helvetica', 'bold');
-      doc.text('PT KUSUMA SAMUDERA BERKAH', 45, 18);
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Laporan Surat Jalan Proyek', 45, 25);
-      doc.setFontSize(9);
-      doc.text(`Proyek: ${project.name}`, 45, 31);
       const vendorLabel = params.vendorId
         ? (allVendors.find((v: any) => v.id.toString() === params.vendorId)?.name || 'Manual')
         : 'Semua Vendor';
-      doc.text(`Vendor: ${vendorLabel}   |   Periode: ${params.startDate} s/d ${params.endDate}`, 45, 37);
 
-      // Garis pemisah
-      doc.setLineWidth(0.3);
-      doc.line(14, 41, 196, 41);
-
-      // ── KALKULASI RINGKASAN ──
       let totalTonase = 0;
       let totalKubikasi = 0;
       let trontonCount = 0;
@@ -708,7 +683,6 @@ export default function ProjectSuratJalanPage() {
           totalKubikasi += sj.volume || 0;
           vendorTotals[vName] = (vendorTotals[vName] || 0) + (sj.volume || 0);
         }
-        // Gunakan truck_type jika ada; fallback: netto > 20 Ton atau volume > 20 m³ = tronton
         const tType = (sj.truck_type || '').toLowerCase();
         let isTronton: boolean;
         if (tType) {
@@ -722,8 +696,9 @@ export default function ProjectSuratJalanPage() {
         else coltCount++;
       });
 
-      // ── TABEL ──
-      const tableData = filtered.map((sj: any, idx: number) => {
+      const tableHead = [['No', 'Waktu', 'Nopol', 'Supir', 'Vendor', 'Tipe', mt === 'tonase' ? 'Bruto / Tarra (Kg)' : 'P x L x T', mt === 'tonase' ? 'Netto' : 'Volume']];
+      
+      const tableBody = filtered.map((sj: any, idx: number) => {
         const tType = (sj.truck_type || '').toLowerCase();
         let isTronton: boolean;
         if (tType) {
@@ -747,52 +722,29 @@ export default function ProjectSuratJalanPage() {
         ];
       });
 
-      autoTable(doc, {
-        startY: 45,
-        head: [['No', 'Waktu', 'Nopol', 'Supir', 'Vendor', 'Tipe', mt === 'tonase' ? 'Bruto / Tarra (Kg)' : 'P x L x T', mt === 'tonase' ? 'Netto' : 'Volume']],
-        body: tableData,
-        theme: 'grid',
-        styles: { fontSize: 7.5 },
-        headStyles: { fillColor: [4, 120, 87], textColor: 255, fontStyle: 'bold' },
-        alternateRowStyles: { fillColor: [240, 253, 244] },
-      });
-
-      // ── RINGKASAN ──
-      const finalY = (doc as any).lastAutoTable.finalY + 8;
-      doc.setLineWidth(0.3);
-      doc.line(14, finalY - 2, 196, finalY - 2);
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Ringkasan:', 14, finalY + 5);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.text(`Total Ritase Tronton: ${trontonCount}`, 14, finalY + 12);
-      doc.text(`Total Ritase Colt Diesel: ${coltCount}`, 14, finalY + 19);
-      doc.text(`Grand Total: ${mt === 'tonase' ? truncToTwo(totalTonase) + ' Ton' : truncToTwo(totalKubikasi) + ' m³'}`, 14, finalY + 26);
-
-      let yVendor = finalY + 35;
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Total per Vendor:', 14, yVendor);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
+      const summaryItems = [
+        `Total Ritase Tronton: ${trontonCount}`,
+        `Total Ritase Colt Diesel: ${coltCount}`,
+        `Grand Total: ${mt === 'tonase' ? truncToTwo(totalTonase) + ' Ton' : truncToTwo(totalKubikasi) + ' m³'}`,
+        '',
+        'Total per Vendor:'
+      ];
       Object.keys(vendorTotals).forEach(v => {
-        yVendor += 7;
-        doc.text(`  ${v}: ${truncToTwo(vendorTotals[v])} ${mt === 'tonase' ? 'Ton' : 'm³'}`, 14, yVendor);
+        summaryItems.push(`  ${v}: ${truncToTwo(vendorTotals[v])} ${mt === 'tonase' ? 'Ton' : 'm³'}`);
       });
 
-      // Footer
-      const pageCount = (doc as any).internal.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(150);
-        doc.text(`Halaman ${i} dari ${pageCount}  |  Dicetak: ${new Date().toLocaleString('id-ID')}`, 14, 290);
-        doc.setTextColor(0);
-      }
+      await generatePremiumPDF({
+        title: "Laporan Surat Jalan Proyek",
+        subtitle: `Proyek: ${project.name} | Vendor: ${vendorLabel}`,
+        dateRange: `${params.startDate} s/d ${params.endDate}`,
+        filename: `Surat_Jalan_${project.name.replace(/\s+/g, '_')}_${params.startDate}_${params.endDate}.pdf`,
+        tableHead,
+        tableBody,
+        summaryItems
+      });
 
-      doc.save(`Surat_Jalan_${project.name.replace(/\s+/g, '_')}_${params.startDate}_${params.endDate}.pdf`);
       setShowPdfModal(false);
+      toast.success('PDF berhasil didownload');
     } catch (err) {
       toast.error('Gagal export PDF');
       console.error(err);

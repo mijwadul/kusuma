@@ -118,7 +118,7 @@ interface MenuItem {
   submenu?: SubMenuItem[];
 }
 
-  // Role-based menu filtering - Bina-ERP Roles: gm, finance, admin, field
+  // Role-based menu filtering - System Kusuma Roles: gm, finance, admin, field
   // Legacy roles: helper → field, checker → finance
   const getMenuItems = (): MenuItem[] => {
     const role = currentUser?.role || "field";
@@ -335,7 +335,7 @@ interface MenuItem {
   // Mobile hamburger menu
   if (isMobile) {
     return (
-      <div className="min-h-screen bg-brand-light">
+      <div className="min-h-screen bg-transparent">
         {/* Mobile Header */}
         <div className="bg-brand-dark text-white p-4 flex items-center justify-between shadow-md fixed top-0 left-0 right-0 z-50">
           <h1 className="text-base font-bold truncate mr-2">PT. Kusuma Samudera</h1>
@@ -462,7 +462,7 @@ interface MenuItem {
 
   // Desktop Sidebar
   return (
-    <div className="flex h-screen overflow-hidden bg-brand-light">
+    <div className="flex h-screen overflow-hidden bg-transparent">
       {/* Sidebar */}
       <div
         className={`h-screen glass-sidebar text-white transition-all duration-300 ease-in-out flex flex-col shadow-2xl shadow-slate-900/50 ${

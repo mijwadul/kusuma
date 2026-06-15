@@ -16,9 +16,8 @@ interface StatCardProps {
 const StatCard: React.FC<StatCardProps> = ({ icon: Icon, label, value, sub, color, onClick, badge, loading, trend }) => (
   <div
     onClick={onClick}
-    className={`bg-white rounded-3xl p-6 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.07)] border border-slate-100 flex items-start gap-4 fluid-metric-container
-      transition-all duration-500 ease-out hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.15)] hover:border-slate-200/80
-      ${onClick ? "cursor-pointer hover:-translate-y-1.5" : ""}`}
+    className={`glass-panel card-3d rounded-3xl p-6 flex items-start gap-4 fluid-metric-container
+      ${onClick ? "cursor-pointer" : ""}`}
   >
     <div className={`p-3.5 rounded-2xl shadow-xs text-white bg-gradient-to-tr ${
       color.includes("bg-red-") ? "from-red-500 to-rose-600 shadow-red-200/50" :

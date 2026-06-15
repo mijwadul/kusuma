@@ -162,9 +162,9 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 md:p-8 shadow-lg border border-slate-800/50 text-white transition-all duration-300">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
-        <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="relative overflow-hidden rounded-3xl bg-slate-900/85 backdrop-blur-2xl p-6 md:p-8 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.4)] border border-slate-700/50 text-white transition-all duration-300">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/15 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+        <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
         <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-4 md:gap-6">
@@ -173,7 +173,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs uppercase tracking-widest text-indigo-300 font-semibold">BINA-ERP SYSTEM</span>
+                <span className="text-xs uppercase tracking-widest text-indigo-300 font-semibold">SYSTEM KUSUMA</span>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                   v1.2 Active
                 </span>

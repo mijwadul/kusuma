@@ -1,5 +1,5 @@
 """
-Employee & Payroll API - Bina-ERP System
+Employee & Payroll API - System Kusuma
 
 Role Access:
 - GM: Full access (CRUD employee, view all financial data, approve payroll)

@@ -1,8 +1,7 @@
 import React from 'react';
 import { X, ArrowDownRight, ArrowUpRight, Info, Activity, Clock, Download } from 'lucide-react';
 import { useEquipmentLedger, Equipment } from '../../hooks/useEquipment';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { generatePremiumPDF } from '../../utils/pdfGenerator';
 import { toast } from 'sonner';
 
 interface EquipmentLedgerModalProps {
@@ -41,47 +40,8 @@ const EquipmentLedgerModal: React.FC<EquipmentLedgerModalProps> = ({
       return;
     }
 
-    const doc = new jsPDF();
-    
-    // Load Logo
-    try {
-      const img = new Image();
-      img.src = "/logo.png";
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-      });
-      // Add logo (x: 14, y: 10, width: 25, height: 25)
-      doc.addImage(img, "PNG", 14, 10, 25, 25);
-    } catch (e) {
-      console.warn("Failed to load logo", e);
-    }
-    
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text("PT KUSUMA SAMUDERA BERKAH", 45, 18);
-    
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    doc.text("Buku Besar & Histori Pemakaian Alat Berat", 45, 25);
-    
-    doc.setFontSize(10);
-    doc.text(`Dicetak pada: ${formatDate(new Date().toISOString())}`, 45, 31);
-
-    // Detail Alat Berat
-    doc.setFont("helvetica", "bold");
-    doc.text("Detail Alat Berat", 14, 45);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Nama: ${equipment.name}`, 14, 52);
-    doc.text(`Merek/Tipe: ${equipment.brand || '-'} / ${equipment.type}`, 14, 58);
-    doc.text(`Kapasitas: ${equipment.capacity ? equipment.capacity + ' Ton' : '-'}`, 14, 64);
-    
-    doc.setFont("helvetica", "bold");
-    doc.text("Informasi Vendor", 110, 45);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Vendor ID: ${equipment.vendor_id || '-'}`, 110, 52);
-
-    const tableData = ledger.map((item, index) => {
+    const tableHead = [["No.", "Tanggal", "Deskripsi", "Masuk (Debit)", "Keluar (Kredit)", "Saldo Berjalan"]];
+    const tableBody = ledger.map((item, index) => {
       let debit = 0;
       let credit = 0;
       
@@ -109,22 +69,28 @@ const EquipmentLedgerModal: React.FC<EquipmentLedgerModalProps> = ({
       ];
     });
 
-    autoTable(doc, {
-      startY: 70,
-      head: [["No.", "Tanggal", "Deskripsi", "Masuk (Debit)", "Keluar (Kredit)", "Saldo Berjalan"]],
-      body: tableData,
-      theme: "grid",
-      headStyles: { fillColor: [16, 185, 129] },
-      styles: { fontSize: 8 },
-      columnStyles: {
-        3: { halign: 'right' },
-        4: { halign: 'right' },
-        5: { halign: 'right' }
-      }
-    });
+    const summaryItems = [
+      `Nama Alat: ${equipment.name}`,
+      `Merek/Tipe: ${equipment.brand || '-'} / ${equipment.type}`,
+      `Kapasitas: ${equipment.capacity ? equipment.capacity + ' Ton' : '-'}`,
+      `Vendor ID: ${equipment.vendor_id || '-'}`
+    ];
 
-    doc.save(`Ledger_${equipment.name.replace(/ /g, '_')}_${new Date().getTime()}.pdf`);
-    toast.success("PDF berhasil didownload");
+    try {
+      await generatePremiumPDF({
+        title: "Buku Besar & Histori Pemakaian",
+        subtitle: `Alat Berat: ${equipment.name}`,
+        dateRange: `Dicetak: ${formatDate(new Date().toISOString())}`,
+        filename: `Ledger_${equipment.name.replace(/ /g, '_')}_${new Date().getTime()}.pdf`,
+        tableHead,
+        tableBody,
+        summaryItems
+      });
+      toast.success("PDF berhasil didownload");
+    } catch (e) {
+      console.error(e);
+      toast.error("Gagal mendownload PDF");
+    }
   };
 
   return (

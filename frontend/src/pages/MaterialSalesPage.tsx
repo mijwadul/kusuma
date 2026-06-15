@@ -3,8 +3,7 @@ import { toast } from "sonner";
 import {
   Plus, Pencil, Trash2, X, Loader2, ShoppingCart, Settings, Truck, FileText, Download
 } from "lucide-react";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import { generatePremiumPDF } from "../utils/pdfGenerator";
 import apiClient from "../api/apiClient";
 import { useCurrentUser } from "../hooks/useAuth";
 import {
@@ -586,49 +585,16 @@ const DownloadPdfModal = ({ sales, onClose }: { sales: IncomeRecord[], onClose: 
       return;
     }
 
-    const doc = new jsPDF();
-    
-    // Load Logo
-    try {
-      const img = new Image();
-      img.src = "/logo.png";
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-      });
-      // Add logo (x: 14, y: 10, width: 25, height: 25)
-      doc.addImage(img, "PNG", 14, 10, 25, 25);
-    } catch (e) {
-      console.warn("Failed to load logo", e);
-    }
-    
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text("PT KUSUMA SAMUDERA BERKAH", 45, 18);
-    
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    doc.text("Laporan Penjualan Material", 45, 25);
-    
-    doc.setFontSize(10);
-    doc.text(`Periode: ${formatDate(startDate)} - ${formatDate(endDate)}`, 45, 31);
-
-    const tableData = filtered.map((s, index) => [
+    const tableHead = [["No.", "Tanggal", "Nopol", "Supir", "Jenis Kendaraan", "Material", "Volume"]];
+    const tableBody = filtered.map((s, index) => [
       index + 1,
       formatDate(s.income_date),
       s.license_plate || "-",
       s.driver_name || "-",
       s.vehicle_type || "-",
-      s.material_type || "-"
+      s.material_type || "-",
+      `${s.quantity} ${s.unit}`
     ]);
-
-    autoTable(doc, {
-      startY: 40,
-      head: [["No.", "Tanggal", "Nopol", "Supir", "Jenis Kendaraan", "Material"]],
-      body: tableData,
-      theme: "grid",
-      headStyles: { fillColor: [16, 185, 129] },
-    });
 
     // Ringkasan Material & Kendaraan
     const summary: Record<string, Record<string, number>> = {};
@@ -641,27 +607,29 @@ const DownloadPdfModal = ({ sales, onClose }: { sales: IncomeRecord[], onClose: 
       summary[mat][veh] = (summary[mat][veh] || 0) + qty;
     });
 
-    const finalY = (doc as any).lastAutoTable.finalY || 40;
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text("Ringkasan Total Penjualan:", 14, finalY + 10);
-    
-    let currentY = finalY + 16;
+    const summaryItems: string[] = [];
     Object.entries(summary).forEach(([mat, vehs]) => {
-      doc.setFont("helvetica", "bold");
-      doc.text(`- ${mat}:`, 14, currentY);
-      currentY += 6;
-      
-      doc.setFont("helvetica", "normal");
+      summaryItems.push(`- ${mat}:`);
       Object.entries(vehs).forEach(([veh, total]) => {
-        doc.text(`  • ${veh}: ${total.toLocaleString("id-ID")} rit`, 14, currentY);
-        currentY += 6;
+        summaryItems.push(`  • ${veh}: ${total.toLocaleString("id-ID")} ritase/kubikasi`);
       });
     });
 
-    doc.save(`Laporan_Material_${startDate}_${endDate}.pdf`);
-    toast.success("PDF berhasil didownload");
-    onClose();
+    try {
+      await generatePremiumPDF({
+        title: "Laporan Penjualan Material",
+        dateRange: `${formatDate(startDate)} - ${formatDate(endDate)}`,
+        filename: `Laporan_Material_${startDate}_${endDate}.pdf`,
+        tableHead,
+        tableBody,
+        summaryItems
+      });
+      toast.success("PDF berhasil didownload");
+      onClose();
+    } catch (e) {
+      console.error(e);
+      toast.error("Gagal mendownload PDF");
+    }
   };
 
   return (
