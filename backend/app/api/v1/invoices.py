@@ -2,7 +2,7 @@ from datetime import date
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query, status
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
 from ...core.auth import get_current_user, require_role
@@ -68,7 +68,12 @@ class InvoiceResponse(BaseModel):
     final_amount: Optional[float]
     status: str
     notes: Optional[str]
-    is_downloaded: bool = False
+    is_downloaded: Optional[bool] = False
+
+    @field_validator('is_downloaded', mode='before')
+    @classmethod
+    def default_is_downloaded(cls, v):
+        return bool(v) if v is not None else False
     created_at: str
 
 class InvoiceStatusUpdate(BaseModel):

@@ -14,73 +14,140 @@ from ..core.database import SessionLocal
 
 logger = logging.getLogger(__name__)
 
+
 class AutomationService:
+
     @staticmethod
-    def auto_generate_payrolls():
+    def _get_system_user(db: Session) -> User | None:
+        """Ambil user admin sebagai user sistem untuk auto-generate."""
+        user = db.query(User).filter(User.role.in_(["gm", "admin"]), User.is_active == True).first()
+        if not user:
+            logger.warning("Tidak menemukan user admin/GM untuk autorisasi pembuat sistem.")
+        return user
+
+    @staticmethod
+    def _generate_payroll_for_employees(db: Session, employee_ids: list[int], label: str):
         """
-        Mengecek karyawan/operator yang memiliki absensi namun belum di-generate payroll-nya.
+        Logika inti: ambil absensi yang belum digenerate payroll untuk daftar employee_ids tertentu,
+        lalu buat payroll draft per karyawan.
         """
-        logger.info("Memulai proses auto-generate payrolls...")
+        from ..models.payroll import Attendance
+
+        uninvoiced_attendances = db.query(Attendance).filter(
+            Attendance.employee_id.in_(employee_ids),
+            (Attendance.is_payroll_generated == False) | (Attendance.is_payroll_generated == None),
+            Attendance.payroll_id == None
+        ).all()
+
+        if not uninvoiced_attendances:
+            logger.info(f"[{label}] Tidak ada absensi baru yang perlu dibuatkan payroll.")
+            return
+
+        # Kelompokkan berdasarkan employee_id
+        emp_attendance_map = {}
+        for att in uninvoiced_attendances:
+            if att.employee_id not in emp_attendance_map:
+                emp_attendance_map[att.employee_id] = []
+            emp_attendance_map[att.employee_id].append(att.date)
+
+        system_user = AutomationService._get_system_user(db)
+
+        for emp_id, dates in emp_attendance_map.items():
+            min_date = min(dates)
+            max_date = max(dates)
+
+            logger.info(f"[{label}] Auto-generating payroll untuk Employee ID: {emp_id} periode {min_date} s/d {max_date}")
+
+            payroll_data = PayrollCreate(
+                employee_id=emp_id,
+                period_start=min_date,
+                period_end=max_date,
+                overtime_hours=0,
+                bonus=0,
+                allowance=0,
+                loan_deduction=None,
+                other_deduction=0,
+                notes=f"[Auto-Generated] {label}."
+            )
+
+            try:
+                PayrollService.create_payroll(db, system_user, payroll_data)
+                logger.info(f"[{label}] Berhasil membuat draft payroll untuk Employee ID: {emp_id}")
+            except Exception as e:
+                logger.error(f"[{label}] Gagal membuat payroll untuk Employee ID {emp_id}: {str(e)}")
+
+    @staticmethod
+    def auto_generate_operator_payrolls():
+        """
+        Harian (jam 03:00 WIB): Generate payroll hanya untuk karyawan OPERATOR
+        (position mengandung kata 'operator', case-insensitive).
+        """
+        logger.info("Memulai proses auto-generate payrolls OPERATOR...")
         db: Session = SessionLocal()
         try:
-            # Ambil semua absensi yang belum digenerate payroll-nya
-            from ..models.payroll import Attendance
-            uninvoiced_attendances = db.query(Attendance).filter(
-                (Attendance.is_payroll_generated == False) | (Attendance.is_payroll_generated == None),
-                Attendance.payroll_id == None
+            # Cari semua karyawan aktif yang posisinya adalah operator
+            operator_employees = db.query(Employee).filter(
+                Employee.is_active == True,
+                Employee.position.ilike("%operator%")
             ).all()
 
-            if not uninvoiced_attendances:
-                logger.info("Tidak ada absensi baru yang perlu dibuatkan payroll.")
+            if not operator_employees:
+                logger.info("Tidak ada karyawan operator aktif ditemukan.")
                 return
 
-            # Kelompokkan berdasarkan employee_id
-            emp_attendance_map = {}
-            for att in uninvoiced_attendances:
-                if att.employee_id not in emp_attendance_map:
-                    emp_attendance_map[att.employee_id] = []
-                emp_attendance_map[att.employee_id].append(att.date)
+            operator_ids = [e.id for e in operator_employees]
+            logger.info(f"Ditemukan {len(operator_ids)} karyawan operator: {[e.name for e in operator_employees]}")
 
-            system_user = db.query(User).filter(User.role == "admin").first()
-            if not system_user:
-                 logger.warning("Tidak menemukan user admin untuk autorisasi pembuat sistem.")
-
-            for emp_id, dates in emp_attendance_map.items():
-                min_date = min(dates)
-                max_date = max(dates)
-                
-                logger.info(f"Auto-generating payroll untuk Employee ID: {emp_id} periode {min_date} s/d {max_date}")
-
-                payroll_data = PayrollCreate(
-                    employee_id=emp_id,
-                    period_start=min_date,
-                    period_end=max_date,
-                    overtime_hours=0,
-                    bonus=0,
-                    allowance=0,
-                    loan_deduction=None,
-                    other_deduction=0,
-                    notes="[Auto-Generated] Payroll otomatis oleh sistem."
-                )
-                
-                try:
-                    # Sistem user dilempar tapi payment_status akan pending kalau rolenya bukan admin super.
-                    # Kita anggap system_user memiliki wewenang untuk draft
-                    PayrollService.create_payroll(db, system_user, payroll_data)
-                    logger.info(f"Berhasil membuat draft payroll untuk Employee ID: {emp_id}")
-                except Exception as e:
-                    logger.error(f"Gagal membuat payroll untuk Employee ID {emp_id}: {str(e)}")
+            AutomationService._generate_payroll_for_employees(db, operator_ids, "Payroll Harian Operator")
 
         except Exception as e:
-            logger.error(f"Error pada auto_generate_payrolls: {str(e)}")
+            logger.error(f"Error pada auto_generate_operator_payrolls: {str(e)}")
         finally:
             db.close()
-            logger.info("Selesai proses auto-generate payrolls.")
+            logger.info("Selesai proses auto-generate payrolls operator.")
+
+    @staticmethod
+    def auto_generate_nonoperator_payrolls():
+        """
+        Mingguan (Minggu jam 08:00 WIB): Generate payroll untuk karyawan NON-OPERATOR
+        berdasarkan absensi periode Minggu s/d Sabtu seminggu sebelumnya.
+        """
+        logger.info("Memulai proses auto-generate payrolls NON-OPERATOR (mingguan)...")
+        db: Session = SessionLocal()
+        try:
+            today = date.today()  # Ini adalah hari Minggu saat job berjalan
+            # Minggu ini (hari ini) = period_end = Sabtu kemarin
+            last_saturday = today - timedelta(days=1)
+            # Minggu lalu = period_start = 7 hari sebelum Minggu ini
+            last_sunday = today - timedelta(days=7)
+
+            logger.info(f"Periode payroll non-operator: {last_sunday} s/d {last_saturday}")
+
+            # Cari semua karyawan aktif yang BUKAN operator
+            non_operator_employees = db.query(Employee).filter(
+                Employee.is_active == True,
+                ~Employee.position.ilike("%operator%")
+            ).all()
+
+            if not non_operator_employees:
+                logger.info("Tidak ada karyawan non-operator aktif ditemukan.")
+                return
+
+            non_operator_ids = [e.id for e in non_operator_employees]
+            logger.info(f"Ditemukan {len(non_operator_ids)} karyawan non-operator.")
+
+            AutomationService._generate_payroll_for_employees(db, non_operator_ids, "Payroll Mingguan Non-Operator")
+
+        except Exception as e:
+            logger.error(f"Error pada auto_generate_nonoperator_payrolls: {str(e)}")
+        finally:
+            db.close()
+            logger.info("Selesai proses auto-generate payrolls non-operator.")
 
     @staticmethod
     def auto_generate_invoices():
         """
-        Mengecek surat jalan penjualan material yang belum ditagihkan.
+        Harian (jam 03:00 WIB): Generate invoice untuk penjualan material yang belum ditagihkan.
         """
         logger.info("Memulai proses auto-generate invoices...")
         db: Session = SessionLocal()
@@ -108,13 +175,13 @@ class AutomationService:
                 customer_map[key]["dates"].append(rec.income_date)
                 customer_map[key]["total_amount"] += float(rec.amount or 0)
 
-            system_user = db.query(User).filter(User.role == "admin").first()
+            system_user = AutomationService._get_system_user(db)
 
             for (cust_name, cust_id), data in customer_map.items():
                 min_date = min(data["dates"])
                 max_date = max(data["dates"])
                 total_amount = data["total_amount"]
-                
+
                 logger.info(f"Auto-generating invoice untuk {cust_name} periode {min_date} s/d {max_date}")
 
                 invoice_data = InvoiceCreate(

@@ -59,7 +59,7 @@ class PayrollRecord(Base):
     
     # Notes
     notes = Column(Text)
-    is_downloaded = Column(Boolean, default=False)
+    is_downloaded = Column(Boolean, default=False, server_default="0", nullable=False)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

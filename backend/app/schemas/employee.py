@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # ============================================
 # Employee Schemas
@@ -338,7 +338,13 @@ class PayrollResponse(BaseModel):
     approval_note: Optional[str] = None
 
     notes: Optional[str] = None
-    is_downloaded: bool = False
+    is_downloaded: Optional[bool] = False
+
+    @field_validator('is_downloaded', mode='before')
+    @classmethod
+    def default_is_downloaded(cls, v):
+        return bool(v) if v is not None else False
+
     created_at: datetime
     updated_at: Optional[datetime] = None
 
