@@ -157,7 +157,7 @@ export default function HaulingPage() {
             </button>
           </div>
           
-          <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+          <div className="border border-gray-200 rounded-lg overflow-x-auto bg-white">
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-100">
                 <tr>
@@ -227,7 +227,7 @@ export default function HaulingPage() {
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-100">
+      <div className="bg-white rounded-lg shadow-md overflow-x-auto border border-gray-100">
         {loadingVendors ? (
           <div className="p-8 text-center text-gray-500">Memuat data vendor...</div>
         ) : (

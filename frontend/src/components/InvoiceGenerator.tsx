@@ -390,7 +390,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
                     </div>
                   </div>
 
-                  <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <div className="border border-gray-200 rounded-xl overflow-x-auto">
                     <table className="min-w-full text-sm divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>

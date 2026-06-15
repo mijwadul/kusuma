@@ -896,7 +896,7 @@ export default function ProjectSuratJalanPage() {
                           </button>
 
                           {expandedNopols[nopolKey] && (
-                            <div className="px-8 pb-3">
+                            <div className="px-8 pb-3 overflow-x-auto">
                               <table className="w-full text-sm">
                                 <thead className="bg-gray-50 border-b whitespace-nowrap">
                                   <tr>
