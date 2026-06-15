@@ -66,6 +66,8 @@ def get_project_surat_jalans(
             id=sj.id,
             project_id=sj.project_id,
             field_staff_id=sj.field_staff_id,
+            vendor_id=sj.vendor_id,
+            truck_id=sj.truck_id,
             nopol=sj.nopol,
             nama_supir=sj.nama_supir,
             asal_tambang=sj.asal_tambang,
@@ -80,7 +82,7 @@ def get_project_surat_jalans(
             volume=sj.volume,
             created_at=_fmt(sj.created_at),
             vendor_name=sj.vendor.name if sj.vendor else None,
-            truck_type=sj.truck.tipe_truk if sj.truck else None
+            truck_type=sj.truck_type or (sj.truck.tipe_truk if sj.truck else None)
         ))
     return result
 
