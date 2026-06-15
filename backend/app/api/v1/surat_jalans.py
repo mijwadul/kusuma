@@ -135,6 +135,7 @@ def get_truck_history(
 @router.get("/surat-jalan/export/excel")
 def export_surat_jalan_excel(
     project_id: int,
+    vendor_id: int | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
     db: Session = Depends(get_db),
@@ -148,15 +149,17 @@ def export_surat_jalan_excel(
         
     query = db.query(SuratJalan).filter(SuratJalan.project_id == project_id)
     
+    if vendor_id:
+        query = query.filter(SuratJalan.vendor_id == vendor_id)
     if start_date:
         query = query.filter(SuratJalan.created_at >= f"{start_date} 00:00:00")
     if end_date:
         query = query.filter(SuratJalan.created_at <= f"{end_date} 23:59:59")
         
-    sjs = query.order_by(SuratJalan.created_at.asc()).all()
+    sjs = query.order_by(SuratJalan.created_at.asc()).yield_per(1000)
     
     output = io.BytesIO()
-    workbook = xlsxwriter.Workbook(output)
+    workbook = xlsxwriter.Workbook(output, {'constant_memory': True})
     worksheet = workbook.add_worksheet("Surat Jalan")
     
     header_format = workbook.add_format({

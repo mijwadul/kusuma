@@ -29,35 +29,7 @@ def bootstrap_database():
     """Ensure tables exist and seed default admin on fresh setup."""
     
     # Database migration is now executed manually
-    # Database migration is now executed manually
     Base.metadata.create_all(bind=engine)
-    try:
-        from sqlalchemy import text
-        with engine.connect() as conn:
-            # Recalculate existing Surat Jalan netto/volume on startup
-            try:
-                import math
-                sjs = conn.execute(text("SELECT id, project_id, bruto, tarra, minus_berat, panjang, lebar, tinggi, minus_tinggi FROM surat_jalan")).fetchall()
-                for sj in sjs:
-                    project = conn.execute(text("SELECT measurement_type FROM projects WHERE id = :pid"), {"pid": sj.project_id}).fetchone()
-                    if not project: continue
-                    if project[0] == "tonase":
-                        if sj.bruto is not None and sj.tarra is not None:
-                            mb = sj.minus_berat or 0.0
-                            net = max(0, (sj.bruto - sj.tarra - mb) / 1000.0)
-                            conn.execute(text("UPDATE surat_jalan SET netto = :n WHERE id = :id"), {"n": net, "id": sj.id})
-                    elif project[0] == "kubikasi":
-                        if sj.panjang is not None and sj.lebar is not None and sj.tinggi is not None:
-                            mt = sj.minus_tinggi or 0.0
-                            raw_vol = (sj.panjang * sj.lebar * max(0, sj.tinggi - mt)) / 1000000.0
-                            vol = math.floor(raw_vol * 100) / 100.0
-                            conn.execute(text("UPDATE surat_jalan SET volume = :v WHERE id = :id"), {"v": vol, "id": sj.id})
-                conn.commit()
-            except Exception:
-                pass
-
-    except Exception:
-        pass
 
     default_admin_email = settings.DEFAULT_ADMIN_EMAIL.strip().lower()
     default_admin_password = settings.DEFAULT_ADMIN_PASSWORD

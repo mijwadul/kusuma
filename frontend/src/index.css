@@ -13,13 +13,22 @@ html {
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: clip;
-  background-color: #f1f5f9; /* Slate 100 as base */
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 50%, #cbd5e1 100%);
+  background-size: 200% 200%;
+  animation: gradientBg 15s ease infinite;
+  color: #1e293b;
+}
+
+@keyframes gradientBg {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 /* Mobile-friendly tap targets */
@@ -136,21 +145,8 @@ body {
   transform: translateY(-4px);
 }
 
-/* Page Transitions */
-@keyframes fadeInSlideUp {
-  0% {
-    opacity: 0;
-    transform: translateY(15px);
-  }
-  100% {
-    opacity: 1;
-    transform: none;
-  }
-}
 
-.page-transition-enter {
-  animation: fadeIn 0.4s ease-out;
-}
+/* Page Transitions are handled by Framer Motion in App.tsx */
 
 @keyframes fadeIn {
   0% { opacity: 0; }

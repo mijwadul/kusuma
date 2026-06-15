@@ -171,7 +171,11 @@ class SuratJalanService:
             
         SuratJalanService._check_project_access(project, current_user)
 
-        return db.query(SuratJalan).filter(SuratJalan.project_id == project_id).order_by(SuratJalan.created_at.desc()).all()
+        from sqlalchemy.orm import joinedload
+        return db.query(SuratJalan).options(
+            joinedload(SuratJalan.vendor),
+            joinedload(SuratJalan.truck)
+        ).filter(SuratJalan.project_id == project_id).order_by(SuratJalan.created_at.desc()).all()
 
     @staticmethod
     def update_surat_jalan(db: Session, current_user: User, sj_id: int, data: SuratJalanUpdate) -> SuratJalan:
