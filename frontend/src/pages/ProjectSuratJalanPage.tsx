@@ -7,8 +7,7 @@ import AlertModal from '../components/AlertModal';
 import { toLocalDateTimeInputString, truncToTwo, formatNopol, formatTitleCase } from '../utils/formatters';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { useQuery } from '@tanstack/react-query';
-import apiClient from '../api/apiClient';
+
 import { useVendorTrucks } from '../hooks/useHauling';
 import { useVendors } from '../hooks/useVendors';
 
@@ -62,21 +61,41 @@ const SuratJalanFormModal = ({
 
   const handleNopolChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = formatNopol(e.target.value);
-    setFormData(prev => ({ ...prev, license_plate: val }));
     
-    // Auto-fill from selected vendor
-    const found = trucksHistory.find((t: any) => t.nopol.toUpperCase() === val);
-    if (found) {
+    let foundVendorTruck = null;
+    if (formData.vendor_id && vendorTrucks) {
+      foundVendorTruck = vendorTrucks.find((t: any) => t.nopol.toUpperCase() === val);
+    }
+
+    if (foundVendorTruck) {
       setFormData(prev => ({
         ...prev,
-        driver_name: found.nama_supir || prev.driver_name,
-        length: found.panjang?.toString() || prev.length,
-        width: found.lebar?.toString() || prev.width,
-        height: found.tinggi?.toString() || prev.height,
+        license_plate: val,
+        truck_id: foundVendorTruck.id.toString(),
+        driver_name: foundVendorTruck.supir_default || prev.driver_name,
+        length: foundVendorTruck.panjang?.toString() || prev.length,
+        width: foundVendorTruck.lebar?.toString() || prev.width,
+        height: foundVendorTruck.tinggi?.toString() || prev.height,
+        truck_type: foundVendorTruck.tipe_truk || prev.truck_type
       }));
       setIsAutoFilled(true);
     } else {
-      setIsAutoFilled(false);
+      const found = trucksHistory.find((t: any) => t.nopol.toUpperCase() === val);
+      if (found) {
+        setFormData(prev => ({
+          ...prev,
+          license_plate: val,
+          truck_id: '',
+          driver_name: found.nama_supir || prev.driver_name,
+          length: found.panjang?.toString() || prev.length,
+          width: found.lebar?.toString() || prev.width,
+          height: found.tinggi?.toString() || prev.height,
+        }));
+        setIsAutoFilled(true);
+      } else {
+        setFormData(prev => ({ ...prev, license_plate: val, truck_id: '' }));
+        setIsAutoFilled(false);
+      }
     }
   };
 
@@ -255,57 +274,31 @@ const SuratJalanFormModal = ({
               </datalist>
             </div>
             
-            {formData.vendor_id ? (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Pilih Truk Vendor</label>
-                <select
-                  name="truck_id"
-                  value={formData.truck_id}
-                  onChange={(e) => {
-                    handleChange(e);
-                    const truck = vendorTrucks?.find((t: any) => t.id.toString() === e.target.value);
-                    if (truck) {
-                      setFormData(prev => ({
-                        ...prev,
-                        license_plate: truck.nopol,
-                        driver_name: truck.supir_default || prev.driver_name,
-                        length: truck.panjang?.toString() || prev.length,
-                        width: truck.lebar?.toString() || prev.width,
-                        height: truck.tinggi?.toString() || prev.height,
-                      }));
-                      setIsAutoFilled(true);
-                    }
-                  }}
-                  className={inputCls}
-                  required
-                >
-                  <option value="">-- Pilih Truk --</option>
-                  {vendorTrucks?.map((t: any) => (
-                    <option key={t.id} value={t.id}>{t.nopol} ({t.supir_default})</option>
-                  ))}
-                </select>
-              </div>
-            ) : (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Nomor Polisi</label>
-                <input
-                  type="text"
-                  name="license_plate"
-                  list="truck-history-list"
-                  value={formData.license_plate}
-                  onChange={handleNopolChange}
-                  className={inputCls}
-                  required
-                  placeholder="Contoh: B 1234 CD"
-                  autoComplete="off"
-                />
-                <datalist id="truck-history-list">
-                  {trucksHistory.map((t: any) => (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Nomor Polisi</label>
+              <input
+                type="text"
+                name="license_plate"
+                list="truck-list"
+                value={formData.license_plate}
+                onChange={handleNopolChange}
+                className={inputCls}
+                required
+                placeholder="Contoh: B 1234 CD"
+                autoComplete="off"
+              />
+              <datalist id="truck-list">
+                {formData.vendor_id && vendorTrucks ? (
+                  vendorTrucks.map((t: any) => (
+                    <option key={t.id} value={t.nopol}>{t.supir_default}</option>
+                  ))
+                ) : (
+                  trucksHistory.map((t: any) => (
                     <option key={t.nopol} value={t.nopol} />
-                  ))}
-                </datalist>
-              </div>
-            )}
+                  ))
+                )}
+              </datalist>
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Nama Supir</label>

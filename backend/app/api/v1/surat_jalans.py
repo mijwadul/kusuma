@@ -47,7 +47,9 @@ def create_surat_jalan(
         tinggi=sj.tinggi,
         minus_tinggi=sj.minus_tinggi,
         volume=sj.volume,
-        created_at=_fmt(sj.created_at)
+        created_at=_fmt(sj.created_at),
+        vendor_name=sj.vendor.name if sj.vendor else None,
+        truck_type=sj.truck_type or (sj.truck.tipe_truk if sj.truck else None)
     )
 
 @router.get("/projects/{project_id}/surat-jalan", response_model=List[SuratJalanResponse])
@@ -107,7 +109,9 @@ def update_surat_jalan(
         tinggi=sj.tinggi,
         minus_tinggi=sj.minus_tinggi,
         volume=sj.volume,
-        created_at=_fmt(sj.created_at)
+        created_at=_fmt(sj.created_at),
+        vendor_name=sj.vendor.name if sj.vendor else None,
+        truck_type=sj.truck_type or (sj.truck.tipe_truk if sj.truck else None)
     )
 
 @router.delete("/surat-jalan/{sj_id}", status_code=status.HTTP_204_NO_CONTENT)

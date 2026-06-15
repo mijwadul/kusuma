@@ -67,7 +67,7 @@ class SuratJalanService:
             if vname:
                 vendor = db.query(Vendor).filter(Vendor.name == vname).first()
                 if not vendor:
-                    vendor = Vendor(name=vname, type="hauling")
+                    vendor = Vendor(name=vname, vendor_type="hauling")
                     db.add(vendor)
                     db.commit()
                     db.refresh(vendor)
@@ -115,13 +115,45 @@ class SuratJalanService:
         
         db.add(sj)
         
-        # Update VendorTruck dimensions if provided
-        if data.truck_id and project.measurement_type == "kubikasi":
-            truck = db.query(VendorTruck).filter(VendorTruck.id == data.truck_id).first()
-            if truck:
-                if data.panjang is not None: truck.panjang = data.panjang
-                if data.lebar is not None: truck.lebar = data.lebar
-                if data.tinggi is not None: truck.tinggi = data.tinggi
+        # Auto-save atau update VendorTruck
+        if data.vendor_id and data.nopol:
+            nopol_clean = data.nopol.strip().upper()
+            if data.truck_id:
+                # Update dimensi truk yang sudah ada jika ada perubahan ukuran
+                truck = db.query(VendorTruck).filter(VendorTruck.id == data.truck_id).first()
+                if truck and project.measurement_type == "kubikasi":
+                    if data.panjang is not None: truck.panjang = data.panjang
+                    if data.lebar is not None: truck.lebar = data.lebar
+                    if data.tinggi is not None: truck.tinggi = data.tinggi
+            else:
+                # Cek apakah nopol sudah ada di vendor_trucks (untuk vendor ini atau vendor manapun)
+                existing_truck = db.query(VendorTruck).filter(
+                    VendorTruck.nopol.ilike(nopol_clean)
+                ).first()
+                if not existing_truck:
+                    # Auto-create truk baru
+                    tipe = getattr(data, 'truck_type', None) or 'colt_diesel'
+                    new_truck = VendorTruck(
+                        vendor_id=data.vendor_id,
+                        nopol=data.nopol.strip(),
+                        supir_default=data.nama_supir,
+                        tipe_truk=tipe,
+                        panjang=data.panjang if project.measurement_type == "kubikasi" else None,
+                        lebar=data.lebar if project.measurement_type == "kubikasi" else None,
+                        tinggi=data.tinggi if project.measurement_type == "kubikasi" else None,
+                    )
+                    db.add(new_truck)
+                    db.flush()  # dapatkan ID tanpa commit
+                    sj.truck_id = new_truck.id
+                else:
+                    # Truk sudah ada, link ke SJ dan update supir default jika kosong
+                    sj.truck_id = existing_truck.id
+                    if not existing_truck.supir_default and data.nama_supir:
+                        existing_truck.supir_default = data.nama_supir
+                    if project.measurement_type == "kubikasi":
+                        if data.panjang is not None: existing_truck.panjang = data.panjang
+                        if data.lebar is not None: existing_truck.lebar = data.lebar
+                        if data.tinggi is not None: existing_truck.tinggi = data.tinggi
         
         # Deduct from vendor balance
         if vendor and hauling_cost:
@@ -161,7 +193,7 @@ class SuratJalanService:
             if vname:
                 vendor = db.query(Vendor).filter(Vendor.name == vname).first()
                 if not vendor:
-                    vendor = Vendor(name=vname, type="hauling")
+                    vendor = Vendor(name=vname, vendor_type="hauling")
                     db.add(vendor)
                     db.commit()
                     db.refresh(vendor)
@@ -219,13 +251,46 @@ class SuratJalanService:
         sj.hauling_price = hauling_price
         sj.hauling_cost = hauling_cost
 
-        # Update VendorTruck dimensions if provided
-        if sj.truck_id and project.measurement_type == "kubikasi":
-            truck = db.query(VendorTruck).filter(VendorTruck.id == sj.truck_id).first()
-            if truck:
-                if sj.panjang is not None: truck.panjang = sj.panjang
-                if sj.lebar is not None: truck.lebar = sj.lebar
-                if sj.tinggi is not None: truck.tinggi = sj.tinggi
+        # Auto-save atau update VendorTruck
+        if sj.vendor_id and sj.nopol:
+            nopol_clean = sj.nopol.strip().upper()
+            if sj.truck_id:
+                # Update dimensi truk yang sudah ada
+                truck = db.query(VendorTruck).filter(VendorTruck.id == sj.truck_id).first()
+                if truck:
+                    if not truck.supir_default and sj.nama_supir:
+                        truck.supir_default = sj.nama_supir
+                    if project.measurement_type == "kubikasi":
+                        if sj.panjang is not None: truck.panjang = sj.panjang
+                        if sj.lebar is not None: truck.lebar = sj.lebar
+                        if sj.tinggi is not None: truck.tinggi = sj.tinggi
+            else:
+                # Cek apakah nopol sudah ada
+                existing_truck = db.query(VendorTruck).filter(
+                    VendorTruck.nopol.ilike(nopol_clean)
+                ).first()
+                if not existing_truck:
+                    tipe = sj.truck_type or 'colt_diesel'
+                    new_truck = VendorTruck(
+                        vendor_id=sj.vendor_id,
+                        nopol=sj.nopol.strip(),
+                        supir_default=sj.nama_supir,
+                        tipe_truk=tipe,
+                        panjang=sj.panjang if project.measurement_type == "kubikasi" else None,
+                        lebar=sj.lebar if project.measurement_type == "kubikasi" else None,
+                        tinggi=sj.tinggi if project.measurement_type == "kubikasi" else None,
+                    )
+                    db.add(new_truck)
+                    db.flush()
+                    sj.truck_id = new_truck.id
+                else:
+                    sj.truck_id = existing_truck.id
+                    if not existing_truck.supir_default and sj.nama_supir:
+                        existing_truck.supir_default = sj.nama_supir
+                    if project.measurement_type == "kubikasi":
+                        if sj.panjang is not None: existing_truck.panjang = sj.panjang
+                        if sj.lebar is not None: existing_truck.lebar = sj.lebar
+                        if sj.tinggi is not None: existing_truck.tinggi = sj.tinggi
 
         # Handle Deposit Refund and Deduction
         if old_vendor_id:
