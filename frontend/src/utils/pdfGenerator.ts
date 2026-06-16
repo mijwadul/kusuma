@@ -28,10 +28,8 @@ export const generatePremiumPDF = async ({
   const pageWidth = doc.internal.pageSize.width;
   const pageHeight = doc.internal.pageSize.height;
 
-  // 1. Corporate Header Block (Slate 900)
-  doc.setFillColor(15, 23, 42); // #0F172A
-  doc.rect(0, 0, pageWidth, 40, 'F');
-
+  // 1. Corporate Header Block (Clean White)
+  
   // Load Logo
   try {
     const img = new Image();
@@ -40,41 +38,54 @@ export const generatePremiumPDF = async ({
       img.onload = resolve;
       img.onerror = reject;
     });
-    doc.addImage(img, 'PNG', 14, 8, 24, 24);
+    doc.addImage(img, 'PNG', 14, 10, 24, 24);
   } catch (e) {
     console.warn("Logo not found or failed to load", e);
   }
 
   // Company Name
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(30, 41, 59); // #1e293b Slate 800
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(22);
-  doc.text('PT KUSUMA SAMUDERA', 42, 18);
-  doc.setFontSize(10);
+  doc.setFontSize(15);
+  doc.text('PT. Kusuma Samudera Berkah', 42, 16);
+  
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(100, 116, 139); // #64748b Slate 500
+  doc.text('Pertambangan & Konstruksi', 42, 22);
+
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(148, 163, 184); // Slate 400
-  doc.text('G R O U P   •   E R P   S Y S T E M', 43, 24);
+  doc.text('Jl. Pendidikan Tlogosadang, Kec. Paciran,', 42, 27);
+  doc.text('Kab. Lamongan Jawa Timur 62264', 42, 31);
 
   // Document Title
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(30, 58, 138); // #1e3a8a Blue 900
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
+  doc.setFontSize(16);
   const titleWidth = doc.getTextWidth(title);
   doc.text(title, pageWidth - 14 - titleWidth, 20);
 
   // Document Date / Subtitle
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
-  doc.setTextColor(203, 213, 225); // Slate 300
+  doc.setTextColor(100, 116, 139); // Slate 500
+  let rightY = 26;
   if (dateRange) {
     const dateText = `Periode: ${dateRange}`;
     const dateWidth = doc.getTextWidth(dateText);
-    doc.text(dateText, pageWidth - 14 - dateWidth, 26);
+    doc.text(dateText, pageWidth - 14 - dateWidth, rightY);
+    rightY += 6;
   }
   if (subtitle) {
     const subWidth = doc.getTextWidth(subtitle);
-    doc.text(subtitle, pageWidth - 14 - subWidth, 32);
+    doc.text(subtitle, pageWidth - 14 - subWidth, rightY);
   }
+
+  // Blue Separator Line
+  doc.setDrawColor(30, 64, 175); // #1e40af Blue 800
+  doc.setLineWidth(0.8);
+  doc.line(14, 38, pageWidth - 14, 38);
 
   // 2. Watermark
   doc.setTextColor(241, 245, 249); // Slate 100

@@ -204,6 +204,9 @@ class HaulingService:
                 vendor = db.query(Vendor).filter(Vendor.id == vid).first()
                 if not vendor:
                     continue
+                from .vendor_service import VendorService
+                VendorService._sync_vendor_balance(db, vendor)
+                
                 vendors_data[vid] = {
                     "vendor_id": vid,
                     "vendor_name": vendor.name,

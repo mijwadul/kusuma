@@ -906,7 +906,7 @@ export default function ProjectsPage() {
                         <div>
                           <h5 className="font-bold text-gray-800">{obs.vendor_name}</h5>
                           <p className="text-xs text-gray-500 mt-1">
-                            {obs.total_ritase} Ritase &bull; {obs.total_measurement} {viewProj.measurement_type === 'kubikasi' ? 'm³' : 'Ton'}
+                            {obs.total_ritase} Ritase &bull; {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(obs.total_measurement)} {viewProj.measurement_type === 'kubikasi' ? 'm³' : 'Ton'}
                           </p>
                           <p className="text-xs text-blue-600 mt-1">
                             Deposit: {formatIDR(obs.balance_deposit)}

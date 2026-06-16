@@ -4,7 +4,7 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 
-from ..models import Vendor, VendorTopUp, Expense, User, Equipment, WorkLog
+from ..models import Vendor, VendorTopUp, Expense, User, Equipment, WorkLog, SuratJalan
 from ..core.exceptions import AuthorizationError, NotFoundError, ValidationError
 from ..schemas.vendor import VendorCreate, VendorUpdate, VendorTopUpCreate
 from ..services.work_log_service import WorkLogService
@@ -29,7 +29,11 @@ class VendorService:
                     costs = WorkLogService._calculate_rental_costs(wl, eq)
                     total_rental_cost += costs["rental_cost_total"]
                     
-        vendor.balance_deposit = total_topup - total_rental_cost
+        total_hauling_cost = Decimal("0")
+        sjs = db.query(SuratJalan).filter(SuratJalan.vendor_id == vendor.id).all()
+        total_hauling_cost = sum((Decimal(str(sj.hauling_cost)) for sj in sjs if sj.hauling_cost is not None), Decimal("0"))
+                    
+        vendor.balance_deposit = total_topup - total_rental_cost - total_hauling_cost
         db.commit()
 
     @staticmethod
