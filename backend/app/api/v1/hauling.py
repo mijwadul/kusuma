@@ -51,3 +51,7 @@ def delete_project_price(project_id: int, price_id: int, db: Session = Depends(g
 @router.get("/projects/{project_id}/hauling-obligations", response_model=List[HaulingObligationResponse])
 def get_project_hauling_obligations(project_id: int, db: Session = Depends(get_db)):
     return HaulingService.get_project_hauling_obligations(db, project_id)
+
+@router.get("/obligations", response_model=List[HaulingObligationResponse])
+def get_all_hauling_obligations(db: Session = Depends(get_db)):
+    return HaulingService.get_all_hauling_obligations(db)

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { Truck, Plus, Edit, Trash2, ChevronDown, ChevronRight, Building2, Save, X } from 'lucide-react';
 import { useVendors, useCreateVendor, useUpdateVendor, useDeleteVendor, useCreateVendorTopup, useVendorTopups, useUpdateVendorTopup, useDeleteVendorTopup, Vendor } from '../hooks/useVendors';
-import { useVendorTrucks, useCreateVendorTruck, useUpdateVendorTruck, useDeleteVendorTruck } from '../hooks/useHauling';
+import { useVendorTrucks, useCreateVendorTruck, useUpdateVendorTruck, useDeleteVendorTruck, useAllHaulingObligations } from '../hooks/useHauling';
 
 export default function HaulingPage() {
   const [expandedVendors, setExpandedVendors] = useState<Record<number, boolean>>({});
@@ -58,6 +58,8 @@ export default function HaulingPage() {
   const createTruckMut = useCreateVendorTruck();
   const updateTruckMut = useUpdateVendorTruck();
   const deleteTruckMut = useDeleteVendorTruck();
+
+  const { data: obligations = [] } = useAllHaulingObligations();
 
   const toggleVendorExpand = (vendorId: number) => {
     setExpandedVendors(prev => ({ ...prev, [vendorId]: !prev[vendorId] }));
@@ -520,6 +522,31 @@ export default function HaulingPage() {
                 <p className="text-sm text-gray-800">{showVendorDetail.address || "-"}</p>
               </div>
             </div>
+
+            {obligations.find((o: any) => o.vendor_id === showVendorDetail.id) && (
+              <div className="mb-6 bg-slate-50 border rounded-xl p-4 shadow-sm">
+                <h4 className="text-sm font-bold text-gray-800 border-b pb-2 mb-3">Kewajiban Hauling</h4>
+                {(() => {
+                  const obs = obligations.find((o: any) => o.vendor_id === showVendorDetail.id);
+                  return (
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {obs.total_ritase} Ritase &bull; {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(obs.total_measurement)} Unit (Ton/m³)
+                        </p>
+                        <p className="text-xs text-blue-600 mt-1">
+                          Deposit Tersisa: Rp {Number(obs.balance_deposit).toLocaleString('id-ID')}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs text-gray-500 block mb-1">Total Biaya Hauling</span>
+                        <span className="font-bold text-lg text-rose-600">Rp {Number(obs.total_obligation).toLocaleString('id-ID')}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
 
             <div className="mb-6">
               <h4 className="text-sm font-bold text-gray-800 border-b pb-2 mb-3">Riwayat Deposit</h4>

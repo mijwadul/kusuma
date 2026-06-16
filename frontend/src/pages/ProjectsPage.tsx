@@ -27,8 +27,9 @@ import {
   Customer,
 } from "../hooks/useProjects";
 
+import ProjectFormModal from "../components/projects/ProjectFormModal";
+import CustomerFormModal from "../components/projects/CustomerFormModal";
 import HaulingPricesModal from "../components/HaulingPricesModal";
-import { useProjectHaulingObligations } from "../hooks/useHauling";
 
 const formatIDR = (v?: number | string | null) =>
   Number(v ?? 0).toLocaleString("id-ID", {
@@ -76,8 +77,6 @@ export default function ProjectsPage() {
   // Confirm Delete state
   const [confirmDeleteProj, setConfirmDeleteProj] = useState<Project | null>(null);
   const [confirmDeleteCust, setConfirmDeleteCust] = useState<Customer | null>(null);
-
-  const { data: obligations } = useProjectHaulingObligations(viewProj?.id);
 
   // Form states
   const [projForm, setProjForm] = useState<Partial<Project>>({
@@ -444,248 +443,39 @@ export default function ProjectsPage() {
       </div>
 
       {/* Project Modal */}
-      {showProjModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 whitespace-nowrap border-b flex justify-between items-center sticky top-0 bg-white z-10">
-              <h2 className="text-lg font-semibold">{editDataProj ? "Edit Proyek" : "Tambah Proyek"}</h2>
-              <button onClick={() => setShowProjModal(false)} className="p-1 hover:bg-gray-100 rounded"><X size={18} /></button>
-            </div>
-            <form onSubmit={saveProject} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm mb-1">Nama Proyek *</label>
-                  <input required value={projForm.name || ""} onChange={e => setProjForm(p => ({...p, name: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Klien / Pemesan</label>
-                  <input value={projForm.client_name || ""} onChange={e => setProjForm(p => ({...p, client_name: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Lokasi</label>
-                  <input value={projForm.location || ""} onChange={e => setProjForm(p => ({...p, location: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Budget (Rp)</label>
-                  <input type="number" value={projForm.budget || ""} onChange={e => setProjForm(p => ({...p, budget: parseFloat(e.target.value) || 0}))} className="w-full border rounded-lg px-3 py-2 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Status</label>
-                  <select value={projForm.status || "ongoing"} onChange={e => setProjForm(p => ({...p, status: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm">
-                    <option value="ongoing">Ongoing</option>
-                    <option value="completed">Completed</option>
-                    <option value="paused">Paused</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Tipe Pengukuran</label>
-                  <select value={projForm.measurement_type || "tonase"} onChange={e => setProjForm(p => ({...p, measurement_type: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm">
-                    <option value="tonase">Tonase (Ton)</option>
-                    <option value="kubikasi">Kubikasi (m3)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Tugaskan Field Staff</label>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {projForm.assigned_user_ids?.map((id, i) => {
-                      const user = allUsers.find(u => u.id === id);
-                      return <span key={i} className="bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded flex items-center gap-1">{user?.full_name || user?.email} <X size={12} className="cursor-pointer hover:text-emerald-950" onClick={() => setProjForm(p => ({...p, assigned_user_ids: p.assigned_user_ids?.filter(uid => uid !== id)}))}/></span>
-                    })}
-                  </div>
-                  <select value="" onChange={e => {
-                    const val = parseInt(e.target.value);
-                    if (val && !projForm.assigned_user_ids?.includes(val)) {
-                      setProjForm(p => ({...p, assigned_user_ids: [...(p.assigned_user_ids || []), val]}));
-                    }
-                  }} className="w-full border rounded-lg px-3 py-2 text-sm">
-                    <option value="">-- Tambah Field Staff --</option>
-                    {allUsers.filter(u => (u.role === 'field' || u.role === 'helper') && !projForm.assigned_user_ids?.includes(u.id)).map(u => (
-                      <option key={u.id} value={u.id}>{u.full_name || u.email}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm mb-1">Tugaskan Pekerja</label>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {projForm.assigned_employee_ids?.map((id, i) => {
-                      const emp = allEmployees.find(e => e.id === id);
-                      return <span key={i} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded flex items-center gap-1">{emp?.name} <X size={12} className="cursor-pointer hover:text-blue-950" onClick={() => setProjForm(p => ({...p, assigned_employee_ids: p.assigned_employee_ids?.filter(eid => eid !== id)}))}/></span>
-                    })}
-                  </div>
-                  <select value="" onChange={e => {
-                    const val = parseInt(e.target.value);
-                    if (val && !projForm.assigned_employee_ids?.includes(val)) {
-                      setProjForm(p => ({...p, assigned_employee_ids: [...(p.assigned_employee_ids || []), val]}));
-                    }
-                  }} className="w-full border rounded-lg px-3 py-2 text-sm">
-                    <option value="">-- Tambah Pekerja --</option>
-                    {allEmployees.filter(emp => emp.is_active && !projForm.assigned_employee_ids?.includes(emp.id)).map(emp => (
-                      <option key={emp.id} value={emp.id}>{emp.name} ({emp.position || '-'})</option>
-                    ))}
-                  </select>
-                  <p className="text-[10px] text-gray-500 mt-1">Pekerja yang ditugaskan akan tampil di menu Field Staff</p>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="font-semibold text-sm">Target Material</h3>
-                  <button type="button" onClick={addProjMaterial} className="text-xs flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-1 rounded">
-                    <Plus size={14}/> Tambah Material
-                  </button>
-                </div>
-                {projForm.material_items?.map((m, idx) => (
-                  <div key={idx} className="flex items-end gap-2 mb-2 p-2 bg-gray-50 rounded border">
-                    <div className="flex-1">
-                      <label className="block text-xs mb-1">Material</label>
-                      <select value={m.material_type} onChange={e => updateProjMaterial(idx, "material_type", e.target.value)} className="w-full border rounded text-sm p-1.5">
-                        {meta?.material_types?.map((mt: string) => <option key={mt} value={mt}>{mt}</option>)}
-                      </select>
-                    </div>
-                    <div className="w-24">
-                      <label className="block text-xs mb-1">Target Qty</label>
-                      <input type="number" required value={m.target_quantity} onChange={e => updateProjMaterial(idx, "target_quantity", e.target.value)} className="w-full border rounded text-sm p-1.5" />
-                    </div>
-                    <div className="w-24">
-                      <label className="block text-xs mb-1">Satuan</label>
-                      <select value={m.unit} onChange={e => updateProjMaterial(idx, "unit", e.target.value)} className="w-full border rounded text-sm p-1.5">
-                        {(meta?.material_units?.[m.material_type] || meta?.all_units || []).map((u: string) => <option key={u} value={u}>{u}</option>)}
-                      </select>
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-xs mb-1">Harga/Satuan (opsional)</label>
-                      <input type="number" placeholder="Rp..." value={m.unit_price || ""} onChange={e => updateProjMaterial(idx, "unit_price", e.target.value)} className="w-full border rounded text-sm p-1.5" />
-                    </div>
-                    <button type="button" onClick={() => removeProjMaterial(idx)} className="p-2 text-red-500 hover:bg-red-100 rounded mb-0.5"><Trash2 size={14}/></button>
-                  </div>
-                ))}
-                {(!projForm.material_items || projForm.material_items.length === 0) && <p className="text-xs text-gray-400 italic">Belum ada target material.</p>}
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <button type="button" onClick={() => setShowProjModal(false)} className="px-4 py-2 border rounded-xl text-sm">Batal</button>
-                <button type="submit" disabled={createProjectMutation.isPending || updateProjectMutation.isPending} className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold flex items-center gap-2">
-                  {(createProjectMutation.isPending || updateProjectMutation.isPending) && <Loader2 size={14} className="animate-spin" />}
-                  Simpan Proyek
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <ProjectFormModal
+        show={showProjModal}
+        onClose={() => setShowProjModal(false)}
+        editDataProj={editDataProj}
+        projForm={projForm}
+        setProjForm={setProjForm}
+        meta={meta}
+        allUsers={allUsers}
+        allEmployees={allEmployees}
+        saveProject={saveProject}
+        isPending={createProjectMutation.isPending || updateProjectMutation.isPending}
+        addProjMaterial={addProjMaterial}
+        updateProjMaterial={updateProjMaterial}
+        removeProjMaterial={removeProjMaterial}
+      />
 
       {/* Customer Modal */}
-      {showCustModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 whitespace-nowrap border-b flex justify-between items-center sticky top-0 bg-white z-10">
-              <h2 className="text-lg font-semibold">{editDataCust ? "Edit Pelanggan" : "Tambah Pelanggan"}</h2>
-              <button onClick={() => setShowCustModal(false)} className="p-1 hover:bg-gray-100 rounded"><X size={18} /></button>
-            </div>
-            <form onSubmit={saveCustomer} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm mb-1">Nama Customer *</label>
-                  <input required value={custForm.name || ""} onChange={e => setCustForm(p => ({...p, name: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Contoh: UD Maju" />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Perusahaan</label>
-                  <input value={custForm.company || ""} onChange={e => setCustForm(p => ({...p, company: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Kontak Person</label>
-                  <input value={custForm.contact_person || ""} onChange={e => setCustForm(p => ({...p, contact_person: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">No. HP / Telepon</label>
-                  <input value={custForm.phone || ""} onChange={e => setCustForm(p => ({...p, phone: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm" />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm mb-1">Alamat</label>
-                  <input value={custForm.address || ""} onChange={e => setCustForm(p => ({...p, address: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm" />
-                </div>
-              </div>
-
-              <div className="pt-4 border-t">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="font-semibold text-sm">Preferensi Material (Kontinu)</h3>
-                  <button type="button" onClick={addCustMaterial} className="text-xs flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded">
-                    <Plus size={14}/> Tambah Preferensi
-                  </button>
-                </div>
-                {custForm.material_preferences?.map((m, idx) => (
-                  <div key={idx} className="flex items-end gap-2 mb-2 p-2 bg-gray-50 rounded border">
-                    <div className="flex-1">
-                      <label className="block text-xs mb-1">Material</label>
-                      <select value={m.material_type} onChange={e => updateCustMaterial(idx, "material_type", e.target.value)} className="w-full border rounded text-sm p-1.5">
-                        {meta?.material_types?.map((mt: string) => <option key={mt} value={mt}>{mt}</option>)}
-                      </select>
-                    </div>
-                    <div className="w-24">
-                      <label className="block text-xs mb-1">Satuan</label>
-                      <select value={m.unit} onChange={e => updateCustMaterial(idx, "unit", e.target.value)} className="w-full border rounded text-sm p-1.5">
-                        {(meta?.material_units?.[m.material_type] || meta?.all_units || []).map((u: string) => <option key={u} value={u}>{u}</option>)}
-                      </select>
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-xs mb-1">Jenis Kendaraan *</label>
-                      <select value={m.vehicle_type || "Tronton"} onChange={e => updateCustMaterial(idx, "vehicle_type", e.target.value)} className="w-full border rounded text-sm p-1.5" required>
-                        <option value="Tronton">Tronton</option>
-                        <option value="Colt Diesel">Colt Diesel</option>
-                      </select>
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-xs mb-1">Harga/Satuan (opsional)</label>
-                      <input type="number" placeholder="Rp..." value={m.unit_price || ""} onChange={e => updateCustMaterial(idx, "unit_price", e.target.value)} className="w-full border rounded text-sm p-1.5" />
-                    </div>
-                    <button type="button" onClick={() => removeCustMaterial(idx)} className="p-2 text-red-500 hover:bg-red-100 rounded mb-0.5"><Trash2 size={14}/></button>
-                  </div>
-                ))}
-                {(!custForm.material_preferences || custForm.material_preferences.length === 0) && <p className="text-xs text-gray-400 italic">Tambahkan preferensi harga material jika ada.</p>}
-              </div>
-
-              <div className="pt-4 border-t">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="font-semibold text-sm">Armada Kendaraan (Opsional)</h3>
-                  <button type="button" onClick={addCustTruck} className="text-xs flex items-center gap-1 bg-orange-50 text-orange-700 px-2 py-1 rounded">
-                    <Plus size={14}/> Tambah Kendaraan
-                  </button>
-                </div>
-                {custForm.trucks?.map((t, idx) => (
-                  <div key={idx} className="flex items-end gap-2 mb-2 p-2 bg-gray-50 rounded border flex-wrap">
-                    <div className="flex-1 min-w-[120px]">
-                      <label className="block text-xs mb-1">Plat Nomor *</label>
-                      <input type="text" required placeholder="Contoh: B 1234 CD" value={t.license_plate} onChange={e => updateCustTruck(idx, "license_plate", e.target.value)} className="w-full border rounded text-sm p-1.5 uppercase" />
-                    </div>
-                    <div className="flex-1 min-w-[120px]">
-                      <label className="block text-xs mb-1">Nama Supir</label>
-                      <input type="text" placeholder="Contoh: Budi" value={t.driver_name || ""} onChange={e => updateCustTruck(idx, "driver_name", e.target.value)} className="w-full border rounded text-sm p-1.5" />
-                    </div>
-                    <div className="flex-1 min-w-[120px]">
-                      <label className="block text-xs mb-1">Jenis Kendaraan *</label>
-                      <select value={t.vehicle_type} onChange={e => updateCustTruck(idx, "vehicle_type", e.target.value)} className="w-full border rounded text-sm p-1.5" required>
-                        <option value="Colt Diesel">Colt Diesel</option>
-                        <option value="Tronton">Tronton</option>
-                      </select>
-                    </div>
-                    <button type="button" onClick={() => removeCustTruck(idx)} className="p-2 text-red-500 hover:bg-red-100 rounded mb-0.5"><Trash2 size={14}/></button>
-                  </div>
-                ))}
-                {(!custForm.trucks || custForm.trucks.length === 0) && <p className="text-xs text-gray-400 italic">Tambahkan data armada jika penjualan dikaitkan dengan nopol.</p>}
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <button type="button" onClick={() => setShowCustModal(false)} className="px-4 py-2 border rounded-xl text-sm">Batal</button>
-                <button type="submit" disabled={createCustomerMutation.isPending || updateCustomerMutation.isPending} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold flex items-center gap-2">
-                  {(createCustomerMutation.isPending || updateCustomerMutation.isPending) && <Loader2 size={14} className="animate-spin" />}
-                  Simpan Pelanggan
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CustomerFormModal
+        show={showCustModal}
+        onClose={() => setShowCustModal(false)}
+        editDataCust={editDataCust}
+        custForm={custForm}
+        setCustForm={setCustForm}
+        meta={meta}
+        saveCustomer={saveCustomer}
+        isPending={createCustomerMutation.isPending || updateCustomerMutation.isPending}
+        addCustMaterial={addCustMaterial}
+        updateCustMaterial={updateCustMaterial}
+        removeCustMaterial={removeCustMaterial}
+        addCustTruck={addCustTruck}
+        updateCustTruck={updateCustTruck}
+        removeCustTruck={removeCustTruck}
+      />
 
       {/* Customer Detail Modal */}
       {viewCust && !showCustModal && (
@@ -895,32 +685,6 @@ export default function ProjectsPage() {
                   )}
                 </div>
               </div>
-
-              {/* Hauling Obligations */}
-              {obligations && obligations.length > 0 && (
-                <div className="mb-6">
-                  <h4 className="text-sm font-bold text-gray-800 border-b pb-2 mb-3">Kewajiban Hauling (Vendor)</h4>
-                  <div className="flex flex-col gap-3">
-                    {obligations.map((obs: any) => (
-                      <div key={obs.vendor_id} className="bg-white border rounded-xl p-4 shadow-sm flex justify-between items-center">
-                        <div>
-                          <h5 className="font-bold text-gray-800">{obs.vendor_name}</h5>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {obs.total_ritase} Ritase &bull; {new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(obs.total_measurement)} {viewProj.measurement_type === 'kubikasi' ? 'm³' : 'Ton'}
-                          </p>
-                          <p className="text-xs text-blue-600 mt-1">
-                            Deposit: {formatIDR(obs.balance_deposit)}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-xs text-gray-500 block mb-1">Total Biaya Hauling</span>
-                          <span className="font-bold text-lg text-rose-600">{formatIDR(obs.total_obligation)}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
 
             {isGM && (

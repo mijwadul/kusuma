@@ -117,3 +117,13 @@ export const useDeleteProjectHaulingPrice = () => {
     },
   });
 };
+
+export const useAllHaulingObligations = () => {
+  return useQuery({
+    queryKey: ['all-hauling-obligations'],
+    queryFn: async () => {
+      const response = await apiClient.get('/hauling/obligations');
+      return response.data;
+    },
+  });
+};

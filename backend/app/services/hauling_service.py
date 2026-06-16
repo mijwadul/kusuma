@@ -226,3 +226,38 @@ class HaulingService:
                 vendors_data[vid]["total_obligation"] += float(sj.hauling_cost)
                 
         return list(vendors_data.values())
+
+    @staticmethod
+    def get_all_hauling_obligations(db: Session) -> List[dict]:
+        # Calculate totals across all projects
+        sjs = db.query(SuratJalan).filter(SuratJalan.vendor_id != None).all()
+        
+        vendors_data = {}
+        for sj in sjs:
+            vid = sj.vendor_id
+            if vid not in vendors_data:
+                vendor = db.query(Vendor).filter(Vendor.id == vid).first()
+                if not vendor:
+                    continue
+                from .vendor_service import VendorService
+                VendorService._sync_vendor_balance(db, vendor)
+                
+                vendors_data[vid] = {
+                    "vendor_id": vid,
+                    "vendor_name": vendor.name,
+                    "total_ritase": 0,
+                    "total_measurement": 0.0,
+                    "total_obligation": 0.0,
+                    "balance_deposit": float(vendor.balance_deposit or 0)
+                }
+            
+            vendors_data[vid]["total_ritase"] += 1
+            if sj.netto is not None:
+                vendors_data[vid]["total_measurement"] += float(sj.netto)
+            elif sj.volume is not None:
+                vendors_data[vid]["total_measurement"] += float(sj.volume)
+                
+            if sj.hauling_cost is not None:
+                vendors_data[vid]["total_obligation"] += float(sj.hauling_cost)
+                
+        return list(vendors_data.values())

@@ -31,7 +31,7 @@ const PayrollPage = lazy(() => import('./pages/PayrollPage'));
 const ExpensePage = lazy(() => import('./pages/ExpensePage'));
 const CashFlowPage = lazy(() => import('./pages/CashFlowPage'));
 const ReportsPage = lazy(() => import('./pages/ReportsPage'));
-const SuratJalanPage = lazy(() => import('./pages/SuratJalanPage'));
+
 const ProjectSuratJalanPage = lazy(() => import('./pages/ProjectSuratJalanPage'));
 const ProjectEmployeesPage = lazy(() => import('./pages/ProjectEmployeesPage'));
 const HaulingPage = lazy(() => import('./pages/HaulingPage'));
@@ -90,7 +90,7 @@ const App: React.FC = () => {
               <Route path="/payroll" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><PayrollPage /></RoleProtectedRoute>} />
               <Route path="/expenses" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><ExpensePage /></RoleProtectedRoute>} />
               <Route path="/reports" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><ReportsPage /></RoleProtectedRoute>} />
-              <Route path="/surat-jalan" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><SuratJalanPage /></RoleProtectedRoute>} />
+
               <Route path="/hauling" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><HaulingPage /></RoleProtectedRoute>} />
               <Route path="/employees" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]}><EmployeesPage /></RoleProtectedRoute>} />
               <Route path="/users" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]}><UsersPage /></RoleProtectedRoute>} />
