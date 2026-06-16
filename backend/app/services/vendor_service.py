@@ -202,11 +202,15 @@ class VendorService:
         if not vendor:
             raise NotFoundError("Vendor not found")
         
-        equipment = db.query(Equipment).filter(Equipment.id == data.equipment_id).first()
-        if not equipment:
-            raise NotFoundError("Alat berat tidak ditemukan")
-        if equipment.vendor_id != data.vendor_id:
-            raise ValidationError("Alat berat ini bukan milik vendor yang dipilih")
+        equipment = None
+        if data.equipment_id:
+            equipment = db.query(Equipment).filter(Equipment.id == data.equipment_id).first()
+            if not equipment:
+                raise NotFoundError("Alat berat tidak ditemukan")
+            if equipment.vendor_id != data.vendor_id:
+                raise ValidationError("Alat berat ini bukan milik vendor yang dipilih")
+        elif vendor.vendor_type == "equipment":
+            raise ValidationError("TopUp untuk vendor alat berat harus dikaitkan ke alat berat tertentu")
             
         is_gm = current_user.role in ["gm", "admin"] or getattr(current_user, 'is_admin', False) or getattr(current_user, 'is_superuser', False)
         
@@ -278,6 +282,8 @@ class VendorService:
             topup.equipment_id = data.equipment_id
         else:
             equipment = old_equipment
+            if vendor.vendor_type == "equipment" and not equipment:
+                raise ValidationError("TopUp untuk vendor alat berat harus dikaitkan ke alat berat tertentu")
 
         topup.amount = data.amount
         topup.notes = data.notes

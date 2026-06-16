@@ -1,5 +1,6 @@
 import math
 from typing import List
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 from ..models.surat_jalan import SuratJalan
 from ..models.project import Project
@@ -76,9 +77,14 @@ class SuratJalanService:
         if data.vendor_id:
             vendor = db.query(Vendor).filter(Vendor.id == data.vendor_id).first()
             if vendor:
+                today_date = date.today()
                 price_record = db.query(ProjectHaulingPrice).filter(
                     ProjectHaulingPrice.project_id == project.id,
-                    ProjectHaulingPrice.vendor_id == vendor.id
+                    or_(ProjectHaulingPrice.vendor_id == vendor.id, ProjectHaulingPrice.vendor_id.is_(None)),
+                    func.date(ProjectHaulingPrice.effective_date) <= today_date
+                ).order_by(
+                    ProjectHaulingPrice.vendor_id.isnot(None).desc(),
+                    ProjectHaulingPrice.effective_date.desc()
                 ).first()
                 if price_record:
                     hauling_price = price_record.price_per_unit
@@ -241,9 +247,14 @@ class SuratJalanService:
         hauling_cost = None
         
         if sj.vendor_id:
+            sj_date = sj.created_at.date()
             price_record = db.query(ProjectHaulingPrice).filter(
                 ProjectHaulingPrice.project_id == project.id,
-                ProjectHaulingPrice.vendor_id == sj.vendor_id
+                or_(ProjectHaulingPrice.vendor_id == sj.vendor_id, ProjectHaulingPrice.vendor_id.is_(None)),
+                func.date(ProjectHaulingPrice.effective_date) <= sj_date
+            ).order_by(
+                ProjectHaulingPrice.vendor_id.isnot(None).desc(),
+                ProjectHaulingPrice.effective_date.desc()
             ).first()
             if price_record:
                 hauling_price = price_record.price_per_unit

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { Truck, Plus, Edit, Trash2, ChevronDown, ChevronRight, Building2, Save, X } from 'lucide-react';
-import { useVendors, useCreateVendor, useUpdateVendor, useDeleteVendor, Vendor } from '../hooks/useVendors';
+import { useVendors, useCreateVendor, useUpdateVendor, useDeleteVendor, useCreateVendorTopup, useVendorTopups, useUpdateVendorTopup, useDeleteVendorTopup, Vendor } from '../hooks/useVendors';
 import { useVendorTrucks, useCreateVendorTruck, useUpdateVendorTruck, useDeleteVendorTruck } from '../hooks/useHauling';
 
 export default function HaulingPage() {
@@ -11,6 +11,17 @@ export default function HaulingPage() {
   const [showVendorForm, setShowVendorForm] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [vendorData, setVendorData] = useState({ name: "", contact_person: "", phone: "", address: "", vendor_type: "hauling" });
+  const [showVendorDetail, setShowVendorDetail] = useState<Vendor | null>(null);
+
+  // Top Up State
+  const [showTopupForm, setShowTopupForm] = useState<number | null>(null);
+  const [editingTopup, setEditingTopup] = useState<number | null>(null);
+  const [topupData, setTopupData] = useState({ amount: '', notes: '', topup_date: new Date().toISOString().split('T')[0] });
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/\D/g, '');
+    setTopupData({ ...topupData, amount: rawValue });
+  };
 
   // Truck State
   const [showTruckForm, setShowTruckForm] = useState<{vendorId: number} | null>(null);
@@ -38,6 +49,11 @@ export default function HaulingPage() {
   const createVendorMut = useCreateVendor();
   const updateVendorMut = useUpdateVendor();
   const deleteVendorMut = useDeleteVendor();
+  const createTopupMut = useCreateVendorTopup();
+  const updateTopupMut = useUpdateVendorTopup();
+  const deleteTopupMut = useDeleteVendorTopup();
+  
+  const { data: allTopups = [] } = useVendorTopups();
   
   const createTruckMut = useCreateVendorTruck();
   const updateTruckMut = useUpdateVendorTruck();
@@ -132,6 +148,21 @@ export default function HaulingPage() {
     });
   };
 
+  const handleDeleteTopup = (id: number) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Hapus Deposit",
+      message: "Yakin ingin menghapus riwayat deposit ini?",
+      onConfirm: () => {
+        deleteTopupMut.mutate(id, {
+          onSuccess: () => toast.success("Deposit dihapus"),
+          onError: () => toast.error("Gagal menghapus deposit"),
+          onSettled: () => setConfirmModal({ isOpen: false, title: "", message: "", onConfirm: () => {} })
+        });
+      }
+    });
+  };
+
   // Komponen Helper untuk merender Truk per Vendor
   const VendorTrucksList = ({ vendorId }: { vendorId: number }) => {
     const { data: trucks = [], isLoading } = useVendorTrucks(vendorId);
@@ -208,6 +239,44 @@ export default function HaulingPage() {
       </td>
     );
   };
+  const handleTopupSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showTopupForm) return;
+
+    if (editingTopup) {
+      updateTopupMut.mutate({
+        id: editingTopup,
+        data: {
+          vendor_id: showTopupForm,
+          amount: parseFloat(topupData.amount || '0'),
+          notes: topupData.notes,
+          topup_date: topupData.topup_date
+        }
+      }, {
+        onSuccess: () => {
+          toast.success("Deposit berhasil diperbarui!");
+          setShowTopupForm(null);
+          setEditingTopup(null);
+          setTopupData({ amount: '', notes: '', topup_date: new Date().toISOString().split('T')[0] });
+        },
+        onError: () => toast.error("Gagal memperbarui deposit")
+      });
+    } else {
+      createTopupMut.mutate({
+        vendor_id: showTopupForm,
+        amount: parseFloat(topupData.amount || '0'),
+        notes: topupData.notes,
+        topup_date: topupData.topup_date
+      }, {
+        onSuccess: () => {
+          toast.success("Deposit berhasil ditambahkan!");
+          setShowTopupForm(null);
+          setTopupData({ amount: '', notes: '', topup_date: new Date().toISOString().split('T')[0] });
+        },
+        onError: () => toast.error("Gagal menambahkan deposit")
+      });
+    }
+  };
 
   return (
     <div className="p-6">
@@ -238,43 +307,32 @@ export default function HaulingPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kontak Person</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Telepon</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alamat</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {vendors.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">Belum ada vendor hauling terdaftar.</td>
+                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500">Belum ada vendor hauling terdaftar.</td>
                 </tr>
               ) : (
                 vendors.map(v => {
                   const isExpanded = expandedVendors[v.id];
                   return (
                     <React.Fragment key={v.id}>
-                      <tr className={`hover:bg-blue-50 cursor-pointer ${isExpanded ? 'bg-blue-50/50' : ''}`} onClick={() => toggleVendorExpand(v.id)}>
+                      <tr className={`hover:bg-blue-50 cursor-pointer ${isExpanded ? 'bg-blue-50/50' : ''}`} onClick={() => setShowVendorDetail(v)}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 flex items-center gap-2">
-                          {isExpanded ? <ChevronDown size={16} className="text-gray-400" /> : <ChevronRight size={16} className="text-gray-400" />}
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); toggleVendorExpand(v.id); }} 
+                            className="p-1 hover:bg-gray-200 rounded-full"
+                          >
+                            {isExpanded ? <ChevronDown size={16} className="text-gray-400" /> : <ChevronRight size={16} className="text-gray-400" />}
+                          </button>
                           <Building2 size={16} className="text-blue-500" />
                           {v.name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{v.contact_person || "-"}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{v.phone || "-"}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs">{v.address || "-"}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2" onClick={(e) => e.stopPropagation()}>
-                          <button 
-                            onClick={() => { 
-                              setEditingVendor(v); 
-                              setVendorData({name: v.name, contact_person: v.contact_person||"", phone: v.phone||"", address: v.address||"", vendor_type: "hauling"}); 
-                              setShowVendorForm(true); 
-                            }} 
-                            className="text-indigo-600 hover:text-indigo-900 px-2"
-                          >
-                            <Edit size={16}/>
-                          </button>
-                          <button onClick={() => handleDeleteVendor(v.id)} className="text-red-600 hover:text-red-900 px-2">
-                            <Trash2 size={16}/>
-                          </button>
-                        </td>
                       </tr>
                       {/* Expanded: Daftar Truk */}
                       {isExpanded && (
@@ -393,6 +451,149 @@ export default function HaulingPage() {
                 className="px-5 py-2.5 bg-red-600 text-white hover:bg-red-700 rounded-lg font-bold transition-colors"
               >
                 Ya, Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL TOPUP DEPOSIT */}
+      {showTopupForm && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">{editingTopup ? "Edit Deposit Vendor" : "Tambah Deposit Vendor"}</h3>
+              <button onClick={() => { setShowTopupForm(null); setEditingTopup(null); }} className="text-gray-500 hover:text-gray-800"><X size={20}/></button>
+            </div>
+            <form onSubmit={handleTopupSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Jumlah Deposit (Rp) <span className="text-red-500">*</span></label>
+                <input required type="text" value={topupData.amount ? Number(topupData.amount).toLocaleString('id-ID') : ''} onChange={handleAmountChange} className="w-full border rounded p-2 focus:ring-2 focus:ring-emerald-300 outline-none" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Deposit</label>
+                <input required type="date" value={topupData.topup_date} onChange={e=>setTopupData({...topupData, topup_date: e.target.value})} className="w-full border rounded p-2 focus:ring-2 focus:ring-emerald-300 outline-none" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
+                <textarea value={topupData.notes} onChange={e=>setTopupData({...topupData, notes: e.target.value})} className="w-full border rounded p-2 focus:ring-2 focus:ring-emerald-300 outline-none" rows={3} placeholder="Contoh: DP Hauling Proyek X" />
+              </div>
+              <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
+                <button type="button" onClick={() => { setShowTopupForm(null); setEditingTopup(null); }} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">Batal</button>
+                <button type="submit" disabled={createTopupMut.isPending || updateTopupMut.isPending} className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium flex items-center gap-2">
+                  <Save size={16} /> Simpan Deposit
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL VENDOR DETAIL */}
+      {showVendorDetail && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-2xl w-full max-w-md shadow-xl">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold flex items-center gap-2">
+                <Building2 className="text-blue-600" /> Detail Vendor
+              </h3>
+              <button onClick={() => setShowVendorDetail(null)} className="text-gray-500 hover:text-gray-800"><X size={20}/></button>
+            </div>
+            
+            <div className="space-y-4 mb-6">
+              <div>
+                <span className="block text-xs text-gray-500 mb-1">Nama Vendor</span>
+                <p className="font-semibold text-gray-900">{showVendorDetail.name}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="block text-xs text-gray-500 mb-1">Kontak Person</span>
+                  <p className="font-medium text-gray-800">{showVendorDetail.contact_person || "-"}</p>
+                </div>
+                <div>
+                  <span className="block text-xs text-gray-500 mb-1">Telepon</span>
+                  <p className="font-medium text-gray-800">{showVendorDetail.phone || "-"}</p>
+                </div>
+              </div>
+              <div>
+                <span className="block text-xs text-gray-500 mb-1">Alamat</span>
+                <p className="text-sm text-gray-800">{showVendorDetail.address || "-"}</p>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <h4 className="text-sm font-bold text-gray-800 border-b pb-2 mb-3">Riwayat Deposit</h4>
+              <div className="max-h-48 overflow-y-auto pr-1 flex flex-col gap-2">
+                {allTopups.filter(t => t.vendor_id === showVendorDetail.id).length === 0 ? (
+                  <p className="text-gray-400 text-sm italic">Belum ada deposit.</p>
+                ) : (
+                  allTopups.filter(t => t.vendor_id === showVendorDetail.id).map(t => (
+                    <div key={t.id} className="bg-gray-50 border rounded-lg p-3 flex justify-between items-center">
+                      <div>
+                        <p className="text-xs text-gray-500">{new Date(t.topup_date).toLocaleDateString('id-ID')}</p>
+                        <p className="font-bold text-emerald-600 text-sm">Rp {Number(t.amount).toLocaleString('id-ID')}</p>
+                        {t.notes && <p className="text-xs text-gray-600 mt-1">{t.notes}</p>}
+                      </div>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => {
+                            setEditingTopup(t.id);
+                            setTopupData({ amount: t.amount.toString(), notes: t.notes || '', topup_date: new Date(t.topup_date).toISOString().split('T')[0] });
+                            setShowTopupForm(showVendorDetail.id);
+                            setShowVendorDetail(null);
+                          }}
+                          className="text-indigo-600 hover:text-indigo-800 bg-indigo-50 p-1.5 rounded"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteTopup(t.id)}
+                          className="text-red-600 hover:text-red-800 bg-red-50 p-1.5 rounded"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4 border-t border-gray-100">
+              <button
+                onClick={() => {
+                  setShowTopupForm(showVendorDetail.id);
+                  setShowVendorDetail(null);
+                }}
+                className="flex-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 transition-colors"
+              >
+                + Deposit
+              </button>
+              <button
+                onClick={() => {
+                  setEditingVendor(showVendorDetail);
+                  setVendorData({
+                    name: showVendorDetail.name,
+                    contact_person: showVendorDetail.contact_person || "",
+                    phone: showVendorDetail.phone || "",
+                    address: showVendorDetail.address || "",
+                    vendor_type: "hauling"
+                  });
+                  setShowVendorForm(true);
+                  setShowVendorDetail(null);
+                }}
+                className="flex-1 bg-blue-100 text-blue-700 hover:bg-blue-200 py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 transition-colors"
+              >
+                <Edit size={16} /> Edit
+              </button>
+              <button
+                onClick={() => {
+                  handleDeleteVendor(showVendorDetail.id);
+                  setShowVendorDetail(null);
+                }}
+                className="flex-none bg-red-100 text-red-700 hover:bg-red-200 py-2 px-4 rounded-xl transition-colors"
+              >
+                <Trash2 size={16} />
               </button>
             </div>
           </div>

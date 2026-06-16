@@ -78,3 +78,42 @@ export const useSetProjectHaulingPrice = () => {
     },
   });
 };
+
+export const useProjectHaulingObligations = (projectId?: number | string) => {
+  return useQuery({
+    queryKey: ['project-hauling-obligations', projectId],
+    queryFn: async () => {
+      if (!projectId) return [];
+      const response = await apiClient.get(`/hauling/projects/${projectId}/hauling-obligations`);
+      return response.data;
+    },
+    enabled: !!projectId,
+  });
+};
+
+export const useUpdateProjectHaulingPrice = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ projectId, priceId, data }: { projectId: number, priceId: number, data: any }) => {
+      const response = await apiClient.put(`/hauling/projects/${projectId}/hauling-prices/${priceId}`, data);
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['project-hauling-prices', variables.projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-hauling-obligations', variables.projectId] });
+    },
+  });
+};
+
+export const useDeleteProjectHaulingPrice = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ projectId, priceId }: { projectId: number, priceId: number }) => {
+      await apiClient.delete(`/hauling/projects/${projectId}/hauling-prices/${priceId}`);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['project-hauling-prices', variables.projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-hauling-obligations', variables.projectId] });
+    },
+  });
+};

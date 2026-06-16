@@ -5,7 +5,7 @@ from ...core.database import get_db
 from ...core.auth import get_current_user, require_role, require_admin
 from ...models.user import User
 from ...schemas.vendor_truck import VendorTruckCreate, VendorTruckUpdate, VendorTruckResponse
-from ...schemas.project_hauling_price import ProjectHaulingPriceCreate, ProjectHaulingPriceUpdate, ProjectHaulingPriceResponse
+from ...schemas.project_hauling_price import ProjectHaulingPriceCreate, ProjectHaulingPriceUpdate, ProjectHaulingPriceResponse, HaulingObligationResponse
 from ...services.hauling_service import HaulingService
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
@@ -39,3 +39,15 @@ def get_project_prices(project_id: int, db: Session = Depends(get_db)):
 def set_project_price(project_id: int, data: ProjectHaulingPriceCreate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     data.project_id = project_id
     return HaulingService.set_project_price(db, data)
+
+@router.put("/projects/{project_id}/hauling-prices/{price_id}", response_model=ProjectHaulingPriceResponse)
+def update_project_price(project_id: int, price_id: int, data: ProjectHaulingPriceUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    return HaulingService.update_project_price(db, price_id, data)
+
+@router.delete("/projects/{project_id}/hauling-prices/{price_id}")
+def delete_project_price(project_id: int, price_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    return HaulingService.delete_project_price(db, price_id)
+
+@router.get("/projects/{project_id}/hauling-obligations", response_model=List[HaulingObligationResponse])
+def get_project_hauling_obligations(project_id: int, db: Session = Depends(get_db)):
+    return HaulingService.get_project_hauling_obligations(db, project_id)

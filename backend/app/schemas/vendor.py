@@ -34,7 +34,7 @@ class VendorResponse(VendorBase):
 # -- Top Up Schema --
 class VendorTopUpCreate(BaseModel):
     vendor_id: int
-    equipment_id: int  # Wajib: deposit harus terkait ke alat berat tertentu
+    equipment_id: Optional[int] = None  # Wajib untuk equipment, opsional untuk hauling
     amount: Decimal
     topup_date: Optional[datetime] = None
     notes: Optional[str] = None

@@ -28,6 +28,7 @@ import {
 } from "../hooks/useProjects";
 
 import HaulingPricesModal from "../components/HaulingPricesModal";
+import { useProjectHaulingObligations } from "../hooks/useHauling";
 
 const formatIDR = (v?: number | string | null) =>
   Number(v ?? 0).toLocaleString("id-ID", {
@@ -75,6 +76,8 @@ export default function ProjectsPage() {
   // Confirm Delete state
   const [confirmDeleteProj, setConfirmDeleteProj] = useState<Project | null>(null);
   const [confirmDeleteCust, setConfirmDeleteCust] = useState<Customer | null>(null);
+
+  const { data: obligations } = useProjectHaulingObligations(viewProj?.id);
 
   // Form states
   const [projForm, setProjForm] = useState<Partial<Project>>({
@@ -892,6 +895,32 @@ export default function ProjectsPage() {
                   )}
                 </div>
               </div>
+
+              {/* Hauling Obligations */}
+              {obligations && obligations.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-sm font-bold text-gray-800 border-b pb-2 mb-3">Kewajiban Hauling (Vendor)</h4>
+                  <div className="flex flex-col gap-3">
+                    {obligations.map((obs: any) => (
+                      <div key={obs.vendor_id} className="bg-white border rounded-xl p-4 shadow-sm flex justify-between items-center">
+                        <div>
+                          <h5 className="font-bold text-gray-800">{obs.vendor_name}</h5>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {obs.total_ritase} Ritase &bull; {obs.total_measurement} {viewProj.measurement_type === 'kubikasi' ? 'm³' : 'Ton'}
+                          </p>
+                          <p className="text-xs text-blue-600 mt-1">
+                            Deposit: {formatIDR(obs.balance_deposit)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs text-gray-500 block mb-1">Total Biaya Hauling</span>
+                          <span className="font-bold text-lg text-rose-600">{formatIDR(obs.total_obligation)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {isGM && (

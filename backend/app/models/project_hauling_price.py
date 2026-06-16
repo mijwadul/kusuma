@@ -11,10 +11,13 @@ class ProjectHaulingPrice(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
-    vendor_id = Column(Integer, ForeignKey("vendors.id"), nullable=False)
+    vendor_id = Column(Integer, ForeignKey("vendors.id"), nullable=True)
     
     # Harga dihitung berdasarkan measurement_type di tabel Project (Tonase atau Kubikasi)
     price_per_unit = Column(DECIMAL(15, 2), nullable=False)
+    
+    # Tanggal mulai berlakunya harga ini
+    effective_date = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
