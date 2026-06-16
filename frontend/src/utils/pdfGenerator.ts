@@ -87,14 +87,6 @@ export const generatePremiumPDF = async ({
   doc.setLineWidth(0.8);
   doc.line(14, 38, pageWidth - 14, 38);
 
-  // 2. Watermark
-  doc.setTextColor(241, 245, 249); // Slate 100
-  doc.setFontSize(50);
-  doc.setFont('helvetica', 'bold');
-  const watermarkParams = orientation === 'landscape' ? 
-    { x: pageWidth / 2, y: pageHeight / 2, angle: 30 } : 
-    { x: pageWidth / 2, y: pageHeight / 2, angle: 45 };
-  doc.text("KUSUMA SAMUDERA", watermarkParams.x, watermarkParams.y, { align: 'center', angle: watermarkParams.angle });
 
   // 3. Main Data Table
   autoTable(doc, {
@@ -137,7 +129,7 @@ export const generatePremiumPDF = async ({
       doc.text(`Dicetak pada: ${printDate} oleh System Kusuma`, 14, footerY);
       
       // Right side: Page number
-      const pageStr = `Halaman ${doc.internal.getNumberOfPages()}`;
+      const pageStr = `Halaman ${(doc.internal as any).getNumberOfPages()}`;
       const pageNumWidth = doc.getTextWidth(pageStr);
       doc.text(pageStr, pageWidth - 14 - pageNumWidth, footerY);
     }

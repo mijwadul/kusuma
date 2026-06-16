@@ -698,28 +698,71 @@ export default function ProjectSuratJalanPage() {
 
       const tableHead = [['No', 'Waktu', 'Nopol', 'Supir', 'Vendor', 'Tipe', mt === 'tonase' ? 'Bruto / Tarra (Kg)' : 'P x L x T', mt === 'tonase' ? 'Netto' : 'Volume']];
       
-      const tableBody = filtered.map((sj: any, idx: number) => {
-        const tType = (sj.truck_type || '').toLowerCase();
-        let isTronton: boolean;
-        if (tType) {
-          isTronton = tType === 'tronton';
-        } else if (mt === 'tonase') {
-          isTronton = (sj.netto || 0) > 20;
-        } else {
-          isTronton = (sj.volume || 0) > 20;
-        }
-        return [
-          idx + 1,
-          new Date(sj.created_at).toLocaleString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-          sj.nopol || '-',
-          sj.nama_supir || '-',
-          sj.vendor_name || '-',
-          isTronton ? 'Tronton' : 'Colt Diesel',
-          mt === 'tonase'
-            ? `${sj.bruto ? Math.round(sj.bruto).toLocaleString('id-ID') : '-'} / ${sj.tarra ? Math.round(sj.tarra).toLocaleString('id-ID') : '-'}`
-            : `${sj.panjang || '-'}x${sj.lebar || '-'}x${sj.tinggi || '-'}`,
-          mt === 'tonase' ? `${sj.netto?.toFixed(2) || '-'} T` : `${sj.volume?.toFixed(2) || '-'} m³`
-        ];
+      const grouped: Record<string, Record<string, any[]>> = {};
+      filtered.forEach((sj: any) => {
+        const d = new Date(sj.created_at);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const sjDateStr = `${y}-${m}-${day}`;
+        
+        const nopol = (sj.nopol || 'Tanpa Nopol').toUpperCase();
+        if (!grouped[sjDateStr]) grouped[sjDateStr] = {};
+        if (!grouped[sjDateStr][nopol]) grouped[sjDateStr][nopol] = [];
+        grouped[sjDateStr][nopol].push(sj);
+      });
+
+      const tableBody: any[] = [];
+      
+      Object.keys(grouped).sort().forEach(dateStr => {
+        const [y, m, d] = dateStr.split('-');
+        const displayDate = `${d}/${m}/${y}`;
+        
+        Object.keys(grouped[dateStr]).sort().forEach(nopol => {
+          const sjs = grouped[dateStr][nopol];
+          tableBody.push([
+            { 
+              content: `Tanggal: ${displayDate} | Nopol: ${nopol} (${sjs.length} Ritase)`, 
+              colSpan: 8, 
+              styles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold', halign: 'left' } 
+            }
+          ]);
+          
+          let subTotal = 0;
+          sjs.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+          sjs.forEach((sj: any, idx: number) => {
+            const tType = (sj.truck_type || '').toLowerCase();
+            let isTronton: boolean;
+            if (tType) {
+              isTronton = tType === 'tronton';
+            } else if (mt === 'tonase') {
+              isTronton = (sj.netto || 0) > 20;
+            } else {
+              isTronton = (sj.volume || 0) > 20;
+            }
+            const val = mt === 'tonase' ? (sj.netto || 0) : (sj.volume || 0);
+            subTotal += val;
+
+            tableBody.push([
+              idx + 1,
+              new Date(sj.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+              sj.nopol || '-',
+              sj.nama_supir || '-',
+              sj.vendor_name || '-',
+              isTronton ? 'Tronton' : 'Colt Diesel',
+              mt === 'tonase'
+                ? `${sj.bruto ? Math.round(sj.bruto).toLocaleString('id-ID') : '-'} / ${sj.tarra ? Math.round(sj.tarra).toLocaleString('id-ID') : '-'}`
+                : `${sj.panjang || '-'}x${sj.lebar || '-'}x${sj.tinggi || '-'}`,
+              mt === 'tonase' ? `${val.toFixed(2)} T` : `${val.toFixed(2)} m³`
+            ]);
+          });
+
+          tableBody.push([
+            { content: 'Subtotal:', colSpan: 7, styles: { fontStyle: 'bold', halign: 'right' } },
+            { content: mt === 'tonase' ? `${subTotal.toFixed(2)} T` : `${subTotal.toFixed(2)} m³`, styles: { fontStyle: 'bold', textColor: [13, 148, 136] } }
+          ]);
+        });
       });
 
       const summaryItems = [
