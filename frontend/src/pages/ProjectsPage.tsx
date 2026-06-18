@@ -688,33 +688,38 @@ export default function ProjectsPage() {
             </div>
 
             {isGM && (
-              <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 rounded-b-2xl bg-gray-50 mt-auto">
+              <div className="p-4 sm:px-6 sm:py-4 border-t border-gray-100 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 rounded-b-2xl bg-gray-50 mt-auto">
                 <button
                   onClick={() => {
                     setConfirmDeleteProj(viewProj);
                     setViewProj(null);
                   }}
-                  className="flex items-center justify-center gap-2 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl text-sm font-semibold transition-colors mr-auto"
+                  className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl text-sm font-semibold transition-colors"
+                  title="Hapus Proyek"
                 >
-                  <Trash2 size={15} /> Hapus
+                  <Trash2 size={16} /> <span className="hidden sm:inline">Hapus</span>
                 </button>
-                <button
-                  onClick={() => {
-                    setShowHaulingModal(viewProj);
-                  }}
-                  className="flex items-center justify-center gap-2 px-6 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-xl text-sm font-semibold transition-colors"
-                >
-                  <Truck size={15} /> Harga Hauling
-                </button>
-                <button
-                  onClick={() => {
-                    openProjModal(viewProj);
-                    setViewProj(null);
-                  }}
-                  className="flex items-center justify-center gap-2 px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors"
-                >
-                  <Pencil size={15} /> Edit Proyek
-                </button>
+                <div className="flex items-center gap-2 flex-1 justify-end">
+                  <button
+                    onClick={() => {
+                      setShowHaulingModal(viewProj);
+                    }}
+                    className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-xl text-sm font-semibold transition-colors flex-1 sm:flex-none text-center"
+                  >
+                    <Truck size={15} className="flex-shrink-0" /> 
+                    <span className="leading-tight">Harga<br className="sm:hidden" /> Hauling</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      openProjModal(viewProj);
+                      setViewProj(null);
+                    }}
+                    className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors flex-1 sm:flex-none text-center"
+                  >
+                    <Pencil size={15} className="flex-shrink-0" /> 
+                    <span className="leading-tight">Edit<br className="sm:hidden" /> Proyek</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
