@@ -464,6 +464,33 @@ class ReportService:
                 project_name=project_map.get(pay.project_id) if pay.project_id else None
             ))
 
+        # D. Vendor TopUp
+        from ..models.vendor import VendorTopUp
+        topup_q = db.query(VendorTopUp).filter(
+            VendorTopUp.topup_date >= start_date,
+            VendorTopUp.topup_date <= end_date,
+            VendorTopUp.status == 'approved'
+        )
+        if filter_general:
+            topup_q = topup_q.filter(VendorTopUp.project_id == None)
+        elif filter_project_id:
+            topup_q = topup_q.filter(VendorTopUp.project_id == filter_project_id)
+            
+        for tp in topup_q.all():
+            vendor_name = ""
+            if hasattr(tp, 'vendor') and tp.vendor:
+                vendor_name = tp.vendor.name
+            
+            expenses.append(CashFlowExpense(
+                id=f"topup_{tp.id}",
+                date=_fmt_date(tp.topup_date) or "",
+                expense_type="Vendor TopUp",
+                description=f"Deposit Vendor {vendor_name}".strip(),
+                amount=float(tp.amount or 0),
+                project_id=tp.project_id,
+                project_name=project_map.get(tp.project_id) if tp.project_id else None
+            ))
+
         total_income = sum(i.amount for i in incomes)
         total_expense = sum(e.amount for e in expenses)
         
