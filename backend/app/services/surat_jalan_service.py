@@ -10,7 +10,7 @@ from ..models.project_hauling_price import ProjectHaulingPrice
 from ..models.vendor_truck import VendorTruck
 from ..schemas.surat_jalan import SuratJalanCreate, SuratJalanUpdate
 from fastapi import HTTPException
-from datetime import datetime
+from datetime import datetime, date
 
 class SuratJalanService:
     @staticmethod
