@@ -300,7 +300,6 @@ export default function UsersPage() {
                       {user.is_active ? "Aktif" : "Nonaktif"}
                     </span>
                   </td>
-                  </td>
                 </tr>
               ))}
             </tbody>

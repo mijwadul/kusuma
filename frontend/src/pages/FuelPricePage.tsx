@@ -597,7 +597,6 @@ const FuelPricePage = () => {
                           </span>
                         )}
                       </td>
-                      </td>
                     </tr>
                   ))}
                   {purchases.length === 0 && (
