@@ -135,8 +135,8 @@ const ExpenseModal = ({ expense, projects, onClose }: any) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <h2 className="text-lg font-semibold text-gray-800">
             {isEdit ? 'Edit Pengeluaran' : 'Tambah Pengeluaran'}
@@ -184,8 +184,8 @@ const ExpenseModal = ({ expense, projects, onClose }: any) => {
             <textarea name="notes" value={form.notes} onChange={handleChange} rows={2} placeholder="Catatan tambahan..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent resize-none" />
           </div>
           <div className="flex items-center justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} disabled={saving} className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50">Batal</button>
-            <button type="submit" disabled={saving} className="px-5 py-2 text-sm bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-accent-focus">
+            <button type="button" onClick={onClose} disabled={saving} className="px-4 py-2.5 text-sm font-medium border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50">Batal</button>
+            <button type="submit" disabled={saving} className="px-5 py-2.5 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm">
               {saving && <RefreshCw size={14} className="animate-spin" />}
               {isEdit ? 'Simpan Perubahan' : 'Tambah'}
             </button>
@@ -198,8 +198,8 @@ const ExpenseModal = ({ expense, projects, onClose }: any) => {
 
 // ─── Delete Confirm Modal ────────────────────────────────────────────────────
 const DeleteConfirmModal = ({ expense, onCancel, onConfirm, deleting }: any) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-    <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
       <div className="flex items-center gap-3 mb-4">
         <div className="p-2 bg-red-100 rounded-full"><Trash2 size={20} className="text-red-600" /></div>
         <h3 className="text-lg font-semibold text-gray-800">Hapus Pengeluaran?</h3>
@@ -219,8 +219,8 @@ const DeleteConfirmModal = ({ expense, onCancel, onConfirm, deleting }: any) => 
 
 // ─── Pay Confirm Modal ───────────────────────────────────────────────────────
 const PayConfirmModal = ({ expense, onCancel, onConfirm, paying }: any) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-    <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
       <div className="flex items-center gap-3 mb-4">
         <div className="p-2 bg-emerald-100 rounded-full"><CheckCircle size={20} className="text-emerald-600" /></div>
         <h3 className="text-lg font-semibold text-gray-800">Tandai Dibayar?</h3>
@@ -236,6 +236,92 @@ const PayConfirmModal = ({ expense, onCancel, onConfirm, paying }: any) => (
     </div>
   </div>
 );
+
+// ─── Detail Modal ────────────────────────────────────────────────────────────
+const DetailModal = ({ expense, onClose, onEdit, onApprove, onPay, onDelete, isFinance, canDelete }: any) => {
+  if (!expense) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+            <Receipt className="w-5 h-5 text-emerald-600" />
+            Detail Pengeluaran
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gray-50 p-3 rounded-xl">
+              <p className="text-xs text-gray-500 mb-1">Tanggal</p>
+              <p className="font-semibold text-gray-800">{toLocalDate(expense.expense_date)}</p>
+            </div>
+            <div className="bg-gray-50 p-3 rounded-xl">
+              <p className="text-xs text-gray-500 mb-1">Kategori</p>
+              <div className="mt-0.5"><CategoryBadge value={expense.category} /></div>
+            </div>
+          </div>
+          <div className="bg-gray-50 p-3 rounded-xl">
+            <p className="text-xs text-gray-500 mb-1">Status</p>
+            <div className="flex gap-2 mt-0.5">
+              {expense.approval_status === "approved" ? (
+                <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">Approved</span>
+              ) : (
+                <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">Pending</span>
+              )}
+              {expense.payment_status === "paid" ? (
+                <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">Lunas</span>
+              ) : (
+                <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Unpaid</span>
+              )}
+            </div>
+          </div>
+          <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+            <p className="text-xs text-emerald-600 font-medium mb-1">Jumlah</p>
+            <p className="text-2xl font-bold text-emerald-700">{formatIDR(expense.amount)}</p>
+          </div>
+          <div className="bg-gray-50 p-3 rounded-xl">
+            <p className="text-xs text-gray-500 mb-1">Deskripsi</p>
+            <p className="text-gray-800 text-sm">{expense.description}</p>
+          </div>
+          {expense.notes && (
+            <div className="bg-gray-50 p-3 rounded-xl">
+              <p className="text-xs text-gray-500 mb-1">Catatan</p>
+              <p className="text-gray-800 text-sm">{expense.notes}</p>
+            </div>
+          )}
+        </div>
+        <div className="bg-gray-50 px-6 py-4 flex items-center justify-end gap-2 border-t border-gray-100 flex-wrap">
+          <button onClick={onClose} className="px-4 py-2.5 text-sm font-medium border border-gray-300 rounded-xl text-gray-700 hover:bg-white transition-colors mr-auto">Tutup</button>
+          
+          <button onClick={() => onEdit(expense)} className="px-3 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl transition-colors font-medium flex items-center text-sm">
+            <Edit2 size={16} className="mr-1" /> Edit
+          </button>
+          
+          {canDelete && expense.approval_status !== "approved" && (
+            <button onClick={() => onApprove(expense)} className="px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors font-medium flex items-center text-sm shadow-sm">
+              <CheckCircle size={16} className="mr-1" /> Approve
+            </button>
+          )}
+          
+          {(isFinance || canDelete) && expense.approval_status === "approved" && expense.payment_status === "unpaid" && (
+            <button onClick={() => onPay(expense)} className="px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors font-medium flex items-center text-sm shadow-sm">
+              <DollarSign size={16} className="mr-1" /> Bayar
+            </button>
+          )}
+          
+          {canDelete && (
+            <button onClick={() => onDelete(expense)} className="px-3 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-colors font-medium flex items-center text-sm">
+              <Trash2 size={16} className="mr-1" /> Hapus
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function ExpensePage() {
@@ -257,6 +343,7 @@ export default function ExpensePage() {
 
   const [showModal, setShowModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [detailTarget, setDetailTarget] = useState<Expense | null>(null);
 
   const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
   const [payTarget, setPayTarget] = useState<Expense | null>(null);
@@ -380,16 +467,16 @@ export default function ExpensePage() {
           <p className="text-gray-500 mt-1 text-sm">Catat &amp; pantau pengeluaran operasional harian</p>
         </div>
         <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2">
-          <button onClick={handleExportPDF} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+          <button onClick={handleExportPDF} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
             <Download size={16} /> Download PDF
           </button>
-          <button onClick={openAdd} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-accent-focus">
+          <button onClick={openAdd} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
             <Plus size={16} /> Tambah Pengeluaran
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm p-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-gray-500">Dari Tanggal</label>
@@ -441,8 +528,8 @@ export default function ExpensePage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm">
-        <div className="px-5 py-4 border-b flex items-center justify-between">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 min-h-[400px]">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="font-semibold text-gray-800">
             Daftar Pengeluaran {!loading && <span className="ml-2 text-xs font-normal text-gray-400">({expenses.length} data)</span>}
           </h2>
@@ -466,28 +553,27 @@ export default function ExpensePage() {
                 <th className="px-4 py-3 text-right cursor-pointer hover:bg-gray-100 select-none whitespace-nowrap" onClick={() => handleSort('amount')}>
                   <span className="flex items-center justify-end">Jumlah <SortIcon field="amount" sortField={sortField} sortDir={sortDir} /></span>
                 </th>
-                <th className="px-4 py-3 text-center whitespace-nowrap">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-50">
               {loading ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <tr key={i}>
-                    {Array.from({ length: 8 }).map((__, j) => (
+                    {Array.from({ length: 7 }).map((__, j) => (
                       <td key={j} className="px-4 py-3 whitespace-nowrap"><div className="h-4 bg-gray-100 rounded animate-pulse" /></td>
                     ))}
                   </tr>
                 ))
               ) : paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-16 text-center">
+                  <td colSpan={7} className="px-4 py-16 text-center">
                     <AlertCircle size={40} className="mx-auto mb-3 text-gray-300" />
                     <p className="text-gray-500 font-medium">Tidak ada pengeluaran ditemukan</p>
                   </td>
                 </tr>
               ) : (
                 paginated.map((exp: any, idx) => (
-                  <tr key={exp.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={exp.id} className="hover:bg-emerald-50/60 cursor-pointer transition-colors" onClick={() => setDetailTarget(exp)}>
                     <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{(currentPage - 1) * PAGE_SIZE + idx + 1}</td>
                     <td className="px-4 py-3 text-gray-700 whitespace-nowrap">{toLocalDate(exp.expense_date)}</td>
                     <td className="px-4 py-3 whitespace-nowrap"><CategoryBadge value={exp.category} /></td>
@@ -510,38 +596,15 @@ export default function ExpensePage() {
                       {exp.notes && <p className="text-xs text-gray-400 truncate max-w-xs" title={exp.notes}>{exp.notes}</p>}
                     </td>
                     <td className="px-4 py-3 text-right font-semibold text-gray-800 whitespace-nowrap">{formatIDR(exp.amount)}</td>
-                    <td className="px-4 py-3 text-center whitespace-nowrap">
-                      <div className="flex items-center justify-center gap-2">
-                        {canDelete && exp.approval_status !== "approved" && (
-                          <button onClick={() => handleApprove(exp)} title="Approve" className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
-                            <CheckCircle size={15} />
-                          </button>
-                        )}
-                        {(isFinance || canDelete) && exp.approval_status === "approved" && exp.payment_status === "unpaid" && (
-                          <button onClick={() => setPayTarget(exp)} title="Tandai Dibayar" className="p-1.5 text-gray-400 hover:text-accent hover:bg-teal-50 rounded-lg transition-colors">
-                            <DollarSign size={15} />
-                          </button>
-                        )}
-                        <button onClick={() => openEdit(exp)} title="Edit" className="p-1.5 text-gray-400 hover:text-accent hover:bg-teal-50 rounded-lg transition-colors">
-                          <Edit2 size={15} />
-                        </button>
-                        {canDelete && (
-                          <button onClick={() => setDeleteTarget(exp)} title="Hapus" className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                            <Trash2 size={15} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
                   </tr>
                 ))
               )}
             </tbody>
             {!loading && paginated.length > 0 && (
-              <tfoot className="bg-gray-50 border-t-2 border-gray-200">
+              <tfoot className="bg-emerald-50/50 border-t-2 border-emerald-100">
                 <tr>
                   <td colSpan={6} className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Total halaman ini</td>
-                  <td className="px-4 py-3 text-right font-bold text-gray-800 whitespace-nowrap">{formatIDR(paginated.reduce((s, e: any) => s + Number(e.amount), 0))}</td>
-                  <td />
+                  <td className="px-4 py-3 text-right font-bold text-emerald-700 whitespace-nowrap">{formatIDR(paginated.reduce((s, e: any) => s + Number(e.amount), 0))}</td>
                 </tr>
               </tfoot>
             )}
@@ -567,6 +630,18 @@ export default function ExpensePage() {
         )}
       </div>
 
+      {detailTarget && (
+        <DetailModal 
+          expense={detailTarget} 
+          onClose={() => setDetailTarget(null)} 
+          onEdit={(exp: any) => { setDetailTarget(null); openEdit(exp); }} 
+          onApprove={(exp: any) => { setDetailTarget(null); handleApprove(exp); }} 
+          onPay={(exp: any) => { setDetailTarget(null); setPayTarget(exp); }} 
+          onDelete={(exp: any) => { setDetailTarget(null); setDeleteTarget(exp); }} 
+          isFinance={isFinance} 
+          canDelete={canDelete} 
+        />
+      )}
       {showModal && <ExpenseModal expense={editingExpense} projects={projects} onClose={closeModal} />}
       {deleteTarget && <DeleteConfirmModal expense={deleteTarget} onCancel={() => setDeleteTarget(null)} onConfirm={confirmDelete} deleting={deleteMutation.isPending} />}
       {payTarget && <PayConfirmModal expense={payTarget} onCancel={() => setPayTarget(null)} onConfirm={confirmPay} paying={payMutation.isPending} />}

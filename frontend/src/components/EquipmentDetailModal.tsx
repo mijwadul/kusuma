@@ -44,7 +44,7 @@ const EquipmentDetailModal: React.FC<Props> = ({
 
   const canViewFinancial = userRole === "admin" || userRole === "manager" || userRole === "gm" || userRole === "finance";
   const { data: equipmentBalances = [] } = useEquipmentBalances({ enabled: canViewFinancial && !!equipment });
-  const currentBalance = equipmentBalances.find((b: any) => b.equipment_id === equipment?.id)?.balance || 0;
+  const currentBalance = (equipmentBalances as any[]).find((b: any) => b.equipment_id === equipment?.id)?.balance || 0;
 
   if (!isOpen || !equipment) return null;
 
@@ -60,10 +60,10 @@ const EquipmentDetailModal: React.FC<Props> = ({
     "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300";
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-10 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white mb-10">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="relative w-full max-w-4xl max-h-[90vh] shadow-2xl rounded-2xl bg-white flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex justify-between items-start mb-4">
+        <div className="flex justify-between items-start px-6 py-4 border-b border-gray-100 bg-white sticky top-0 z-10">
           <div>
             <h3 className="text-xl font-semibold text-gray-900">
               {equipment.name}
@@ -81,8 +81,8 @@ const EquipmentDetailModal: React.FC<Props> = ({
         </div>
 
         {/* Tab Navigation */}
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-6">
+        <div className="border-b border-gray-100 bg-white px-6 sticky top-[76px] z-10">
+          <nav className="-mb-px flex space-x-6 overflow-x-auto">
             <button
               onClick={() => setActiveTab("general")}
               className={`${tabBase} ${activeTab === "general" ? "border-blue-500 text-blue-600" : tabInactive}`}
@@ -118,7 +118,7 @@ const EquipmentDetailModal: React.FC<Props> = ({
         </div>
 
         {/* Tab Content */}
-        <div className="mt-6">
+        <div className="p-6 overflow-y-auto">
           {/* === TAB: INFORMASI UMUM === */}
           {activeTab === "general" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -505,39 +505,39 @@ const EquipmentDetailModal: React.FC<Props> = ({
           )}
         </div>
 
-        <div className="flex flex-col sm:flex-row justify-between items-center pt-6 mt-6 border-t gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-center p-4 sm:px-6 sm:py-4 border-t border-gray-100 gap-4 bg-gray-50 mt-auto">
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => { onClose(); onFuel(equipment.id); }}
-              className="flex items-center gap-1 text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-3 py-2 rounded transition-colors text-sm font-medium"
+              className="flex items-center gap-1 text-amber-600 hover:text-amber-800 bg-amber-100 hover:bg-amber-200 px-3 py-2 rounded-xl transition-colors text-sm font-medium"
               title="Isi BBM"
             >
               <Fuel size={16} /> BBM
             </button>
             <button
               onClick={() => { onClose(); onRateHistory(equipment); }}
-              className="flex items-center gap-1 text-purple-600 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 px-3 py-2 rounded transition-colors text-sm font-medium"
+              className="flex items-center gap-1 text-purple-600 hover:text-purple-800 bg-purple-100 hover:bg-purple-200 px-3 py-2 rounded-xl transition-colors text-sm font-medium"
               title="Riwayat Harga"
             >
               <History size={16} /> Harga
             </button>
             <button
               onClick={() => { onClose(); onLedger(equipment); }}
-              className="flex items-center gap-1 text-teal-600 hover:text-teal-900 bg-teal-50 hover:bg-teal-100 px-3 py-2 rounded transition-colors text-sm font-medium"
+              className="flex items-center gap-1 text-teal-600 hover:text-teal-800 bg-teal-100 hover:bg-teal-200 px-3 py-2 rounded-xl transition-colors text-sm font-medium"
               title="Buku Besar / Ledger"
             >
               <BookOpen size={16} /> Ledger
             </button>
             <button
               onClick={() => { onClose(); onEdit(equipment); }}
-              className="flex items-center gap-1 text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded transition-colors text-sm font-medium"
+              className="flex items-center gap-1 text-blue-600 hover:text-blue-800 bg-blue-100 hover:bg-blue-200 px-3 py-2 rounded-xl transition-colors text-sm font-medium"
               title="Edit Equipment"
             >
               <Edit size={16} /> Edit
             </button>
             <button
               onClick={() => { onClose(); onDelete(equipment.id); }}
-              className="flex items-center gap-1 text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-2 rounded transition-colors text-sm font-medium"
+              className="flex items-center gap-1 text-red-600 hover:text-red-800 bg-red-100 hover:bg-red-200 px-3 py-2 rounded-xl transition-colors text-sm font-medium"
               title="Hapus Equipment"
             >
               <Trash2 size={16} /> Hapus
@@ -545,7 +545,7 @@ const EquipmentDetailModal: React.FC<Props> = ({
           </div>
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors w-full sm:w-auto font-medium"
+            className="px-6 py-2 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors w-full sm:w-auto font-medium"
           >
             Tutup
           </button>

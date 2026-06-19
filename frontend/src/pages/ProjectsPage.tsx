@@ -131,8 +131,8 @@ export default function ProjectsPage() {
           return { ...m, unit };
         }),
         measurement_type: p.measurement_type || "tonase",
-        assigned_user_ids: p.assigned_user_ids || [],
-        assigned_employee_ids: p.assigned_employee_ids || [],
+        assigned_user_ids: p.assigned_users?.map(u => u.id) || p.assigned_user_ids || [],
+        assigned_employee_ids: p.assigned_employees?.map(e => e.id) || p.assigned_employee_ids || [],
       });
     } else {
       setProjForm({
@@ -390,7 +390,6 @@ export default function ProjectsPage() {
                   <th className="px-4 py-3 text-left whitespace-nowrap">Armada Kendaraan</th>
                   <th className="px-4 py-3 text-left whitespace-nowrap">Preferensi Material</th>
                   <th className="px-4 py-3 text-left whitespace-nowrap">Total Pembelian</th>
-                  {isGM && <th className="px-4 py-3 text-center whitespace-nowrap">Aksi</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -425,12 +424,6 @@ export default function ProjectsPage() {
                     <td className="px-4 py-3 font-medium text-emerald-700 whitespace-nowrap">
                       {formatIDR(c.total_purchases)} <span className="text-gray-400 font-normal text-xs">({c.purchase_count || 0}x)</span>
                     </td>
-                    {isGM && (
-                      <td className="px-4 py-3 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                        <button onClick={() => openCustModal(c)} className="p-1 text-blue-500 hover:bg-blue-50 rounded"><Pencil size={15} /></button>
-                        <button onClick={() => setConfirmDeleteCust(c)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={15} /></button>
-                      </td>
-                    )}
                   </tr>
                 ))}
                 {customers.length === 0 && (
@@ -564,16 +557,29 @@ export default function ProjectsPage() {
             </div>
 
             {isGM && (
-              <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 rounded-b-2xl bg-gray-50 mt-auto">
+              <div className="p-4 sm:px-6 sm:py-4 border-t border-gray-100 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 rounded-b-2xl bg-gray-50 mt-auto">
                 <button
                   onClick={() => {
-                    openCustModal(viewCust);
+                    setConfirmDeleteCust(viewCust);
                     setViewCust(null);
                   }}
-                  className="flex items-center justify-center gap-2 px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors"
+                  className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl text-sm font-semibold transition-colors"
+                  title="Hapus Pelanggan"
                 >
-                  <Pencil size={15} /> Edit Data
+                  <Trash2 size={16} /> <span className="hidden sm:inline">Hapus</span>
                 </button>
+                <div className="flex items-center gap-2 flex-1 justify-end">
+                  <button
+                    onClick={() => {
+                      openCustModal(viewCust);
+                      setViewCust(null);
+                    }}
+                    className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors flex-1 sm:flex-none text-center"
+                  >
+                    <Pencil size={15} className="flex-shrink-0" /> 
+                    <span className="leading-tight">Edit<br className="sm:hidden" /> Data</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -658,29 +664,44 @@ export default function ProjectsPage() {
               <div className="mb-6 grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="text-sm font-bold text-gray-800 border-b pb-2 mb-3">Field Staff</h4>
-                  {(!viewProj.assigned_user_ids || viewProj.assigned_user_ids.length === 0) ? (
+                  {(!viewProj.assigned_users || viewProj.assigned_users.length === 0) ? (
                     <p className="text-gray-400 text-sm italic">Tidak ada petugas ditugaskan.</p>
                   ) : (
                     <div className="flex flex-col gap-2">
-                      {allUsers.filter((u: any) => viewProj.assigned_user_ids?.includes(u.id)).map((u: any) => (
-                        <div key={u.id} className="text-sm px-2 py-1 bg-emerald-50 text-emerald-800 rounded">
-                          {u.full_name || u.email}
-                        </div>
-                      ))}
+                      {viewProj.assigned_users.map((u: any) => {
+                        const displayName = u.full_name || u.email || `User ID: ${u.id}`;
+                        return (
+                          <div key={u.id} className="text-sm px-3 py-2 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-lg flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-emerald-200 text-emerald-700 flex items-center justify-center font-bold text-xs">
+                              {displayName.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="font-medium">{displayName}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-gray-800 border-b pb-2 mb-3">Pekerja Proyek</h4>
-                  {(!viewProj.assigned_employee_ids || viewProj.assigned_employee_ids.length === 0) ? (
+                  {(!viewProj.assigned_employees || viewProj.assigned_employees.length === 0) ? (
                     <p className="text-gray-400 text-sm italic">Tidak ada pekerja ditugaskan.</p>
                   ) : (
                     <div className="flex flex-col gap-2">
-                      {allEmployees.filter((emp: any) => viewProj.assigned_employee_ids?.includes(emp.id)).map((emp: any) => (
-                        <div key={emp.id} className="text-sm px-2 py-1 bg-blue-50 text-blue-800 rounded">
-                          {emp.name} <span className="text-xs opacity-70">({emp.position})</span>
-                        </div>
-                      ))}
+                      {viewProj.assigned_employees.map((emp: any) => {
+                        const displayName = emp.name || `Pekerja ID: ${emp.id}`;
+                        return (
+                          <div key={emp.id} className="text-sm px-3 py-2 bg-blue-50 border border-blue-100 text-blue-800 rounded-lg flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-blue-200 text-blue-700 flex items-center justify-center font-bold text-xs">
+                              {displayName.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="font-medium">{displayName}</div>
+                              {emp.position && <div className="text-xs opacity-70">{emp.position}</div>}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

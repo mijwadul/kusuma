@@ -301,9 +301,9 @@ export default function WorkLogsPage() {
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center justify-center space-x-2 transition-colors shadow-md"
+          className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center space-x-2 transition-colors shadow-sm"
         >
-          <Plus size={20} />
+          <Plus size={18} />
           <span>Catat Kerja</span>
         </button>
       </div>
@@ -347,9 +347,9 @@ export default function WorkLogsPage() {
           <div className="w-full md:w-auto">
             <button
               onClick={handleDownloadPDF}
-              className="w-full bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-lg flex items-center justify-center space-x-2 transition-colors shadow-md"
+              className="w-full bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center space-x-2 transition-colors shadow-sm"
             >
-              <FileText size={20} />
+              <FileText size={18} />
               <span>Unduh PDF</span>
             </button>
           </div>
@@ -647,26 +647,36 @@ export default function WorkLogsPage() {
             </div>
 
             {/* Buttons */}
-            <div className="flex space-x-3 pt-4 border-t">
-              <button
-                type="submit"
-                disabled={createLogMutation.isPending || updateLogMutation.isPending}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-semibold flex items-center justify-center space-x-2 transition-colors disabled:opacity-70"
-              >
-                {(createLogMutation.isPending || updateLogMutation.isPending) ? (
-                  <Loader2 size={20} className="animate-spin" />
-                ) : (
-                  <Save size={20} />
-                )}
-                <span>{editingLog ? "Update Log" : "Simpan Log"}</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleCancelEdit}
-                className="px-6 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
-              >
-                Batal
-              </button>
+            <div className={`flex ${editingLog ? 'justify-between' : 'justify-end'} space-x-3 pt-6 border-t border-gray-100 mt-6`}>
+              {editingLog && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForm(false);
+                    handleDelete(editingLog.id);
+                  }}
+                  className="px-4 py-2.5 rounded-xl text-red-600 font-medium hover:bg-red-50 flex items-center gap-2 transition-colors"
+                >
+                  <Trash2 size={18} /> Hapus
+                </button>
+              )}
+              <div className="flex gap-3 w-full justify-end">
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="px-6 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={createLogMutation.isPending || updateLogMutation.isPending}
+                  className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white px-6 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 shadow-sm transition-colors min-w-[140px]"
+                >
+                  {(createLogMutation.isPending || updateLogMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>{editingLog ? "Update Log" : "Simpan Log"}</span>
+                </button>
+              </div>
             </div>
           </form>
           </div>
@@ -674,37 +684,36 @@ export default function WorkLogsPage() {
       )}
 
       {/* History Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden border border-gray-100">
-        <div className="px-6 py-4 whitespace-nowrap border-b border-gray-200">
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 min-h-[400px]">
+        <div className="px-6 py-4 whitespace-nowrap border-b border-gray-100">
           <h2 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
-            <Calendar className="h-5 w-5 text-gray-600" />
+            <Calendar className="h-5 w-5 text-gray-500" />
             <span>Riwayat Jam Kerja</span>
           </h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead className="bg-gray-50 whitespace-nowrap border-b">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b whitespace-nowrap">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unit</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Metode</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">HM</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Jam</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Diskon</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Biaya Sewa</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Operator</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Proyek</th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Tanggal</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Unit</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Metode</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">HM</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Jam</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Diskon</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Biaya Sewa</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Operator</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Proyek</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-50">
               {workLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-4 py-10 text-center text-gray-500 italic">Belum ada data jam kerja</td>
+                  <td colSpan={9} className="px-4 py-10 text-center text-gray-500 italic">Belum ada data jam kerja</td>
                 </tr>
               ) : (
                 workLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-gray-50">
+                  <tr key={log.id} className="hover:bg-emerald-50/60 cursor-pointer transition-colors" onClick={() => handleEdit(log)}>
                     <td className="px-4 py-3 text-sm whitespace-nowrap">
                       {log.work_date
                         ? new Date(log.work_date).toLocaleDateString("id-ID", {
@@ -744,16 +753,6 @@ export default function WorkLogsPage() {
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{log.operator_name || "-"}</td>
                     <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{log.project_name || "-"}</td>
-                    <td className="px-4 py-3 text-sm whitespace-nowrap text-center">
-                      <div className="flex items-center justify-center space-x-2">
-                        <button onClick={() => handleEdit(log)} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded" title="Edit">
-                          <Edit size={16} />
-                        </button>
-                        <button onClick={() => handleDelete(log.id)} className="text-red-500 hover:bg-red-50 p-1.5 rounded" title="Hapus">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
                   </tr>
                 ))
               )}

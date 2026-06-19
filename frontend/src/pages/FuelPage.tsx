@@ -246,13 +246,13 @@ const FuelPage = () => {
             }
             setShowForm(true);
           }}
-          className={`w-full sm:w-auto px-5 py-2.5 rounded-lg flex items-center justify-center space-x-2 transition-colors shadow-md text-white ${
+          className={`w-full sm:w-auto px-5 py-2.5 rounded-xl flex items-center justify-center space-x-2 transition-colors shadow-sm text-white text-sm font-semibold ${
             stockOk
-              ? 'bg-amber-500 hover:bg-amber-600'
+              ? 'bg-emerald-600 hover:bg-emerald-700'
               : 'bg-gray-400 cursor-not-allowed'
           }`}
         >
-          <Plus size={20} />
+          <Plus size={18} />
           <span>Isi Solar</span>
         </button>
       </div>
@@ -302,22 +302,22 @@ const FuelPage = () => {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-amber-500 min-w-0 fluid-metric-container">
-          <p className="text-xs sm:text-sm text-gray-600 truncate">Total BBM (30 hari)</p>
-          <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-800 fluid-metric-value mt-0.5">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-6">
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-amber-500 min-w-0 fluid-metric-container">
+          <p className="text-xs sm:text-sm text-gray-500 font-medium truncate uppercase tracking-wide">Total BBM (30 hari)</p>
+          <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-800 fluid-metric-value mt-1">
             {stats.total_fuel_consumed.toFixed(1)} L
           </p>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-green-500 min-w-0 fluid-metric-container">
-          <p className="text-xs sm:text-sm text-gray-600 truncate">Total BBM Terpakai</p>
-          <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-800 fluid-metric-value mt-0.5">
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-green-500 min-w-0 fluid-metric-container">
+          <p className="text-xs sm:text-sm text-gray-500 font-medium truncate uppercase tracking-wide">Total BBM Terpakai</p>
+          <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-800 fluid-metric-value mt-1">
             {stats.total_fuel_consumed.toFixed(1)} L
           </p>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-purple-500 min-w-0 fluid-metric-container">
-          <p className="text-xs sm:text-sm text-gray-600 truncate">Alat Terisi</p>
-          <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-800 fluid-metric-value mt-0.5">
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-purple-500 min-w-0 fluid-metric-container">
+          <p className="text-xs sm:text-sm text-gray-500 font-medium truncate uppercase tracking-wide">Alat Terisi</p>
+          <p className="text-base sm:text-lg md:text-2xl font-bold text-gray-800 fluid-metric-value mt-1">
             {stats.equipment_count} Unit
           </p>
         </div>
@@ -325,8 +325,8 @@ const FuelPage = () => {
 
       {/* Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
               <h2 className="text-lg font-bold text-gray-800 flex items-center">
                 <div className={`p-2 rounded-lg mr-3 ${editingLog ? "bg-blue-100" : "bg-amber-100"}`}>
@@ -505,24 +505,36 @@ const FuelPage = () => {
             )}
 
             {/* Buttons */}
-            <div className="flex space-x-3 pt-4">
-              <button
-                type="submit"
-                disabled={createMutation.isPending || updateMutation.isPending || (availableStock !== null && ((!editingLog && currentStock !== null && currentStock <= 0) || litersExceedStock))}
-                className={`flex-1 ${
-                  editingLog ? "bg-blue-500 hover:bg-blue-600" : "bg-amber-500 hover:bg-amber-600"
-                } text-white py-3 rounded-lg font-semibold flex items-center justify-center space-x-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                <Save size={20} />
-                <span>{editingLog ? "Update Catatan" : "Simpan Catatan"}</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleCancelEdit}
-                className="px-6 py-3 whitespace-nowrap border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Batal
-              </button>
+            <div className={`flex ${editingLog ? 'justify-between' : 'justify-end'} space-x-3 pt-6 border-t border-gray-100 mt-6`}>
+              {editingLog && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForm(false);
+                    handleDelete(editingLog.id);
+                  }}
+                  className="px-4 py-2.5 rounded-xl text-red-600 font-medium hover:bg-red-50 flex items-center gap-2 transition-colors"
+                >
+                  <Trash2 size={18} /> Hapus
+                </button>
+              )}
+              <div className="flex gap-3 w-full justify-end">
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="px-6 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={createMutation.isPending || updateMutation.isPending || (availableStock !== null && ((!editingLog && currentStock !== null && currentStock <= 0) || litersExceedStock))}
+                  className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white px-6 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 shadow-sm transition-colors min-w-[140px]"
+                >
+                  <Save size={18} />
+                  <span>{editingLog ? "Update Catatan" : "Simpan Catatan"}</span>
+                </button>
+              </div>
             </div>
           </form>
           </div>
@@ -530,42 +542,39 @@ const FuelPage = () => {
       )}
 
       {/* History Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 whitespace-nowrap border-b border-gray-200">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px]">
+        <div className="px-6 py-4 whitespace-nowrap border-b border-gray-100">
           <h2 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
-            <Calendar className="h-5 w-5 text-gray-600" />
+            <Calendar className="h-5 w-5 text-gray-500" />
             <span>Riwayat Pengisian (30 hari terakhir)</span>
           </h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead className="bg-gray-50 whitespace-nowrap">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b whitespace-nowrap">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Tanggal
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Unit
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Liter
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Lokasi
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Catatan
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                  Aksi
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-50">
               {fuelLogs.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={5}
                     className="px-4 py-8 text-center text-gray-500"
                   >
                     Belum ada data pengisian BBM
@@ -573,7 +582,7 @@ const FuelPage = () => {
                 </tr>
               ) : (
                 fuelLogs.map((log: FuelLog) => (
-                  <tr key={log.id} className="hover:bg-gray-50">
+                  <tr key={log.id} className="hover:bg-emerald-50/60 cursor-pointer transition-colors" onClick={() => handleEdit(log)}>
                     <td className="px-4 py-3 text-sm whitespace-nowrap">
                       {log.refuel_date
                         ? new Date(log.refuel_date).toLocaleString("id-ID", {
@@ -599,24 +608,6 @@ const FuelPage = () => {
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
                       {log.notes || "-"}
-                    </td>
-                    <td className="px-4 py-3 text-sm whitespace-nowrap">
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleEdit(log)}
-                          className="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 p-1.5 rounded transition-colors"
-                          title="Edit"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(log.id)}
-                          className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded transition-colors"
-                          title="Hapus"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
                     </td>
                   </tr>
                 ))

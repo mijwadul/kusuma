@@ -227,7 +227,7 @@ const SaleFormModal = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
           <h2 className="text-lg font-semibold">{editData ? "Edit Penjualan" : "Catat Penjualan"}</h2>
@@ -456,7 +456,7 @@ const PriceFormModal = ({ editData, onClose }: { editData: MaterialPrice | null,
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="text-lg font-semibold">{editData ? "Edit Harga" : "Tambah Harga"}</h2>
@@ -533,7 +533,7 @@ const SaleDetailModal = ({ sale, isGM, currentUser, onClose, onEdit, onDelete }:
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
@@ -567,6 +567,56 @@ const SaleDetailModal = ({ sale, isGM, currentUser, onClose, onEdit, onDelete }:
   );
 };
 
+const PriceDetailModal = ({ price, isGM, onClose, onEdit, onDelete }: any) => {
+  if (!price) return null;
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <Settings size={18} className="text-indigo-600" />
+            <h2 className="text-base font-semibold text-gray-800">Detail Harga</h2>
+          </div>
+          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="px-6 py-5 space-y-4">
+          <div>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Material</p>
+            <div className="font-medium text-gray-800">{price.material_type}</div>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Kendaraan</p>
+            <div className="text-sm text-gray-800">{price.vehicle_type || "Semua Kendaraan"}</div>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Satuan</p>
+            <div className="text-sm text-gray-800">{price.unit === 'm3' ? 'Kubikasi (m³)' : price.unit === 'ton' ? 'Tonase (ton)' : 'Ritase'}</div>
+          </div>
+          <div className="bg-indigo-50 p-3 rounded-xl border border-indigo-100">
+            <p className="text-xs font-medium text-indigo-600 mb-1">Harga / Satuan</p>
+            <div className="text-xl font-bold text-indigo-700">{formatIDR(price.price_per_unit)}</div>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Status</p>
+            <div className="text-sm">{price.is_active ? <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">Aktif</span> : <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">Nonaktif</span>}</div>
+          </div>
+        </div>
+        {isGM && (
+          <div className="flex gap-3 px-6 pb-5 pt-2 border-t border-gray-50">
+            <button onClick={onDelete} className="flex-1 flex items-center justify-center gap-2 py-2.5 border border-red-200 text-red-600 hover:bg-red-50 rounded-xl text-sm font-semibold transition-colors">
+              <Trash2 size={15} /> Hapus
+            </button>
+            <button onClick={onEdit} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm">
+              <Pencil size={15} /> Edit
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 // ── Modals ─────────────────────────────────────────────────────────────────────
 const DownloadPdfModal = ({ sales, onClose }: { sales: IncomeRecord[], onClose: () => void }) => {
@@ -683,6 +733,7 @@ export default function MaterialSalesPage() {
   const [editDataSale, setEditDataSale] = useState<IncomeRecord | null>(null);
   const [editDataPrice, setEditDataPrice] = useState<MaterialPrice | null>(null);
   const [viewSale, setViewSale] = useState<IncomeRecord | null>(null);
+  const [viewPrice, setViewPrice] = useState<MaterialPrice | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<any>(null);
 
   const isGM = currentUser?.is_admin || currentUser?.is_superuser || ["gm", "admin"].includes(currentUser?.role || "");
@@ -713,7 +764,7 @@ export default function MaterialSalesPage() {
           {isGM && (
             <button
               onClick={() => setActiveTab(t => t === "sales" ? "prices" : "sales")}
-              className={`flex-1 sm:flex-none justify-center px-4 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2 ${activeTab === "prices" ? "bg-indigo-100 text-indigo-700" : "bg-white border text-gray-600 hover:bg-gray-50"}`}
+              className={`flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2 ${activeTab === "prices" ? "bg-indigo-100 text-indigo-700" : "bg-white border text-gray-600 hover:bg-gray-50"}`}
             >
               <Settings size={16} /> Atur Harga (GM)
             </button>
@@ -722,13 +773,13 @@ export default function MaterialSalesPage() {
             <>
               <button
                 onClick={() => setShowPdfModal(true)}
-                className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
+                className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
               >
                 <FileText size={16} /> Download PDF
               </button>
               <button
                 onClick={() => { setEditDataSale(null); setShowSaleModal(true); }}
-                className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
+                className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
               >
                 <Plus size={16} /> Catat Penjualan
               </button>
@@ -737,7 +788,7 @@ export default function MaterialSalesPage() {
           {activeTab === "prices" && (
             <button
               onClick={() => { setEditDataPrice(null); setShowPriceModal(true); }}
-              className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
+              className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
             >
               <Plus size={16} /> Tambah Harga
             </button>
@@ -798,12 +849,16 @@ export default function MaterialSalesPage() {
                   <th className="px-4 py-3 text-left whitespace-nowrap">Satuan</th>
                   <th className="px-4 py-3 text-right whitespace-nowrap">Harga</th>
                   <th className="px-4 py-3 text-center whitespace-nowrap">Status</th>
-                  {isGM && <th className="px-4 py-3 text-center whitespace-nowrap">Aksi</th>}
+                  <th className="px-4 py-3 text-center w-8 whitespace-nowrap"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {prices.map(p => (
-                  <tr key={p.id} className="hover:bg-gray-50">
+                  <tr 
+                    key={p.id} 
+                    onClick={() => setViewPrice(p)}
+                    className="hover:bg-indigo-50/60 cursor-pointer transition-colors"
+                  >
                     <td className="px-4 py-3 whitespace-nowrap"><MaterialBadge type={p.material_type} /></td>
                     <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{p.vehicle_type ? <span className="px-2 py-0.5 bg-gray-100 rounded text-xs font-medium">{p.vehicle_type}</span> : <span className="text-gray-400 italic text-xs">Semua</span>}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
@@ -822,12 +877,9 @@ export default function MaterialSalesPage() {
                     <td className="px-4 py-3 text-center whitespace-nowrap">
                       {p.is_active ? <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">Aktif</span> : <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs">Nonaktif</span>}
                     </td>
-                    {isGM && (
-                      <td className="px-4 py-3 text-center whitespace-nowrap">
-                        <button onClick={() => { setEditDataPrice(p); setShowPriceModal(true); }} className="p-1 text-blue-500 hover:bg-blue-50 rounded"><Pencil size={15} /></button>
-                        <button onClick={() => setConfirmDelete(p)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={15} /></button>
-                      </td>
-                    )}
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
+                      <span className="text-gray-300 text-xs">›</span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -839,6 +891,24 @@ export default function MaterialSalesPage() {
       {showSaleModal && <SaleFormModal editData={editDataSale} onClose={() => setShowSaleModal(false)} customers={customers} projects={projects} />}
       {showPriceModal && <PriceFormModal editData={editDataPrice} onClose={() => setShowPriceModal(false)} />}
       {showPdfModal && <DownloadPdfModal sales={sales} onClose={() => setShowPdfModal(false)} />}
+
+      {/* Price Detail Modal */}
+      {viewPrice && !showPriceModal && (
+        <PriceDetailModal
+          price={viewPrice}
+          isGM={isGM}
+          onClose={() => setViewPrice(null)}
+          onEdit={() => {
+            setEditDataPrice(viewPrice);
+            setViewPrice(null);
+            setShowPriceModal(true);
+          }}
+          onDelete={() => {
+            setConfirmDelete(viewPrice);
+            setViewPrice(null);
+          }}
+        />
+      )}
 
       {/* Sale Detail Modal */}
       {viewSale && !showSaleModal && (
@@ -861,7 +931,7 @@ export default function MaterialSalesPage() {
 
       {/* Confirm Delete Modal */}
       {confirmDelete && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm text-center">
             <Trash2 size={32} className="text-red-500 mx-auto mb-4" />
             <h3 className="text-lg font-bold text-gray-800 mb-2">Hapus Data?</h3>

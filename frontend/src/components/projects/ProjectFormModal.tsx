@@ -81,7 +81,8 @@ export default function ProjectFormModal({
               <div className="flex flex-wrap gap-2 mb-2">
                 {projForm.assigned_user_ids?.map((id, i) => {
                   const user = allUsers.find(u => u.id === id);
-                  return <span key={i} className="bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded flex items-center gap-1">{user?.full_name || user?.email} <X size={12} className="cursor-pointer hover:text-emerald-950" onClick={() => setProjForm(p => ({...p, assigned_user_ids: p.assigned_user_ids?.filter(uid => uid !== id)}))}/></span>
+                  const displayName = user ? (user.full_name || user.email) : `User ID: ${id}`;
+                  return <span key={i} className="bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded flex items-center gap-1">{displayName} <X size={12} className="cursor-pointer hover:text-emerald-950" onClick={() => setProjForm(p => ({...p, assigned_user_ids: p.assigned_user_ids?.filter(uid => uid !== id)}))}/></span>
                 })}
               </div>
               <select value="" onChange={e => {
@@ -101,7 +102,8 @@ export default function ProjectFormModal({
               <div className="flex flex-wrap gap-2 mb-2">
                 {projForm.assigned_employee_ids?.map((id, i) => {
                   const emp = allEmployees.find(e => e.id === id);
-                  return <span key={i} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded flex items-center gap-1">{emp?.name} <X size={12} className="cursor-pointer hover:text-blue-950" onClick={() => setProjForm(p => ({...p, assigned_employee_ids: p.assigned_employee_ids?.filter(eid => eid !== id)}))}/></span>
+                  const displayName = emp?.name || `Pekerja ID: ${id}`;
+                  return <span key={i} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded flex items-center gap-1">{displayName} <X size={12} className="cursor-pointer hover:text-blue-950" onClick={() => setProjForm(p => ({...p, assigned_employee_ids: p.assigned_employee_ids?.filter(eid => eid !== id)}))}/></span>
                 })}
               </div>
               <select value="" onChange={e => {

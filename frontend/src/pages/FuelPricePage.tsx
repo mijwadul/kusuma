@@ -350,8 +350,8 @@ const FuelPricePage = () => {
         
         {/* Form Pembelian Modal */}
         {showForm && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
               <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
                 <h3 className="text-lg font-bold text-gray-800 flex items-center">
                   Catat Pembelian BBM Baru
@@ -460,18 +460,18 @@ const FuelPricePage = () => {
                   />
                 </div>
 
-                <div className="pt-4 flex gap-3">
+                <div className="pt-6 flex gap-3 border-t border-gray-100 mt-6">
                   <button
                     type="button"
                     onClick={() => setShowForm(false)}
-                    className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition-colors"
+                    className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 font-medium transition-colors text-sm"
                   >
                     Batal
                   </button>
                   <button
                     onClick={handleSavePurchase}
                     disabled={!liters || !totalPrice || !purchaseDate || createMutation.isPending}
-                    className="flex-1 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 flex justify-center items-center font-medium transition-colors"
+                    className="flex-1 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50 flex justify-center items-center font-medium transition-colors shadow-sm text-sm"
                   >
                     <Save className="h-5 w-5 mr-2" />
                     {isGM ? 'Catat & Setujui' : 'Submit'}
@@ -490,15 +490,15 @@ const FuelPricePage = () => {
 
         {/* Tabel Riwayat */}
         <div>
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 border-b pb-2 gap-4">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 min-h-[400px]">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b border-gray-100 pb-4 gap-4">
               <h3 className="text-lg font-bold text-gray-800 flex items-center">
                 <History className="h-5 w-5 mr-2 text-gray-500" />
                 Riwayat Pembelian
               </h3>
               <button
                 onClick={() => setShowForm(true)}
-                className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg flex items-center font-medium shadow-sm"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl flex items-center font-semibold shadow-sm transition-colors text-sm"
               >
                 <Plus className="w-4 h-4 mr-1.5" />
                 Catat Pembelian
@@ -546,9 +546,9 @@ const FuelPricePage = () => {
                 Download PDF
               </button>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+            <div className="overflow-x-auto rounded-xl border border-gray-100">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   <tr>
                     <th className="px-4 py-3 text-left whitespace-nowrap">Tanggal</th>
                     <th className="px-4 py-3 text-left whitespace-nowrap">Vendor</th>
@@ -556,14 +556,13 @@ const FuelPricePage = () => {
                     <th className="px-4 py-3 text-right whitespace-nowrap">Harga/Liter</th>
                     <th className="px-4 py-3 text-right whitespace-nowrap">Total Harga</th>
                     <th className="px-4 py-3 text-center whitespace-nowrap">Status</th>
-                    <th className="px-4 py-3 text-center whitespace-nowrap">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-50">
                   {purchases.map((purchase: FuelPurchase) => (
                     <tr 
                       key={purchase.id} 
-                      className="hover:bg-gray-50 cursor-pointer"
+                      className="hover:bg-emerald-50/60 cursor-pointer transition-colors"
                       onClick={() => openDetail(purchase)}
                     >
                       <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
@@ -598,84 +597,29 @@ const FuelPricePage = () => {
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); openDetail(purchase); }}
-                            className="text-xs text-blue-500 hover:text-blue-700 border border-blue-200 px-2 py-1 rounded bg-blue-50 flex items-center gap-1"
-                            title="Detail"
-                          >
-                            <Eye size={14} /> Detail
-                          </button>
-                          
-                          {(isGM || purchase.approval_status === 'pending') && (
-                            <button
-                              onClick={(e) => handleEditClick(purchase, e)}
-                              className="text-xs text-amber-500 hover:text-amber-700 border border-amber-200 px-2 py-1 rounded bg-amber-50 flex items-center gap-1"
-                              title="Edit"
-                            >
-                              <Edit size={14} /> Edit
-                            </button>
-                          )}
-
-                        {purchase.approval_status === 'pending' && isGM && (
-                          <>
-                            <button
-                              onClick={() => handleAction(purchase.id, 'approve')}
-                              className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedPurchase(purchase);
-                                setIsRejectModalOpen(true);
-                              }}
-                              className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
-                            >
-                              Tolak
-                            </button>
-                          </>
-                        )}
-                        {purchase.approval_status === 'pending' && !isGM && (
-                          <span className="text-xs text-gray-400">Menunggu</span>
-                        )}
-                        {isGM && purchase.approval_status !== 'pending' && (
-                           <button
-                             onClick={() => {
-                               setSelectedPurchase(purchase);
-                               setIsDeleteModalOpen(true);
-                             }}
-                             className="text-xs text-red-500 hover:text-red-700 border border-red-200 px-2 py-1 rounded bg-red-50 flex items-center gap-1"
-                             title="Hapus"
-                           >
-                             <Trash2 size={14} /> Hapus
-                           </button>
-                        )}
-                        </div>
                       </td>
                     </tr>
                   ))}
                   {purchases.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                      <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
                         Belum ada riwayat pembelian
                       </td>
                     </tr>
                   )}
                 </tbody>
                 {purchases.length > 0 && (
-                  <tfoot className="bg-amber-50 border-t-2 border-amber-200">
+                  <tfoot className="bg-emerald-50/50 border-t-2 border-emerald-100">
                     <tr>
                       <td colSpan={2} className="px-4 py-3 text-right font-bold text-gray-700">Total Keseluruhan:</td>
-                      <td className="px-4 py-3 text-right font-bold text-amber-700 whitespace-nowrap">
+                      <td className="px-4 py-3 text-right font-bold text-emerald-700 whitespace-nowrap">
                         {purchases.reduce((acc: number, curr: FuelPurchase) => acc + (curr.liters || 0), 0).toLocaleString('id-ID')} L
                       </td>
                       <td className="px-4 py-3"></td>
                       <td className="px-4 py-3 text-right font-bold text-green-700 whitespace-nowrap">
                         Rp {purchases.reduce((acc: number, curr: FuelPurchase) => acc + (curr.total_price || 0), 0).toLocaleString('id-ID')}
                       </td>
-                      <td colSpan={2}></td>
+                      <td colSpan={1}></td>
                     </tr>
                   </tfoot>
                 )}
@@ -688,8 +632,8 @@ const FuelPricePage = () => {
 
       {/* Detail Modal */}
       {isDetailModalOpen && selectedPurchase && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl">
             <div className="flex justify-between items-center border-b pb-4 mb-4">
               <h3 className="text-xl font-bold text-gray-800 flex items-center">
                 <Info className="w-5 h-5 mr-2 text-blue-500" />
@@ -745,25 +689,34 @@ const FuelPricePage = () => {
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-3 pt-4 border-t">
+            <div className="mt-6 flex justify-end gap-3 pt-6 border-t border-gray-100">
               <button
                 onClick={() => setIsDetailModalOpen(false)}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                className="px-4 py-2.5 text-gray-600 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm"
               >
                 Tutup
               </button>
+              {(isGM || selectedPurchase.approval_status === 'pending') && (
+                <button
+                  onClick={(e) => { setIsDetailModalOpen(false); handleEditClick(selectedPurchase, e); }}
+                  className="px-4 py-2.5 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 transition-colors font-medium flex items-center text-sm"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit
+                </button>
+              )}
               {selectedPurchase.approval_status === 'pending' && isGM && (
                 <>
                   <button
                     onClick={() => { setIsDetailModalOpen(false); setIsRejectModalOpen(true); }}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center"
+                    className="px-4 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium flex items-center shadow-sm text-sm"
                   >
                     <XCircle className="w-4 h-4 mr-2" />
                     Tolak
                   </button>
                   <button
                     onClick={() => { setIsDetailModalOpen(false); handleAction(selectedPurchase.id, 'approve'); }}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center"
+                    className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors font-medium flex items-center shadow-sm text-sm"
                   >
                     <CheckCircle className="w-4 h-4 mr-2" />
                     Setujui
@@ -773,10 +726,10 @@ const FuelPricePage = () => {
               {selectedPurchase.approval_status !== 'pending' && isGM && (
                 <button
                   onClick={() => { setIsDetailModalOpen(false); setIsDeleteModalOpen(true); }}
-                  className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium flex items-center"
+                  className="px-4 py-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors font-medium flex items-center text-sm"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Hapus Data
+                  Hapus
                 </button>
               )}
             </div>
@@ -786,8 +739,8 @@ const FuelPricePage = () => {
 
       {/* Edit Modal */}
       {isEditModalOpen && selectedPurchase && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl">
             <div className="flex justify-between items-center border-b pb-4 mb-4">
               <h3 className="text-xl font-bold text-gray-800 flex items-center">
                 <Edit className="w-5 h-5 mr-2 text-amber-500" />
@@ -903,17 +856,17 @@ const FuelPricePage = () => {
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-3 pt-4 border-t">
+            <div className="mt-6 flex justify-end gap-3 pt-6 border-t border-gray-100">
               <button
                 onClick={() => setIsEditModalOpen(false)}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                className="px-4 py-2.5 text-gray-600 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm"
               >
                 Batal
               </button>
               <button
                 onClick={submitEditPurchase}
                 disabled={updateMutation.isPending}
-                className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium flex items-center"
+                className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors font-medium flex items-center shadow-sm text-sm"
               >
                 <Save className="w-4 h-4 mr-2" />
                 Simpan Perubahan

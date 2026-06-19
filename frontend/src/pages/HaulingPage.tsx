@@ -292,49 +292,50 @@ export default function HaulingPage() {
             setVendorData({ name: "", contact_person: "", phone: "", address: "", vendor_type: "hauling" });
             setShowVendorForm(true);
           }}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 text-sm"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm"
         >
           <Plus size={16} /> <span>Tambah Vendor Hauling</span>
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md overflow-x-auto border border-gray-100">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px]">
         {loadingVendors ? (
           <div className="p-8 text-center text-gray-500">Memuat data vendor...</div>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Vendor</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kontak Person</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Telepon</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alamat</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b whitespace-nowrap">
+                <tr>
+                  <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Nama Vendor</th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Kontak Person</th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Telepon</th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Alamat</th>
+                </tr>
+              </thead>
+            <tbody className="divide-y divide-gray-50">
               {vendors.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500">Belum ada vendor hauling terdaftar.</td>
+                  <td colSpan={4} className="px-4 py-8 text-center text-gray-500">Belum ada vendor hauling terdaftar.</td>
                 </tr>
               ) : (
                 vendors.map(v => {
                   const isExpanded = expandedVendors[v.id];
                   return (
                     <React.Fragment key={v.id}>
-                      <tr className={`hover:bg-blue-50 cursor-pointer ${isExpanded ? 'bg-blue-50/50' : ''}`} onClick={() => setShowVendorDetail(v)}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 flex items-center gap-2">
+                      <tr className={`hover:bg-emerald-50/60 cursor-pointer transition-colors ${isExpanded ? 'bg-emerald-50/60' : ''}`} onClick={() => setShowVendorDetail(v)}>
+                        <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-900 flex items-center gap-2">
                           <button 
                             onClick={(e) => { e.stopPropagation(); toggleVendorExpand(v.id); }} 
-                            className="p-1 hover:bg-gray-200 rounded-full"
+                            className="p-1 hover:bg-emerald-200/50 rounded-full transition-colors"
                           >
                             {isExpanded ? <ChevronDown size={16} className="text-gray-400" /> : <ChevronRight size={16} className="text-gray-400" />}
                           </button>
                           <Building2 size={16} className="text-blue-500" />
                           {v.name}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{v.contact_person || "-"}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{v.phone || "-"}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs">{v.address || "-"}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-500">{v.contact_person || "-"}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-500">{v.phone || "-"}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-500 truncate max-w-xs">{v.address || "-"}</td>
                       </tr>
                       {/* Expanded: Daftar Truk */}
                       {isExpanded && (
@@ -348,13 +349,14 @@ export default function HaulingPage() {
               )}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
       {/* MODAL VENDOR */}
       {showVendorForm && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-xl">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="bg-white p-6 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold">{editingVendor ? "Edit Vendor Hauling" : "Tambah Vendor Hauling"}</h3>
               <button onClick={() => setShowVendorForm(false)} className="text-gray-500 hover:text-gray-800"><X size={20}/></button>
@@ -372,9 +374,9 @@ export default function HaulingPage() {
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
                 <textarea value={vendorData.address} onChange={e=>setVendorData({...vendorData, address: e.target.value})} className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-300 outline-none" rows={3} />
               </div>
-              <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
-                <button type="button" onClick={() => setShowVendorForm(false)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">Batal</button>
-                <button type="submit" disabled={createVendorMut.isPending || updateVendorMut.isPending} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2">
+              <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-100">
+                <button type="button" onClick={() => setShowVendorForm(false)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 font-medium transition-colors">Batal</button>
+                <button type="submit" disabled={createVendorMut.isPending || updateVendorMut.isPending} className="px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium flex items-center gap-2 shadow-sm transition-colors">
                   <Save size={16} /> Simpan
                 </button>
               </div>
@@ -385,8 +387,8 @@ export default function HaulingPage() {
 
       {/* MODAL TRUK */}
       {showTruckForm && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-full max-w-lg shadow-xl">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="bg-white p-6 rounded-2xl w-full max-w-lg shadow-2xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold">{editingTruck ? "Edit Armada Truk" : "Tambah Armada Truk"}</h3>
               <button onClick={() => setShowTruckForm(null)} className="text-gray-500 hover:text-gray-800"><X size={20}/></button>
@@ -424,9 +426,9 @@ export default function HaulingPage() {
                 </div>
               </div>
               
-              <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
-                <button type="button" onClick={() => setShowTruckForm(null)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">Batal</button>
-                <button type="submit" disabled={createTruckMut.isPending || updateTruckMut.isPending} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium flex items-center gap-2">
+              <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-100">
+                <button type="button" onClick={() => setShowTruckForm(null)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 font-medium transition-colors">Batal</button>
+                <button type="submit" disabled={createTruckMut.isPending || updateTruckMut.isPending} className="px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium flex items-center gap-2 shadow-sm transition-colors">
                   <Save size={16} /> Simpan
                 </button>
               </div>
@@ -437,8 +439,8 @@ export default function HaulingPage() {
 
       {/* CONFIRM MODAL */}
       {confirmModal.isOpen && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-full max-w-sm shadow-xl text-center">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="bg-white p-6 rounded-2xl w-full max-w-sm shadow-2xl text-center">
             <h3 className="text-lg font-bold mb-2 text-gray-900">{confirmModal.title}</h3>
             <p className="text-sm text-gray-600 mb-6">{confirmModal.message}</p>
             <div className="flex justify-center gap-3">
@@ -461,8 +463,8 @@ export default function HaulingPage() {
 
       {/* MODAL TOPUP DEPOSIT */}
       {showTopupForm && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-xl">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="bg-white p-6 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold">{editingTopup ? "Edit Deposit Vendor" : "Tambah Deposit Vendor"}</h3>
               <button onClick={() => { setShowTopupForm(null); setEditingTopup(null); }} className="text-gray-500 hover:text-gray-800"><X size={20}/></button>
@@ -493,8 +495,8 @@ export default function HaulingPage() {
 
       {/* MODAL VENDOR DETAIL */}
       {showVendorDetail && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-2xl w-full max-w-md shadow-xl">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="bg-white p-6 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold flex items-center gap-2">
                 <Building2 className="text-blue-600" /> Detail Vendor

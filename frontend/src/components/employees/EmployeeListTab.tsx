@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Edit, Trash2, DollarSign, Plus, Search } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import AlertModal from '../AlertModal';
 import EmployeeFormModal from './EmployeeFormModal';
 import FinanceFormModal from './FinanceFormModal';
@@ -13,7 +13,7 @@ interface Props {
   isGM: boolean;
 }
 
-const EmployeeListTab: React.FC<Props> = ({ currentUser, canAccessFinancial, canManageEmployees, isGM }) => {
+const EmployeeListTab: React.FC<Props> = ({ canAccessFinancial, canManageEmployees, isGM }) => {
   const { data: employees = [], isLoading: loading } = useEmployees();
   const deleteMutation = useDeleteEmployee();
 
@@ -106,7 +106,7 @@ const EmployeeListTab: React.FC<Props> = ({ currentUser, canAccessFinancial, can
                 setEditingEmployee(null);
                 setShowEmployeeForm(true);
               }}
-              className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center"
+              className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center justify-center transition-colors shadow-sm"
             >
               <Plus className="w-5 h-5 mr-2" />
               Tambah Karyawan
@@ -116,58 +116,53 @@ const EmployeeListTab: React.FC<Props> = ({ currentUser, canAccessFinancial, can
       </div>
 
       {/* Employees Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px]">
         <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead className="bg-gray-50 whitespace-nowrap">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b whitespace-nowrap">
               <tr>
-                <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Karyawan</th>
-                <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Jabatan</th>
-                <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Departemen</th>
-                <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Karyawan</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Jabatan</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Departemen</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                 {canAccessFinancial && (
-                  <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Gaji/Hari</th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Gaji/Hari</th>
                 )}
-                <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Pinjaman</th>
-                <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Pinjaman</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={canAccessFinancial ? 7 : 6} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={canAccessFinancial ? 6 : 5} className="px-4 py-8 text-center text-gray-500">
                     Memuat data...
                   </td>
                 </tr>
               ) : filteredEmployees.length === 0 ? (
                 <tr>
-                  <td colSpan={canAccessFinancial ? 7 : 6} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={canAccessFinancial ? 6 : 5} className="px-4 py-8 text-center text-gray-500">
                     Tidak ada karyawan yang ditemukan
                   </td>
                 </tr>
               ) : (
                 filteredEmployees.map((employee: any) => (
-                  <tr key={employee.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                  <tr key={employee.id} className="hover:bg-emerald-50/60 cursor-pointer transition-colors" onClick={() => openEmployeeDetail(employee)}>
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold mr-3">
                           {employee.name?.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <button
-                            type="button"
-                            onClick={() => openEmployeeDetail(employee)}
-                            className="text-sm font-medium text-gray-900 hover:text-blue-600 hover:underline"
-                          >
+                          <span className="text-sm font-medium text-gray-900">
                             {employee.name}
-                          </button>
+                          </span>
                           <p className="text-xs text-gray-500">{employee.employee_code || '-'}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{employee.position || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.department || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{employee.position || '-'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{employee.department || '-'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         employee.status === 'active' 
                           ? 'bg-green-100 text-green-800' 
@@ -177,13 +172,13 @@ const EmployeeListTab: React.FC<Props> = ({ currentUser, canAccessFinancial, can
                       </span>
                     </td>
                     {canAccessFinancial && (
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                         {employee.daily_salary 
                           ? `Rp ${parseFloat(employee.daily_salary).toLocaleString('id-ID')}` 
                           : '-'}
                       </td>
                     )}
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       {employee.has_loan ? (
                         <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
                           Ada Pinjaman
@@ -191,40 +186,6 @@ const EmployeeListTab: React.FC<Props> = ({ currentUser, canAccessFinancial, can
                       ) : (
                         <span className="text-gray-400 text-sm">-</span>
                       )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex space-x-2">
-                        {canManageEmployees && (
-                          <button
-                            onClick={() => openEditForm(employee)}
-                            className="text-blue-600 hover:text-blue-800"
-                            title="Edit Data Karyawan"
-                          >
-                            <Edit className="w-5 h-5" />
-                          </button>
-                        )}
-                        {canAccessFinancial && (
-                          <button
-                            onClick={() => openFinanceModal(employee)}
-                            className="text-green-600 hover:text-green-800"
-                            title="Data Finansial"
-                          >
-                            <DollarSign className="w-5 h-5" />
-                          </button>
-                        )}
-                        {isGM && (
-                          <button
-                            onClick={() => {
-                              setDeleteEmployeeId(employee.id);
-                              setShowDeleteModal(true);
-                            }}
-                            className="text-red-600 hover:text-red-800"
-                            title="Hapus Karyawan"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        )}
-                      </div>
                     </td>
                   </tr>
                 ))
@@ -259,6 +220,21 @@ const EmployeeListTab: React.FC<Props> = ({ currentUser, canAccessFinancial, can
           onClose={() => setShowDetailModal(false)}
           employee={selectedEmployeeDetail as any}
           canAccessFinancial={canAccessFinancial}
+          canManageEmployees={canManageEmployees}
+          isGM={isGM}
+          onEdit={(emp: any) => {
+            setShowDetailModal(false);
+            openEditForm(emp);
+          }}
+          onFinance={(emp: any) => {
+            setShowDetailModal(false);
+            openFinanceModal(emp);
+          }}
+          onDelete={(empId: number) => {
+            setShowDetailModal(false);
+            setDeleteEmployeeId(empId);
+            setShowDeleteModal(true);
+          }}
         />
       )}
 
@@ -267,10 +243,9 @@ const EmployeeListTab: React.FC<Props> = ({ currentUser, canAccessFinancial, can
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDeleteEmployee}
         title="Hapus Karyawan"
-        message="Apakah Anda yakin ingin menghapus karyawan ini? Tindakan ini tidak dapat dibatalkan."
+        message="Apakah Anda yakin ingin menghapus karyawan ini? Data yang dihapus tidak dapat dikembalikan."
         confirmText="Hapus"
         cancelText="Batal"
-        type="danger"
       />
     </div>
   );

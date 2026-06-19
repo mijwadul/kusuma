@@ -343,7 +343,7 @@ const PayrollPage: React.FC = () => {
         {isFinance && (
           <button
             onClick={openModal}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-medium transition-colors shadow-sm"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Buat Payroll
@@ -352,7 +352,7 @@ const PayrollPage: React.FC = () => {
       </div>
 
       {/* ── Filter Bar ────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="relative">
             <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
@@ -416,7 +416,7 @@ const PayrollPage: React.FC = () => {
       </div>
 
       {/* ── Table ─────────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-24">
             <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
@@ -441,8 +441,8 @@ const PayrollPage: React.FC = () => {
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Tambahan</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Potongan</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Take-Home Pay</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Aksi</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-8 whitespace-nowrap"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -454,7 +454,11 @@ const PayrollPage: React.FC = () => {
                     const isDeleting = deleteMutation.isPending && deleteModal.payrollId === rec.id;
 
                     return (
-                      <tr key={rec.id} className="hover:bg-gray-50 transition-colors">
+                      <tr 
+                        key={rec.id} 
+                        onClick={() => openDetail(rec)}
+                        className="hover:bg-emerald-50/60 cursor-pointer transition-colors"
+                      >
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="font-medium text-gray-800 text-sm">{rec.employee_name ?? rec.employee?.name ?? "-"}</div>
                           <div className="text-xs text-gray-400">{rec.employee_nik ?? rec.employee?.employee_code ?? ""}</div>
@@ -487,45 +491,8 @@ const PayrollPage: React.FC = () => {
                         <td className="px-4 py-3 text-center whitespace-nowrap">
                           <StatusBadge status={rec.payment_status} />
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button onClick={() => openDetail(rec)} title="Lihat Detail" className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors">
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            {isFinance && (
-                              <button onClick={() => openEditModal(rec)} title="Edit Payroll" className="p-1.5 rounded-lg text-blue-500 hover:bg-blue-50 hover:text-blue-700 transition-colors">
-                                <Pencil className="w-4 h-4" />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleDownloadPDF(rec.id, rec.employee_name ?? rec.employee?.name ?? "karyawan", rec.period_start, rec.period_end)}
-                              disabled={isDownloading || (rec.payment_status !== "approved" && rec.payment_status !== "paid")}
-                              title={rec.payment_status === "pending" ? "Slip gaji harus di-approve GM sebelum bisa didownload" : "Download Slip Gaji PDF"}
-                              className={`p-1.5 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${rec.payment_status === "pending" ? "text-gray-400" : "text-blue-600 hover:bg-blue-50"}`}
-                            >
-                              {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                            </button>
-                            {isGM && rec.payment_status === "pending" && (
-                              <button
-                                onClick={() => handleApproveClick(rec.id)}
-                                disabled={isApproving}
-                                title="Approve Payroll (ubah status menjadi Approved)"
-                                className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-colors disabled:opacity-50"
-                              >
-                                {isApproving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                              </button>
-                            )}
-                            {isGM && rec.payment_status !== "paid" && (
-                              <button
-                                onClick={() => handleDeleteClick(rec.id, rec.employee_name ?? rec.employee?.name ?? "karyawan", rec.period_start)}
-                                disabled={isDeleting}
-                                title="Hapus Slip Gaji"
-                                className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
-                              >
-                                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                              </button>
-                            )}
-                          </div>
+                        <td className="px-4 py-3 text-center whitespace-nowrap">
+                          <span className="text-gray-300 text-xs">›</span>
                         </td>
                       </tr>
                     );
@@ -769,21 +736,45 @@ const PayrollPage: React.FC = () => {
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100">
+            <div className="flex flex-wrap items-center justify-end gap-3 px-6 py-4 border-t border-gray-100">
+              {isFinance && detailData.payment_status === "pending" && (
+                <button
+                  onClick={() => {
+                    closeDetail();
+                    openEditModal(detailData);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-xl transition-colors"
+                >
+                  <Pencil className="w-4 h-4" /> Edit
+                </button>
+              )}
+
+              {isGM && detailData.payment_status !== "paid" && (
+                <button
+                  onClick={() => {
+                    closeDetail();
+                    handleDeleteClick(detailData.id, detailData.employee_name ?? detailData.employee?.name ?? "karyawan", detailData.period_start);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-xl transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" /> Hapus
+                </button>
+              )}
+
               {isGM && detailData.payment_status === "pending" && (
                 <button
                   onClick={() => {
                     closeDetail();
                     handleApproveClick(detailData.id);
                   }}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-xl transition-colors"
                 >
                   <CheckCircle className="w-4 h-4" /> Approve
                 </button>
               )}
 
               {detailData.payment_status === "pending" && !isGM && (
-                <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-center gap-1">
+                <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-center gap-1">
                   <AlertCircle className="w-3.5 h-3.5" /> Menunggu approval GM
                 </span>
               )}

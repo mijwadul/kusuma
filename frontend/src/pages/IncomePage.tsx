@@ -87,6 +87,99 @@ const SummaryCard = ({ icon: Icon, label, value, color }: any) => (
   </div>
 );
 
+// ── Detail Modal ─────────────────────────────────────────────────────────────
+const DetailModal = ({ record, onClose, onEdit, onDelete }: any) => {
+  if (!record) return null;
+  const isProj = record.income_type === "project_payment";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+            {isProj ? <FolderOpen className="w-5 h-5 text-blue-500" /> : <ShoppingCart className="w-5 h-5 text-emerald-500" />}
+            Detail Pemasukan
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gray-50 p-3 rounded-xl">
+              <p className="text-xs text-gray-500 mb-1">Tanggal</p>
+              <p className="font-semibold text-gray-800">{formatDate(record.income_date)}</p>
+            </div>
+            <div className="bg-gray-50 p-3 rounded-xl">
+              <p className="text-xs text-gray-500 mb-1">Tipe</p>
+              <div className="mt-0.5"><span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${isProj ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"}`}>{isProj ? "Proyek" : "Material"}</span></div>
+            </div>
+          </div>
+
+          <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+            <p className="text-xs text-emerald-600 font-medium mb-1">Jumlah Pemasukan</p>
+            <p className="text-2xl font-bold text-emerald-700">{formatIDR(record.amount)}</p>
+          </div>
+
+          {isProj ? (
+            <>
+              <div className="bg-gray-50 p-3 rounded-xl">
+                <p className="text-xs text-gray-500 mb-1">Proyek / Deskripsi</p>
+                <p className="text-gray-800 text-sm font-medium">{record.description || "-"}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-3 rounded-xl">
+                  <p className="text-xs text-gray-500 mb-1">Termin</p>
+                  <p className="text-gray-800 text-sm capitalize">{record.payment_term?.replace(/_/g, " ") || "-"}</p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-xl">
+                  <p className="text-xs text-gray-500 mb-1">Metode</p>
+                  <p className="text-gray-800 text-sm capitalize">{record.payment_method || "-"}</p>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="bg-gray-50 p-3 rounded-xl">
+                <p className="text-xs text-gray-500 mb-1">Pelanggan</p>
+                <p className="text-gray-800 text-sm font-medium">{record.customer_name || "-"}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-3 rounded-xl">
+                  <p className="text-xs text-gray-500 mb-1">Material</p>
+                  <p className="text-gray-800 text-sm">{record.material_type || "-"}</p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-xl">
+                  <p className="text-xs text-gray-500 mb-1">Volume</p>
+                  <p className="text-gray-800 text-sm">{record.quantity} {record.unit}</p>
+                </div>
+              </div>
+            </>
+          )}
+
+          {record.notes && (
+            <div className="bg-gray-50 p-3 rounded-xl">
+              <p className="text-xs text-gray-500 mb-1">Catatan</p>
+              <p className="text-gray-800 text-sm">{record.notes}</p>
+            </div>
+          )}
+        </div>
+        <div className="bg-gray-50 px-6 py-4 flex items-center justify-end gap-2 border-t border-gray-100 flex-wrap">
+          <button onClick={onClose} className="px-4 py-2.5 text-sm font-medium border border-gray-300 rounded-xl text-gray-700 hover:bg-white transition-colors mr-auto">Tutup</button>
+          
+          <button onClick={() => { onClose(); onEdit(record); }} className="px-3 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl transition-colors font-medium flex items-center text-sm">
+            <Pencil size={16} className="mr-1" /> Edit
+          </button>
+          
+          <button onClick={() => { onClose(); onDelete(record); }} className="px-3 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-colors font-medium flex items-center text-sm">
+            <Trash2 size={16} className="mr-1" /> Hapus
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function IncomePage() {
   const [activeTab, setActiveTab] = useState("all");
@@ -120,6 +213,7 @@ export default function IncomePage() {
   const [showModal, setShowModal] = useState(false);
   const [modalTab, setModalTab] = useState<"project_payment" | "material_sale">("project_payment");
   const [editId, setEditId] = useState<number | null>(null);
+  const [detailTarget, setDetailTarget] = useState<IncomeRecord | null>(null);
   
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: number | null }>({ isOpen: false, id: null });
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
@@ -458,13 +552,13 @@ export default function IncomePage() {
           <p className="text-gray-500 text-sm mt-1">Kelola pemasukan dari proyek dan penjualan material</p>
         </div>
         <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2">
-          <button onClick={handleExportPDF} className="flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-medium text-sm transition-colors shadow-sm">
+          <button onClick={handleExportPDF} className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-sm transition-colors shadow-sm">
             <Download className="w-4 h-4" /> Download PDF
           </button>
-          <button onClick={() => setShowInvoiceModal(true)} className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium text-sm transition-colors shadow-sm">
+          <button onClick={() => setShowInvoiceModal(true)} className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-sm transition-colors shadow-sm">
             <FileText className="w-4 h-4" /> Buat Invoice
           </button>
-          <button onClick={openAddModal} className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium text-sm transition-colors shadow-sm">
+          <button onClick={openAddModal} className="flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-sm transition-colors shadow-sm">
             <Plus className="w-4 h-4" /> Tambah Pemasukan
           </button>
         </div>
@@ -532,21 +626,16 @@ export default function IncomePage() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Deskripsi</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Jumlah</th>
                     <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Metode</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {(records as IncomeRecord[]).map((r) => (
-                    <tr key={r.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={r.id} className="hover:bg-emerald-50/60 cursor-pointer transition-colors" onClick={() => setDetailTarget(r)}>
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatDate(r.income_date)}</td>
                       <td className="px-4 py-3 whitespace-nowrap">{typeBadge(r.income_type)}</td>
                       <td className="px-4 py-3 text-gray-700 max-w-xs truncate whitespace-nowrap">{r.description || "-"}</td>
                       <td className="px-4 py-3 text-right font-semibold text-gray-800 tabular-nums whitespace-nowrap">{formatIDR(r.amount)}</td>
                       <td className="px-4 py-3 text-center whitespace-nowrap">{paymentBadge(r.payment_method)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-center">
-                        <button onClick={() => openEditModal(r)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg"><Pencil className="w-4 h-4" /></button>
-                        <button onClick={() => setDeleteModal({ isOpen: true, id: r.id })} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -562,21 +651,16 @@ export default function IncomePage() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Termin</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Jumlah</th>
                     <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Metode</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {(records as IncomeRecord[]).map((r) => (
-                    <tr key={r.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={r.id} className="hover:bg-emerald-50/60 cursor-pointer transition-colors" onClick={() => setDetailTarget(r)}>
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatDate(r.income_date)}</td>
                       <td className="px-4 py-3 text-gray-700 font-medium whitespace-nowrap">{r.description ?? "-"}</td>
                       <td className="px-4 py-3 whitespace-nowrap">{termBadge((r as any).payment_term)}</td>
                       <td className="px-4 py-3 text-right font-semibold text-gray-800 tabular-nums whitespace-nowrap">{formatIDR(r.amount)}</td>
                       <td className="px-4 py-3 text-center whitespace-nowrap">{paymentBadge(r.payment_method)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-center">
-                        <button onClick={() => openEditModal(r)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg"><Pencil className="w-4 h-4" /></button>
-                        <button onClick={() => setDeleteModal({ isOpen: true, id: r.id })} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -592,21 +676,16 @@ export default function IncomePage() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Material</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Qty</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {(records as IncomeRecord[]).map((r) => (
-                    <tr key={r.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={r.id} className="hover:bg-emerald-50/60 cursor-pointer transition-colors" onClick={() => setDetailTarget(r)}>
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatDate(r.income_date)}</td>
                       <td className="px-4 py-3 text-gray-700 font-medium whitespace-nowrap">{r.customer_name ?? "-"}</td>
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{r.material_type ?? "-"}</td>
                       <td className="px-4 py-3 text-right text-gray-600 tabular-nums whitespace-nowrap">{r.quantity} {r.unit}</td>
                       <td className="px-4 py-3 text-right font-semibold text-gray-800 tabular-nums whitespace-nowrap">{formatIDR(r.amount)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-center">
-                        <button onClick={() => openEditModal(r)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg"><Pencil className="w-4 h-4" /></button>
-                        <button onClick={() => setDeleteModal({ isOpen: true, id: r.id })} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -675,9 +754,17 @@ export default function IncomePage() {
         )}
       </div>
 
+      {detailTarget && (
+        <DetailModal 
+          record={detailTarget} 
+          onClose={() => setDetailTarget(null)} 
+          onEdit={(r: any) => { openEditModal(r); }} 
+          onDelete={(r: any) => { setDeleteModal({ isOpen: true, id: r.id }); }} 
+        />
+      )}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[92vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
               <h2 className="text-lg font-semibold text-gray-800">{editId ? "Edit Pemasukan" : "Tambah Pemasukan"}</h2>
               <button onClick={() => setShowModal(false)} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"><X className="w-5 h-5" /></button>
@@ -838,9 +925,9 @@ export default function IncomePage() {
                 </>
               )}
 
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">Batal</button>
-                <button type="submit" disabled={isSaving} className={`flex-1 py-2.5 rounded-xl text-white text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-60 ${modalTab === "project_payment" ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700"}`}>
+              <div className="flex gap-3 pt-4 border-t border-gray-100">
+                <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-2.5 border border-gray-300 rounded-xl text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors">Batal</button>
+                <button type="submit" disabled={isSaving} className={`flex-1 py-2.5 rounded-xl text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-60 bg-emerald-600 hover:bg-emerald-700 shadow-sm`}>
                   {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
                   {editId ? "Simpan Perubahan" : "Tambah"}
                 </button>

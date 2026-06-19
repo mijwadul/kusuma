@@ -234,14 +234,14 @@ export default function UsersPage() {
         </div>
         <button
           onClick={openAddForm}
-          className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center space-x-2"
+          className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center justify-center space-x-2 transition-colors shadow-sm"
         >
-          <Plus size={20} />
+          <Plus size={18} />
           <span>Tambah User</span>
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">
           Tingkat Akses System Kusuma:
         </h3>
@@ -262,22 +262,21 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px]">
         <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead className="bg-gray-50 whitespace-nowrap">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b whitespace-nowrap">
               <tr>
-                <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
-                <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Nama</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-50">
               {users.map((user) => (
-                <tr key={user.id} className={user.id === currentUser?.id ? "bg-blue-50" : ""}>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <tr key={user.id} className={`${user.id === currentUser?.id ? "bg-blue-50/50" : "hover:bg-emerald-50/60"} cursor-pointer transition-colors`} onClick={() => handleEdit(user)}>
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-semibold text-sm mr-3 uppercase">
                         {(user.full_name || user.email).charAt(0)}
@@ -290,9 +289,9 @@ export default function UsersPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.email}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{getRoleBadge(user.role || "field")}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{user.email}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">{getRoleBadge(user.role || "field")}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <span
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         user.is_active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
@@ -301,17 +300,6 @@ export default function UsersPage() {
                       {user.is_active ? "Aktif" : "Nonaktif"}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex space-x-2">
-                      <button onClick={() => handleEdit(user)} className="text-blue-600 hover:text-blue-800 p-1" title="Edit">
-                        <Edit size={18} />
-                      </button>
-                      {user.id !== currentUser?.id && (
-                        <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-800 p-1" title="Hapus">
-                          <Trash2 size={18} />
-                        </button>
-                      )}
-                    </div>
                   </td>
                 </tr>
               ))}
@@ -326,8 +314,8 @@ export default function UsersPage() {
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-          <div className="relative p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="relative p-6 border w-full max-w-md shadow-2xl rounded-2xl bg-white">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-medium text-gray-900">
                 {editingUser ? "Edit User" : "Tambah User Baru"}
@@ -461,27 +449,41 @@ export default function UsersPage() {
                 </label>
               </div>
 
-              <div className="flex space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowForm(false);
-                    setEditingUser(null);
-                    resetForm();
-                  }}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                  disabled={submitting}
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
-                >
-                  {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {editingUser ? "Update" : "Simpan"}
-                </button>
+              <div className={`flex ${editingUser && editingUser.id !== currentUser?.id ? 'justify-between' : 'justify-end'} space-x-3 pt-6 border-t border-gray-100 mt-6`}>
+                {editingUser && editingUser.id !== currentUser?.id && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowForm(false);
+                      handleDelete(editingUser.id);
+                    }}
+                    className="px-4 py-2.5 rounded-xl text-red-600 font-medium hover:bg-red-50 flex items-center gap-2 transition-colors"
+                  >
+                    <Trash2 size={18} /> Hapus
+                  </button>
+                )}
+                <div className="flex gap-3 w-full justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowForm(false);
+                      setEditingUser(null);
+                      resetForm();
+                    }}
+                    className="px-6 py-2.5 rounded-xl text-gray-700 font-medium hover:bg-gray-100 transition-colors"
+                    disabled={submitting}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white px-6 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 shadow-sm transition-colors min-w-[140px]"
+                  >
+                    {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {editingUser ? "Update User" : "Simpan User"}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

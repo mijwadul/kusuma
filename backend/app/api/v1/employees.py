@@ -541,6 +541,10 @@ def update_attendance(
              raise HTTPException(status_code=403, detail="Field staff can only check out for today's or yesterday's attendance")
 
     update_data = attendance_update.model_dump(exclude_unset=True)
+    
+    # Catat apakah ini adalah operasi checkout (check_out baru diisi)
+    is_checkout = "check_out" in update_data and update_data["check_out"] is not None and not attendance.check_out
+
     for key, value in update_data.items():
         setattr(attendance, key, value)
         
@@ -553,7 +557,33 @@ def update_attendance(
     db.commit()
     db.refresh(attendance)
 
+    # ── Auto-generate payroll saat checkout ──────────────────────────────────
+    if is_checkout:
+        try:
+            employee = db.query(Employee).filter(Employee.id == attendance.employee_id).first()
+            if employee:
+                from ...services.payroll_service import PayrollService
+                # Trigger untuk OPERATOR: cek work log + buat payroll harian
+                PayrollService.try_auto_generate_operator_payroll(
+                    db=db,
+                    employee=employee,
+                    target_date=attendance.date,
+                )
+                # Trigger untuk NON-OPERATOR: buat payroll mingguan jika checkout Sabtu
+                PayrollService.try_auto_generate_nonoperator_weekly_payroll(
+                    db=db,
+                    employee=employee,
+                    attendance_date=attendance.date,
+                )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(
+                f"[AutoPayroll] Error saat trigger dari checkout attendance {attendance_id}: {e}"
+            )
+    # ─────────────────────────────────────────────────────────────────────────
+
     return attendance
+
 
 @router.delete("/attendance/{attendance_id}")
 def delete_attendance(

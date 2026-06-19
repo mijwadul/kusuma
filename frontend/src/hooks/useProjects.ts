@@ -30,6 +30,8 @@ export interface Project {
   measurement_type?: string;
   assigned_user_ids?: number[];
   assigned_employee_ids?: number[];
+  assigned_users?: { id: number; email: string; full_name?: string; role: string }[];
+  assigned_employees?: { id: number; name: string; position?: string }[];
 }
 
 export interface CustomerMaterialPreference {

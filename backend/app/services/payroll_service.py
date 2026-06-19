@@ -360,3 +360,212 @@ class PayrollService:
         db.commit()
         db.refresh(payroll)
         return payroll
+
+    @staticmethod
+    def try_auto_generate_operator_payroll(
+        db: Session,
+        employee: Employee,
+        target_date: date,
+    ) -> Optional[PayrollRecord]:
+        """
+        Mencoba membuat draft payroll otomatis untuk operator jika DUA kondisi terpenuhi:
+        1. Operator sudah checkout (attendance.check_out terisi) pada target_date
+        2. Ada minimal 1 WorkLog dengan operator_name == employee.name pada target_date
+
+        Jika salah satu kondisi belum terpenuhi, atau payroll untuk tanggal itu sudah ada → skip (return None).
+        Method ini aman dipanggil berkali-kali (idempotent).
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # Hanya untuk karyawan posisi operator
+        if not employee.position or "operator" not in employee.position.lower():
+            return None
+
+        # Kondisi 1: Cek apakah operator sudah checkout pada target_date
+        attendance = db.query(Attendance).filter(
+            Attendance.employee_id == employee.id,
+            Attendance.date == target_date,
+            Attendance.check_out.isnot(None),
+        ).first()
+        if not attendance:
+            logger.debug(
+                f"[AutoPayroll] Operator {employee.name} belum checkout pada {target_date}, skip."
+            )
+            return None
+
+        # Kondisi 2: Cek apakah ada work log alat untuk operator pada target_date
+        from ..models.work_log import WorkLog
+        has_work_log = db.query(WorkLog).filter(
+            func.lower(WorkLog.operator_name) == func.lower(employee.name),
+            func.date(WorkLog.work_date) == target_date,
+        ).first()
+        if not has_work_log:
+            logger.debug(
+                f"[AutoPayroll] Belum ada work log alat untuk operator {employee.name} pada {target_date}, skip."
+            )
+            return None
+
+        # Cek apakah payroll untuk tanggal ini sudah ada (avoid duplicate)
+        existing = db.query(PayrollRecord).filter(
+            PayrollRecord.employee_id == employee.id,
+            PayrollRecord.period_start <= target_date,
+            PayrollRecord.period_end >= target_date,
+        ).first()
+        if existing:
+            logger.info(
+                f"[AutoPayroll] Payroll untuk operator {employee.name} pada {target_date} sudah ada (ID: {existing.id}), skip."
+            )
+            return None
+
+        # Ambil system user untuk created_by
+        system_user = db.query(User).filter(
+            User.role.in_(["gm", "admin"]), User.is_active == True
+        ).first()
+        if not system_user:
+            logger.warning("[AutoPayroll] Tidak ada user GM/Admin aktif, tidak bisa membuat payroll otomatis.")
+            return None
+
+        # Buat draft payroll untuk 1 hari
+        from ..schemas.employee import PayrollCreate
+        payroll_data = PayrollCreate(
+            employee_id=employee.id,
+            period_start=target_date,
+            period_end=target_date,
+            overtime_hours=0,
+            bonus=0,
+            allowance=0,
+            loan_deduction=None,
+            other_deduction=0,
+            notes="[Auto-Generated] Dibuat otomatis saat operator checkout dan work log alat tersedia.",
+        )
+
+        try:
+            new_payroll = PayrollService.create_payroll(db, system_user, payroll_data)
+            logger.info(
+                f"[AutoPayroll] Draft payroll berhasil dibuat untuk operator {employee.name} "
+                f"tanggal {target_date} (Payroll ID: {new_payroll.id})"
+            )
+            return new_payroll
+        except Exception as e:
+            logger.error(
+                f"[AutoPayroll] Gagal membuat payroll untuk operator {employee.name} "
+                f"tanggal {target_date}: {str(e)}"
+            )
+            return None
+
+    @staticmethod
+    def try_auto_generate_nonoperator_weekly_payroll(
+        db: Session,
+        employee: Employee,
+        attendance_date: date,
+    ) -> Optional[PayrollRecord]:
+        """
+        Mencoba membuat draft payroll mingguan otomatis untuk karyawan NON-OPERATOR
+        ketika mereka checkout di akhir minggu kerja.
+
+        Trigger berlaku jika attendance.date jatuh pada:
+        - Hari SABTU (weekday 5)  → periode minggu ini: Minggu s/d Sabtu
+        - Hari SABTU juga berlaku untuk shift sore yang checkout fisik di Minggu,
+          karena attendance.date-nya tetap Sabtu (checkin di Sabtu).
+
+        Method ini idempotent: jika payroll untuk periode tersebut sudah ada → skip.
+        Scheduled job mingguan (AutomationService) tetap berjalan sebagai fallback
+        untuk karyawan yang tidak hadir di Sabtu.
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # Hanya untuk karyawan NON-operator
+        if employee.position and "operator" in employee.position.lower():
+            return None
+
+        # Tentukan hari kerja dari attendance_date
+        day_of_week = attendance_date.weekday()  # 0=Senin, 5=Sabtu, 6=Minggu
+
+        if day_of_week == 5:
+            # Sabtu → periode: Minggu lalu s/d Sabtu ini
+            period_end = attendance_date
+            period_start = attendance_date - timedelta(days=6)
+        else:
+            # Bukan Sabtu → tidak ada trigger mingguan
+            logger.debug(
+                f"[AutoPayroll-Weekly] {employee.name} checkout pada {attendance_date} "
+                f"(hari {day_of_week}), bukan hari Sabtu → skip trigger mingguan."
+            )
+            return None
+
+        logger.info(
+            f"[AutoPayroll-Weekly] Checkout Sabtu terdeteksi untuk {employee.name}. "
+            f"Mencoba generate payroll mingguan periode {period_start} s/d {period_end}."
+        )
+
+        # Cek apakah ada absensi yang belum dibayar dalam periode ini
+        ungenerated_attendances = db.query(Attendance).filter(
+            Attendance.employee_id == employee.id,
+            Attendance.date >= period_start,
+            Attendance.date <= period_end,
+            Attendance.status.in_(["present", "late"]),
+            (Attendance.is_payroll_generated == False) | (Attendance.is_payroll_generated == None),
+            Attendance.payroll_id == None,
+        ).count()
+
+        if ungenerated_attendances == 0:
+            logger.info(
+                f"[AutoPayroll-Weekly] Tidak ada absensi baru untuk {employee.name} "
+                f"periode {period_start} s/d {period_end}, skip."
+            )
+            return None
+
+        # Cek apakah payroll periode ini sudah ada (hindari duplikat)
+        existing = db.query(PayrollRecord).filter(
+            PayrollRecord.employee_id == employee.id,
+            PayrollRecord.period_start <= period_end,
+            PayrollRecord.period_end >= period_start,
+        ).first()
+        if existing:
+            logger.info(
+                f"[AutoPayroll-Weekly] Payroll untuk {employee.name} periode "
+                f"{period_start} s/d {period_end} sudah ada (ID: {existing.id}), skip."
+            )
+            return None
+
+        # Ambil system user untuk created_by
+        system_user = db.query(User).filter(
+            User.role.in_(["gm", "admin"]), User.is_active == True
+        ).first()
+        if not system_user:
+            logger.warning("[AutoPayroll-Weekly] Tidak ada user GM/Admin aktif, tidak bisa membuat payroll.")
+            return None
+
+        from ..schemas.employee import PayrollCreate
+        payroll_data = PayrollCreate(
+            employee_id=employee.id,
+            period_start=period_start,
+            period_end=period_end,
+            overtime_hours=0,
+            bonus=0,
+            allowance=0,
+            loan_deduction=None,
+            other_deduction=0,
+            notes=(
+                f"[Auto-Generated] Dibuat otomatis saat checkout hari Sabtu "
+                f"(periode {period_start} s/d {period_end})."
+            ),
+        )
+
+        try:
+            new_payroll = PayrollService.create_payroll(db, system_user, payroll_data)
+            logger.info(
+                f"[AutoPayroll-Weekly] Draft payroll mingguan berhasil dibuat untuk "
+                f"{employee.name} periode {period_start} s/d {period_end} "
+                f"(Payroll ID: {new_payroll.id})"
+            )
+            return new_payroll
+        except Exception as e:
+            logger.error(
+                f"[AutoPayroll-Weekly] Gagal membuat payroll untuk {employee.name} "
+                f"periode {period_start} s/d {period_end}: {str(e)}"
+            )
+            return None
+

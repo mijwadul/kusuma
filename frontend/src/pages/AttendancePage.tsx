@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Calendar, Clock, UserCheck, Users, Plus, Loader2, Edit, Trash2 } from 'lucide-react';
+import { Calendar, Clock, UserCheck, Users, Plus, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import AlertModal from '../components/AlertModal';
 import { usePermissions } from '../hooks/usePermissions';
@@ -226,7 +226,7 @@ export default function AttendancePage() {
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="mt-3 sm:mt-0 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center shadow-sm"
+          className="mt-3 sm:mt-0 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl flex items-center shadow-sm text-sm font-semibold transition-colors"
         >
           <Plus className="w-5 h-5 mr-2" />
           Input Absensi
@@ -404,31 +404,47 @@ export default function AttendancePage() {
                 </div>
               </div>
               
-              <div className="pt-6 border-t border-gray-100 flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={handleCancelEdit}
-                  className="px-6 py-2.5 rounded-xl text-gray-700 font-medium hover:bg-gray-100 transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-6 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 shadow-sm shadow-blue-200 transition-colors min-w-[140px]"
-                >
-                  {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {editingId ? 'Update Absensi' : 'Simpan Absensi'}
-                </button>
+              <div className={`pt-6 border-t border-gray-100 flex ${editingId && isGMOrSuperuser ? 'justify-between' : 'justify-end'} gap-3`}>
+                {editingId && isGMOrSuperuser && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const id = editingId;
+                      handleCancelEdit();
+                      handleDelete(id);
+                    }}
+                    className="px-4 py-2.5 rounded-xl text-red-600 font-medium hover:bg-red-50 flex items-center gap-2 transition-colors"
+                  >
+                    <Trash2 size={18} /> Hapus
+                  </button>
+                )}
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    className="px-6 py-2.5 rounded-xl text-gray-700 font-medium hover:bg-gray-100 transition-colors"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white px-6 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 shadow-sm transition-colors min-w-[140px]"
+                  >
+                    {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {editingId ? 'Update Absensi' : 'Simpan Absensi'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">Filter & Riwayat Absensi</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px]">
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Filter & Riwayat Absensi</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <select
             value={filters.employee_id}
             onChange={(e) => setFilters((prev) => ({ ...prev, employee_id: e.target.value }))}
@@ -454,22 +470,22 @@ export default function AttendancePage() {
             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           />
         </div>
+        </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead className="bg-gray-50 whitespace-nowrap">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b whitespace-nowrap">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Tanggal</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Karyawan</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Check-in</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Check-out</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Jam Kerja</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Catatan</th>
-                {isGMOrSuperuser && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Aksi</th>}
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Tanggal</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Karyawan</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Check-in</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Check-out</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Jam Kerja</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Catatan</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-50">
               {attendance.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
@@ -478,7 +494,7 @@ export default function AttendancePage() {
                 </tr>
               ) : (
                 attendance.map((row) => (
-                  <tr key={row.id} className="hover:bg-gray-50">
+                  <tr key={row.id} className={`hover:bg-emerald-50/60 transition-colors ${isGMOrSuperuser ? 'cursor-pointer' : ''}`} onClick={() => isGMOrSuperuser && handleEditClick(row)}>
                     <td className="px-4 py-3 text-sm whitespace-nowrap">{row.date ? row.date.split('T')[0] : '-'}</td>
                     <td className="px-4 py-3 text-sm font-medium whitespace-nowrap">
                       {employeeMap.get(row.employee_id)?.name || `ID ${row.employee_id}`}
@@ -492,18 +508,6 @@ export default function AttendancePage() {
                     </td>
                     <td className="px-4 py-3 text-sm whitespace-nowrap">{row.work_hours != null ? Number(row.work_hours).toFixed(2) : '-'}</td>
                     <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{row.notes || '-'}</td>
-                    {isGMOrSuperuser && (
-                      <td className="px-4 py-3 text-sm whitespace-nowrap">
-                        <div className="flex items-center space-x-2">
-                          <button onClick={() => handleEditClick(row)} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded transition-colors" title="Edit">
-                            <Edit size={18} />
-                          </button>
-                          <button onClick={() => handleDelete(row.id)} className="text-red-600 hover:bg-red-50 p-1.5 rounded transition-colors" title="Hapus">
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    )}
                   </tr>
                 ))
               )}

@@ -276,51 +276,51 @@ const EquipmentPage = () => {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => navigate("/fuel")}
-            className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors shadow-md"
+            className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm"
           >
-            <Fuel size={20} />
+            <Fuel size={18} />
             <span>Catat Isi Solar</span>
           </button>
           <button
             onClick={openAddForm}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm"
           >
-            <Plus size={20} />
+            <Plus size={18} />
             <span>Add Equipment</span>
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px]">
         <div className="overflow-x-auto">
-        <table className="min-w-full">
-          <thead className="bg-gray-50 whitespace-nowrap">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 border-b whitespace-nowrap">
             <tr>
-              <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase tracking-wider ">
+              <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Name
               </th>
-              <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase tracking-wider ">
+              <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Brand
               </th>
-              <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase tracking-wider ">
+              <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Type
               </th>
-              <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase tracking-wider ">
+              <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Capacity (Ton)
               </th>
-              <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase tracking-wider ">
+              <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Location
               </th>
-              <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase tracking-wider ">
+              <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase tracking-wider ">
+              <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Kepemilikan
               </th>
-              <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase tracking-wider ">
+              <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Liter/Jam
               </th>
-              <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-gray-500 uppercase tracking-wider ">
+              <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 BBM Status
               </th>
             </tr>
@@ -353,18 +353,18 @@ const EquipmentPage = () => {
                   className="cursor-pointer hover:bg-blue-50 transition-colors"
                   title="Klik untuk melihat detail"
                 >
-                  <td className="px-6 py-4 whitespace-nowrap">{item.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-3 whitespace-nowrap">{item.name}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
                     {item.brand || "-"}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{item.type}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-3 whitespace-nowrap">{item.type}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
                     {item.capacity ? `${item.capacity} Ton` : "-"}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     {item.location}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <span
                       className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         item.status === "active"
@@ -377,7 +377,7 @@ const EquipmentPage = () => {
                       {item.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <span
                       className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         (item.ownership_status || "internal") === "internal"
@@ -390,7 +390,7 @@ const EquipmentPage = () => {
                         : "[Rental]"}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <td className="px-4 py-3 whitespace-nowrap text-sm">
                     <div className="flex items-center gap-2">
                       <span>{hasLph ? lph.toFixed(2) : "-"}</span>
                       {isAnomaly && (

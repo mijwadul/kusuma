@@ -7,6 +7,7 @@ from fastapi import Response
 from ...core.database import get_db
 from ...core.auth import get_current_user, require_role
 from ...models.user import User
+from ...models.employee import Employee
 from ...schemas.work_log import (
     WorkLog as WorkLogSchema, 
     WorkLogCreate, 
@@ -21,6 +22,36 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 # Backward compatibility
 def _calculate_rental_costs(work_log, equipment):
     return WorkLogService._calculate_rental_costs(work_log, equipment)
+
+
+def _try_auto_payroll_from_work_log(db: Session, operator_name: str, work_date):
+    """
+    Helper: setelah work log disimpan/diupdate, cari operator employee berdasarkan nama
+    lalu coba generate payroll jika sudah checkout.
+    """
+    if not operator_name:
+        return
+    try:
+        from sqlalchemy import func as sqlfunc
+        employee = db.query(Employee).filter(
+            sqlfunc.lower(Employee.name) == operator_name.strip().lower(),
+            Employee.is_active == True,
+            Employee.position.ilike("%operator%"),
+        ).first()
+        if employee:
+            target_date = work_date.date() if hasattr(work_date, "date") else work_date
+            from ...services.payroll_service import PayrollService
+            PayrollService.try_auto_generate_operator_payroll(
+                db=db,
+                employee=employee,
+                target_date=target_date,
+            )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(
+            f"[AutoPayroll] Error saat trigger dari work log (operator: {operator_name}): {e}"
+        )
+
 
 @router.get("", response_model=List[WorkLogWithEquipment])
 def get_work_logs(
@@ -74,7 +105,13 @@ def get_work_log(work_log_id: int, db: Session = Depends(get_db)):
 
 @router.post("", response_model=WorkLogSchema)
 def create_work_log(work_log: WorkLogCreate, db: Session = Depends(get_db), current_user: User = Depends(require_role(["field", "helper", "finance", "checker"]))):
-    return WorkLogService.create_work_log(db, current_user, work_log)
+    result = WorkLogService.create_work_log(db, current_user, work_log)
+
+    # ── Auto-generate payroll operator jika sudah checkout ──────────────────
+    _try_auto_payroll_from_work_log(db, work_log.operator_name, work_log.work_date)
+    # ────────────────────────────────────────────────────────────────────────
+
+    return result
 
 @router.put("/{work_log_id}", response_model=WorkLogSchema)
 def update_work_log(
@@ -83,9 +120,18 @@ def update_work_log(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(["finance", "checker"]))
 ):
-    return WorkLogService.update_work_log(db, current_user, work_log_id, work_log_update)
+    result = WorkLogService.update_work_log(db, current_user, work_log_id, work_log_update)
+
+    # ── Auto-generate payroll operator jika ada perubahan operator/tanggal ──
+    operator_name = work_log_update.operator_name if work_log_update.operator_name is not None else result.operator_name
+    work_date = work_log_update.work_date if work_log_update.work_date is not None else result.work_date
+    _try_auto_payroll_from_work_log(db, operator_name, work_date)
+    # ────────────────────────────────────────────────────────────────────────
+
+    return result
 
 @router.delete("/{work_log_id}")
 def delete_work_log(work_log_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_role(["finance", "checker"]))):
     WorkLogService.delete_work_log(db, current_user, work_log_id)
     return {"message": "Work log deleted successfully"}
+
