@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
   Plus,
-  Edit,
   Trash2,
   UserCog,
   Crown,
@@ -12,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import AlertModal from "../components/AlertModal";
+import CustomSelect from "../components/CustomSelect";
 
 import { useUsersList, useCreateUser, useUpdateUser, useDeleteUser, User } from "../hooks/useAuth";
 import { usePermissions } from "../hooks/usePermissions";
@@ -339,23 +339,21 @@ export default function UsersPage() {
                     Pilih dari Data Karyawan
                     <span className="ml-1 text-blue-500 font-normal">(opsional)</span>
                   </label>
-                  <select
+                  <CustomSelect
                     value={selectedEmployee?.id || ""}
-                    onChange={(e) => handleEmployeeSelect(e.target.value)}
-                    className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                    onChange={(val) => handleEmployeeSelect(val as string)}
                     disabled={loadingEmployees}
-                  >
-                    <option value="">
-                      {loadingEmployees
-                        ? "Memuat data karyawan..."
-                        : "-- Pilih Karyawan (data otomatis terisi) --"}
-                    </option>
-                    {employees.map((emp) => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.name} {emp.position ? `— ${emp.position}` : ""} {emp.department ? `(${emp.department})` : ""}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { 
+                        value: "", 
+                        label: loadingEmployees ? "Memuat data karyawan..." : "-- Pilih Karyawan (data otomatis terisi) --" 
+                      },
+                      ...employees.map(emp => ({
+                        value: emp.id,
+                        label: `${emp.name} ${emp.position ? `— ${emp.position}` : ""} ${emp.department ? `(${emp.department})` : ""}`
+                      }))
+                    ]}
+                  />
                   {selectedEmployee && (
                     <div className="mt-2 flex items-center gap-2 text-xs text-blue-700">
                       <span className="inline-block w-2 h-2 rounded-full bg-green-400"></span>
@@ -415,24 +413,19 @@ export default function UsersPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
-                <select
+                <CustomSelect
                   required
                   value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="gm">General Manager - Full access + Final approval</option>
-                  <option value="finance">Finance Staff - Keuangan, Vendor, Payroll</option>
-                  <option value="admin">Admin/HR - Equipment, Karyawan, Absensi</option>
-                  <option value="field">Field Staff - Input lapangan: Absen, BBM, Work Logs</option>
-                  
-                  {(editingUser?.role === "helper" || formData.role === "helper") && (
-                    <option value="helper">Helper (Legacy) - maps to Field Staff</option>
-                  )}
-                  {(editingUser?.role === "checker" || formData.role === "checker") && (
-                    <option value="checker">Checker (Legacy) - maps to Finance Staff</option>
-                  )}
-                </select>
+                  onChange={(val) => setFormData({ ...formData, role: val as string })}
+                  options={[
+                    { value: "gm", label: "General Manager - Full access + Final approval" },
+                    { value: "finance", label: "Finance Staff - Keuangan, Vendor, Payroll" },
+                    { value: "admin", label: "Admin/HR - Equipment, Karyawan, Absensi" },
+                    { value: "field", label: "Field Staff - Input lapangan: Absen, BBM, Work Logs" },
+                    ...((editingUser?.role === "helper" || formData.role === "helper") ? [{ value: "helper", label: "Helper (Legacy) - maps to Field Staff" }] : []),
+                    ...((editingUser?.role === "checker" || formData.role === "checker") ? [{ value: "checker", label: "Checker (Legacy) - maps to Finance Staff" }] : []),
+                  ]}
+                />
               </div>
 
               <div className="flex items-center">

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ClipboardCheck, Loader2, CheckCircle, Trash2 } from "lucide-react";
 import { toLocalDateInput } from "../../utils/formatters";
+import CustomSelect from "../CustomSelect";
 
 interface AttendancePanelProps {
   role: string;
@@ -35,16 +36,17 @@ const AttendancePanel: React.FC<AttendancePanelProps> = ({
       <div className="flex flex-col sm:flex-row gap-4 items-end">
         <div className="flex-1 w-full">
           <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Karyawan</label>
-          <select 
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0D9488]"
+          <CustomSelect 
             value={selectedFieldEmployee}
-            onChange={(e) => setSelectedFieldEmployee(e.target.value)}
-          >
-            <option value="">-- Pilih Pekerja --</option>
-            {operationEmployees.slice().sort((a, b) => (a.name || a.full_name || '').localeCompare(b.name || b.full_name || '')).map(emp => (
-              <option key={emp.id} value={emp.id}>{emp.name || emp.full_name}</option>
-            ))}
-          </select>
+            onChange={(val) => setSelectedFieldEmployee(val as string)}
+            options={[
+              { value: "", label: "-- Pilih Pekerja --" },
+              ...operationEmployees.slice().sort((a, b) => (a.name || a.full_name || '').localeCompare(b.name || b.full_name || '')).map(emp => ({
+                value: emp.id,
+                label: emp.name || emp.full_name
+              }))
+            ]}
+          />
         </div>
         
         <div className="w-full sm:w-auto">

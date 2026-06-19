@@ -6,6 +6,7 @@ import { Building2, Plus, Edit, Trash2, CheckCircle, XCircle, Pencil, Truck, Che
 import { useVendors, useCreateVendor, useUpdateVendor, useDeleteVendor, useVendorTopups, useCreateVendorTopup, useUpdateVendorTopup, useDeleteVendorTopup, useApproveVendorTopup, useEquipmentBalances, Vendor } from "../hooks/useVendors";
 import { useEquipment } from "../hooks/useEquipment";
 import { toLocalDateInput } from "../utils/formatters";
+import CustomSelect from "./CustomSelect";
 
 const formatIDR = (v: any) =>
   Number(v ?? 0).toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 });
@@ -416,33 +417,29 @@ export default function VendorManagement({ userRole }: Props) {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Alat Berat <span className="text-red-500">*</span>
                 </label>
-                <select
+                <CustomSelect
                   required
                   value={editTopupData.equipment_id}
-                  onChange={e => setEditTopupData({ ...editTopupData, equipment_id: e.target.value })}
-                  className="mt-1 w-full border rounded p-2 text-sm focus:ring-2 focus:ring-indigo-300"
-                >
-                  <option value="">-- Pilih Alat Berat --</option>
-                  {editVendorEquipments.map(eq => (
-                    <option key={eq.id} value={String(eq.id)}>{eq.name} ({eq.type})</option>
-                  ))}
-                </select>
+                  onChange={val => setEditTopupData({ ...editTopupData, equipment_id: val as string })}
+                  options={[
+                    { value: "", label: "-- Pilih Alat Berat --" },
+                    ...editVendorEquipments.map(eq => ({ value: String(eq.id), label: `${eq.name} (${eq.type})` }))
+                  ]}
+                />
                 {editVendorEquipments.length === 0 && (
                   <p className="text-xs text-amber-600 mt-1">⚠️ Vendor ini belum memiliki alat berat rental terdaftar.</p>
                 )}
               </div>
               <div>
                 <label className="block text-sm text-gray-700">Project (Opsional)</label>
-                <select
+                <CustomSelect
                   value={editTopupData.project_id}
-                  onChange={e => setEditTopupData({ ...editTopupData, project_id: e.target.value })}
-                  className="mt-1 w-full border rounded p-2"
-                >
-                  <option value="">-- Pilih Project --</option>
-                  {projects.map((p: any) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
+                  onChange={val => setEditTopupData({ ...editTopupData, project_id: val as string })}
+                  options={[
+                    { value: "", label: "-- Pilih Project --" },
+                    ...projects.map((p: any) => ({ value: String(p.id), label: p.name }))
+                  ]}
+                />
               </div>
               <div>
                 <label className="block text-sm text-gray-700">Nominal Rp</label>
@@ -517,36 +514,30 @@ export default function VendorManagement({ userRole }: Props) {
                     ⚠️ Vendor ini belum memiliki alat berat rental yang terdaftar di sistem. Daftarkan alat berat terlebih dahulu di menu Equipment.
                   </div>
                 ) : (
-                  <select
+                  <CustomSelect
                     required
                     value={topupData.equipment_id}
-                    onChange={e => setTopupData({ ...topupData, equipment_id: e.target.value })}
-                    className="mt-1 w-full border border-gray-300 rounded p-2 text-sm focus:ring-2 focus:ring-amber-300"
-                  >
-                    <option value="">-- Pilih Alat Berat --</option>
-                    {vendorEquipments.map(eq => {
-                      const bal = equipmentBalances.find((b: any) => b.equipment_id === eq.id);
-                      return (
-                        <option key={eq.id} value={String(eq.id)}>
-                          {eq.name} ({eq.type}){bal ? ` — Saldo: ${formatIDR(bal.balance)}` : ""}
-                        </option>
-                      );
-                    })}
-                  </select>
+                    onChange={val => setTopupData({ ...topupData, equipment_id: val as string })}
+                    options={[
+                      { value: "", label: "-- Pilih Alat Berat --" },
+                      ...vendorEquipments.map(eq => {
+                        const bal = equipmentBalances.find((b: any) => b.equipment_id === eq.id);
+                        return { value: String(eq.id), label: `${eq.name} (${eq.type})${bal ? ` — Saldo: ${formatIDR(bal.balance)}` : ""}` };
+                      })
+                    ]}
+                  />
                 )}
               </div>
               <div>
                 <label className="block text-sm text-gray-700">Project (Opsional)</label>
-                <select
+                <CustomSelect
                   value={topupData.project_id}
-                  onChange={e => setTopupData({ ...topupData, project_id: e.target.value })}
-                  className="mt-1 w-full border rounded p-2"
-                >
-                  <option value="">-- Pilih Project --</option>
-                  {projects.map((p: any) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
+                  onChange={val => setTopupData({ ...topupData, project_id: val as string })}
+                  options={[
+                    { value: "", label: "-- Pilih Project --" },
+                    ...projects.map((p: any) => ({ value: String(p.id), label: p.name }))
+                  ]}
+                />
               </div>
               <div><label className="block text-sm text-gray-700">Nominal Rp</label><input type="number" required min="1" value={topupData.amount} onChange={e=>setTopupData({...topupData, amount: e.target.value})} className="mt-1 w-full border rounded p-2" /></div>
               <div><label className="block text-sm text-gray-700">Tanggal Top-Up</label><input type="date" value={topupData.topup_date} onChange={e=>setTopupData({...topupData, topup_date: e.target.value})} className="mt-1 w-full border rounded p-2" /></div>

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Calendar, Clock, UserCheck, Users, Plus, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import AlertModal from '../components/AlertModal';
+import CustomSelect from '../components/CustomSelect';
 import { usePermissions } from '../hooks/usePermissions';
 import { useEmployees } from '../hooks/useEmployees';
 import {
@@ -294,19 +295,18 @@ export default function AttendancePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Karyawan</label>
-                  <select
+                  <CustomSelect
                     value={formData.employee_id}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, employee_id: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-gray-50 focus:bg-white"
+                    onChange={(val) => setFormData((prev) => ({ ...prev, employee_id: val as string }))}
                     required
-                  >
-                    <option value="">-- Pilih Karyawan --</option>
-                    {employees.map((emp) => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.name} ({emp.employee_code || '-'})
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "", label: "-- Pilih Karyawan --" },
+                      ...employees.map((emp) => ({
+                        value: emp.id,
+                        label: `${emp.name} (${emp.employee_code || '-'})`
+                      }))
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
@@ -328,17 +328,17 @@ export default function AttendancePage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                  <select
+                  <CustomSelect
                     value={formData.status}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-gray-50 focus:bg-white"
-                  >
-                    <option value="present">Hadir</option>
-                    <option value="late">Terlambat</option>
-                    <option value="sick">Sakit</option>
-                    <option value="leave">Izin/Cuti</option>
-                    <option value="absent">Alpha</option>
-                  </select>
+                    onChange={(val) => setFormData((prev) => ({ ...prev, status: val as string }))}
+                    options={[
+                      { value: "present", label: "Hadir" },
+                      { value: "late", label: "Terlambat" },
+                      { value: "sick", label: "Sakit" },
+                      { value: "leave", label: "Izin/Cuti" },
+                      { value: "absent", label: "Alpha" }
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Waktu Check-in</label>
@@ -445,18 +445,17 @@ export default function AttendancePage() {
         <div className="p-6 border-b border-gray-100">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Filter & Riwayat Absensi</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <select
+          <CustomSelect
             value={filters.employee_id}
-            onChange={(e) => setFilters((prev) => ({ ...prev, employee_id: e.target.value }))}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-          >
-            <option value="">Semua karyawan</option>
-            {employees.map((emp) => (
-              <option key={emp.id} value={emp.id}>
-                {emp.name}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setFilters((prev) => ({ ...prev, employee_id: val as string }))}
+            options={[
+              { value: "", label: "Semua karyawan" },
+              ...employees.map((emp) => ({
+                value: emp.id,
+                label: emp.name
+              }))
+            ]}
+          />
           <input
             type="date"
             value={filters.start_date}

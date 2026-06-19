@@ -4,6 +4,7 @@ import apiClient from '../api/apiClient';
 import { useProjectHaulingPrices, useSetProjectHaulingPrice, useUpdateProjectHaulingPrice, useDeleteProjectHaulingPrice } from '../hooks/useHauling';
 import { X, Loader2, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import CustomSelect from './CustomSelect';
 
 interface HaulingPricesModalProps {
   projectId: number;
@@ -114,17 +115,15 @@ export default function HaulingPricesModal({ projectId, projectName, onClose }: 
           <div className="mb-6 grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Vendor Armada</label>
-              <select 
-                className="w-full border p-2 rounded"
+              <CustomSelect 
                 value={selectedVendor}
-                onChange={e => setSelectedVendor(e.target.value === 'global' ? 'global' : Number(e.target.value) || '')}
-              >
-                <option value="">-- Pilih Vendor --</option>
-                <option value="global" className="font-bold text-blue-600">Global (Semua Vendor)</option>
-                {vendors?.map((v: any) => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
-                ))}
-              </select>
+                onChange={val => setSelectedVendor(val === 'global' ? 'global' : Number(val) || '')}
+                options={[
+                  { value: "", label: "-- Pilih Vendor --" },
+                  { value: "global", label: <span className="font-bold text-blue-600">Global (Semua Vendor)</span> },
+                  ...(vendors?.map((v: any) => ({ value: v.id, label: v.name })) || [])
+                ]}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Harga (Rp)</label>

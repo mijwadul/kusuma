@@ -5,6 +5,7 @@ import EmployeeFormModal from './EmployeeFormModal';
 import FinanceFormModal from './FinanceFormModal';
 import EmployeeDetailModal from './EmployeeDetailModal';
 import { useEmployees, useDeleteEmployee, Employee } from '../../hooks/useEmployees';
+import CustomSelect from '../CustomSelect';
 
 interface Props {
   currentUser: any;
@@ -89,16 +90,16 @@ const EmployeeListTab: React.FC<Props> = ({ canAccessFinancial, canManageEmploye
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            <select
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Semua Departemen</option>
-              {departments.map((dept: any) => (
-                <option key={dept} value={dept}>{dept}</option>
-              ))}
-            </select>
+            <div className="w-full sm:w-auto min-w-[200px]">
+              <CustomSelect
+                value={departmentFilter}
+                onChange={(val) => setDepartmentFilter(val as string)}
+                options={[
+                  { value: "", label: "Semua Departemen" },
+                  ...departments.map((dept: any) => ({ value: dept, label: dept }))
+                ]}
+              />
+            </div>
           </div>
           {canManageEmployees && (
             <button

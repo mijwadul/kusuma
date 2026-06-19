@@ -5,7 +5,6 @@ import {
   FileText,
   Download,
   Plus,
-  Search,
   CheckCircle,
   XCircle,
   Clock,
@@ -13,7 +12,6 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
-  Eye,
   X,
   AlertCircle,
   User,
@@ -23,6 +21,7 @@ import {
   Pencil,
 } from "lucide-react";
 import AlertModal from "../components/AlertModal";
+import CustomSelect from "../components/CustomSelect";
 import { useCurrentUser } from "../hooks/useAuth";
 import {
   usePayrollRecords,
@@ -356,18 +355,19 @@ const PayrollPage: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="relative">
             <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
-            <select
-              value={filterEmployee}
-              onChange={(e) => setFilterEmployee(e.target.value)}
-              className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-            >
-              <option value="">Semua Karyawan</option>
-              {employees.map((emp: any) => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.name}
-                </option>
-              ))}
-            </select>
+            <div className="w-full pl-9">
+              <CustomSelect
+                value={filterEmployee}
+                onChange={(val) => setFilterEmployee(val as string)}
+                options={[
+                  { value: "", label: "Semua Karyawan" },
+                  ...employees.map((emp: any) => ({
+                    value: String(emp.id),
+                    label: emp.name
+                  }))
+                ]}
+              />
+            </div>
           </div>
 
           <div className="relative">
@@ -393,17 +393,19 @@ const PayrollPage: React.FC = () => {
           </div>
 
           <div className="flex gap-2">
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="flex-1 px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-            >
-              <option value="">Semua Status</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="paid">Paid</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+            <div className="flex-1">
+              <CustomSelect
+                value={filterStatus}
+                onChange={(val) => setFilterStatus(val as string)}
+                options={[
+                  { value: "", label: "Semua Status" },
+                  { value: "pending", label: "Pending" },
+                  { value: "approved", label: "Approved" },
+                  { value: "paid", label: "Paid" },
+                  { value: "cancelled", label: "Cancelled" }
+                ]}
+              />
+            </div>
             <button
               onClick={() => fetchPayrolls()}
               title="Refresh"
@@ -449,9 +451,6 @@ const PayrollPage: React.FC = () => {
                   {paginated.map((rec: any) => {
                     const totalAdditions = (rec.overtime_pay ?? 0) + (rec.bonus ?? 0) + (rec.allowance ?? 0);
                     const totalDeductions = (rec.loan_deduction ?? 0) + (rec.other_deduction ?? 0);
-                    const isDownloading = downloadingId === rec.id;
-                    const isApproving = approveMutation.isPending && approveModal.payrollId === rec.id;
-                    const isDeleting = deleteMutation.isPending && deleteModal.payrollId === rec.id;
 
                     return (
                       <tr 
@@ -572,34 +571,33 @@ const PayrollPage: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Karyawan <span className="text-red-500">*</span>
                 </label>
-                <select
-                  name="employee_id"
+                <CustomSelect
                   value={form.employee_id}
-                  onChange={handleFormChange}
-                  required
+                  onChange={(val) => handleFormChange({ target: { name: 'employee_id', value: val } } as any)}
                   disabled={!!editId}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white disabled:bg-gray-100 disabled:text-gray-500"
-                >
-                  <option value="">-- Pilih Karyawan --</option>
-                  {employees.map((emp: any) => (
-                    <option key={emp.id} value={emp.id}>{emp.name}</option>
-                  ))}
-                </select>
+                  options={[
+                    { value: "", label: "-- Pilih Karyawan --" },
+                    ...employees.map((emp: any) => ({
+                      value: String(emp.id),
+                      label: emp.name
+                    }))
+                  ]}
+                />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Project (Opsional)</label>
-                <select
-                  name="project_id"
+                <CustomSelect
                   value={form.project_id}
-                  onChange={handleFormChange}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                >
-                  <option value="">Pilih Project (Kosongkan jika General)</option>
-                  {projects.map((p: any) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
+                  onChange={(val) => handleFormChange({ target: { name: 'project_id', value: val } } as any)}
+                  options={[
+                    { value: "", label: "Pilih Project (Kosongkan jika General)" },
+                    ...projects.map((p: any) => ({
+                      value: String(p.id),
+                      label: p.name
+                    }))
+                  ]}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">

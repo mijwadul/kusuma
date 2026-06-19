@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { Truck, Plus, Edit, Trash2, ChevronDown, ChevronRight, Building2, Save, X } from 'lucide-react';
 import { useVendors, useCreateVendor, useUpdateVendor, useDeleteVendor, useCreateVendorTopup, useVendorTopups, useUpdateVendorTopup, useDeleteVendorTopup, Vendor } from '../hooks/useVendors';
 import { useVendorTrucks, useCreateVendorTruck, useUpdateVendorTruck, useDeleteVendorTruck, useAllHaulingObligations } from '../hooks/useHauling';
+import CustomSelect from '../components/CustomSelect';
 
 export default function HaulingPage() {
   const [expandedVendors, setExpandedVendors] = useState<Record<number, boolean>>({});
@@ -399,10 +400,14 @@ export default function HaulingPage() {
                   <input required value={truckData.nopol} onChange={e=>setTruckData({...truckData, nopol: e.target.value})} className="w-full border rounded p-2 focus:ring-2 focus:ring-indigo-300 outline-none uppercase font-bold" placeholder="B 1234 CD" />
                 </div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Tipe Truk</label>
-                  <select value={truckData.tipe_truk} onChange={e=>setTruckData({...truckData, tipe_truk: e.target.value})} className="w-full border rounded p-2 focus:ring-2 focus:ring-indigo-300 outline-none bg-white">
-                    <option value="tronton">Tronton</option>
-                    <option value="colt_diesel">Colt Diesel</option>
-                  </select>
+                  <CustomSelect
+                    value={truckData.tipe_truk}
+                    onChange={(val) => setTruckData({...truckData, tipe_truk: val as string})}
+                    options={[
+                      { value: "tronton", label: "Tronton" },
+                      { value: "colt_diesel", label: "Colt Diesel" }
+                    ]}
+                  />
                 </div>
               </div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Nama Supir (Default)</label>

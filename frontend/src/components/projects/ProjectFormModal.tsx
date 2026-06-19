@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Plus, Trash2, Loader2 } from 'lucide-react';
 import { Project } from '../../hooks/useProjects';
+import CustomSelect from '../CustomSelect';
 
 interface ProjectFormModalProps {
   show: boolean;
@@ -62,19 +63,27 @@ export default function ProjectFormModal({
             </div>
             <div>
               <label className="block text-sm mb-1">Status</label>
-              <select value={projForm.status || "ongoing"} onChange={e => setProjForm(p => ({...p, status: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm">
-                <option value="ongoing">Ongoing</option>
-                <option value="completed">Completed</option>
-                <option value="paused">Paused</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
+              <CustomSelect
+                value={projForm.status || "ongoing"}
+                onChange={(val) => setProjForm(p => ({...p, status: val as string}))}
+                options={[
+                  { value: "ongoing", label: "Ongoing" },
+                  { value: "completed", label: "Completed" },
+                  { value: "paused", label: "Paused" },
+                  { value: "cancelled", label: "Cancelled" }
+                ]}
+              />
             </div>
             <div>
               <label className="block text-sm mb-1">Tipe Pengukuran</label>
-              <select value={projForm.measurement_type || "tonase"} onChange={e => setProjForm(p => ({...p, measurement_type: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm">
-                <option value="tonase">Tonase (Ton)</option>
-                <option value="kubikasi">Kubikasi (m3)</option>
-              </select>
+              <CustomSelect
+                value={projForm.measurement_type || "tonase"}
+                onChange={(val) => setProjForm(p => ({...p, measurement_type: val as string}))}
+                options={[
+                  { value: "tonase", label: "Tonase (Ton)" },
+                  { value: "kubikasi", label: "Kubikasi (m3)" }
+                ]}
+              />
             </div>
             <div>
               <label className="block text-sm mb-1">Tugaskan Field Staff</label>
@@ -85,17 +94,19 @@ export default function ProjectFormModal({
                   return <span key={i} className="bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded flex items-center gap-1">{displayName} <X size={12} className="cursor-pointer hover:text-emerald-950" onClick={() => setProjForm(p => ({...p, assigned_user_ids: p.assigned_user_ids?.filter(uid => uid !== id)}))}/></span>
                 })}
               </div>
-              <select value="" onChange={e => {
-                const val = parseInt(e.target.value);
-                if (val && !projForm.assigned_user_ids?.includes(val)) {
-                  setProjForm(p => ({...p, assigned_user_ids: [...(p.assigned_user_ids || []), val]}));
-                }
-              }} className="w-full border rounded-lg px-3 py-2 text-sm">
-                <option value="">-- Tambah Field Staff --</option>
-                {allUsers.filter(u => (u.role === 'field' || u.role === 'helper') && !projForm.assigned_user_ids?.includes(u.id)).map(u => (
-                  <option key={u.id} value={u.id}>{u.full_name || u.email}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value=""
+                onChange={val => {
+                  const num = parseInt(val as string);
+                  if (num && !projForm.assigned_user_ids?.includes(num)) {
+                    setProjForm(p => ({...p, assigned_user_ids: [...(p.assigned_user_ids || []), num]}));
+                  }
+                }}
+                options={[
+                  { value: "", label: "-- Tambah Field Staff --" },
+                  ...allUsers.filter(u => (u.role === 'field' || u.role === 'helper') && !projForm.assigned_user_ids?.includes(u.id)).map(u => ({ value: String(u.id), label: u.full_name || u.email }))
+                ]}
+              />
             </div>
             <div className="col-span-2">
               <label className="block text-sm mb-1">Tugaskan Pekerja</label>
@@ -106,17 +117,19 @@ export default function ProjectFormModal({
                   return <span key={i} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded flex items-center gap-1">{displayName} <X size={12} className="cursor-pointer hover:text-blue-950" onClick={() => setProjForm(p => ({...p, assigned_employee_ids: p.assigned_employee_ids?.filter(eid => eid !== id)}))}/></span>
                 })}
               </div>
-              <select value="" onChange={e => {
-                const val = parseInt(e.target.value);
-                if (val && !projForm.assigned_employee_ids?.includes(val)) {
-                  setProjForm(p => ({...p, assigned_employee_ids: [...(p.assigned_employee_ids || []), val]}));
-                }
-              }} className="w-full border rounded-lg px-3 py-2 text-sm">
-                <option value="">-- Tambah Pekerja --</option>
-                {allEmployees.filter(emp => emp.is_active && !projForm.assigned_employee_ids?.includes(emp.id)).map(emp => (
-                  <option key={emp.id} value={emp.id}>{emp.name} ({emp.position || '-'})</option>
-                ))}
-              </select>
+              <CustomSelect
+                value=""
+                onChange={val => {
+                  const num = parseInt(val as string);
+                  if (num && !projForm.assigned_employee_ids?.includes(num)) {
+                    setProjForm(p => ({...p, assigned_employee_ids: [...(p.assigned_employee_ids || []), num]}));
+                  }
+                }}
+                options={[
+                  { value: "", label: "-- Tambah Pekerja --" },
+                  ...allEmployees.filter(emp => emp.is_active && !projForm.assigned_employee_ids?.includes(emp.id)).map(emp => ({ value: String(emp.id), label: `${emp.name} (${emp.position || '-'})` }))
+                ]}
+              />
               <p className="text-[10px] text-gray-500 mt-1">Pekerja yang ditugaskan akan tampil di menu Field Staff</p>
             </div>
           </div>
@@ -131,20 +144,22 @@ export default function ProjectFormModal({
             {projForm.material_items?.map((m, idx) => (
               <div key={idx} className="flex items-end gap-2 mb-2 p-2 bg-gray-50 rounded border">
                 <div className="flex-1">
-                  <label className="block text-xs mb-1">Material</label>
-                  <select value={m.material_type} onChange={e => updateProjMaterial(idx, "material_type", e.target.value)} className="w-full border rounded text-sm p-1.5">
-                    {meta?.material_types?.map((mt: string) => <option key={mt} value={mt}>{mt}</option>)}
-                  </select>
+                  <CustomSelect
+                    value={m.material_type}
+                    onChange={val => updateProjMaterial(idx, "material_type", val as string)}
+                    options={(meta?.material_types || []).map((mt: string) => ({ value: mt, label: mt }))}
+                  />
                 </div>
                 <div className="w-24">
                   <label className="block text-xs mb-1">Target Qty</label>
                   <input type="number" required value={m.target_quantity} onChange={e => updateProjMaterial(idx, "target_quantity", e.target.value)} className="w-full border rounded text-sm p-1.5" />
                 </div>
                 <div className="w-24">
-                  <label className="block text-xs mb-1">Satuan</label>
-                  <select value={m.unit} onChange={e => updateProjMaterial(idx, "unit", e.target.value)} className="w-full border rounded text-sm p-1.5">
-                    {(meta?.material_units?.[m.material_type] || meta?.all_units || []).map((u: string) => <option key={u} value={u}>{u}</option>)}
-                  </select>
+                  <CustomSelect
+                    value={m.unit}
+                    onChange={val => updateProjMaterial(idx, "unit", val as string)}
+                    options={(meta?.material_units?.[m.material_type] || meta?.all_units || []).map((u: string) => ({ value: u, label: u }))}
+                  />
                 </div>
                 <div className="flex-1">
                   <label className="block text-xs mb-1">Harga/Satuan (opsional)</label>

@@ -8,13 +8,13 @@ import {
   MapPin,
   Droplets,
   Save,
-  Edit,
   Trash2,
   AlertTriangle,
   PackageX,
 } from "lucide-react";
 import { toast } from "sonner";
 import AlertModal from "../components/AlertModal";
+import CustomSelect from "../components/CustomSelect";
 import { toLocalDateTimeInputString } from "../utils/formatters";
 import { useEquipment } from "../hooks/useEquipment";
 import { 
@@ -353,22 +353,18 @@ const FuelPage = () => {
                   <Truck className="inline h-4 w-4 mr-1" />
                   Pilih Unit
                 </label>
-                <select
-                  name="equipment_id"
-                  value={formData.equipment_id}
-                  onChange={handleEquipmentChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                <CustomSelect
                   required
-                >
-                  <option value="">-- Pilih Alat --</option>
-                  {equipmentList.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((eq: any) => (
-                    <option key={eq.id} value={eq.id}>
-                      {eq.name}
-                      {eq.brand ? ` · ${eq.brand}` : ""} · {eq.type}
-                      {eq.capacity ? ` · ${eq.capacity} Ton` : ""}
-                    </option>
-                  ))}
-                </select>
+                  value={formData.equipment_id}
+                  onChange={(val) => handleEquipmentChange({ target: { value: val as string } } as any)}
+                  options={[
+                    { value: "", label: "-- Pilih Alat --" },
+                    ...equipmentList.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((eq: any) => ({
+                      value: String(eq.id),
+                      label: `${eq.name}${eq.brand ? ` · ${eq.brand}` : ""} · ${eq.type}${eq.capacity ? ` · ${eq.capacity} Ton` : ""}`
+                    }))
+                  ]}
+                />
                 {/* Info card unit yang dipilih */}
                 {formData.equipment_id &&
                   (() => {

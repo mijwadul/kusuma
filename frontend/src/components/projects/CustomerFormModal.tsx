@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Plus, Trash2, Loader2 } from 'lucide-react';
 import { Customer } from '../../hooks/useProjects';
+import CustomSelect from '../CustomSelect';
 
 interface CustomerFormModalProps {
   show: boolean;
@@ -78,23 +79,29 @@ export default function CustomerFormModal({
             {custForm.material_preferences?.map((m, idx) => (
               <div key={idx} className="flex items-end gap-2 mb-2 p-2 bg-gray-50 rounded border">
                 <div className="flex-1">
-                  <label className="block text-xs mb-1">Material</label>
-                  <select value={m.material_type} onChange={e => updateCustMaterial(idx, "material_type", e.target.value)} className="w-full border rounded text-sm p-1.5">
-                    {meta?.material_types?.map((mt: string) => <option key={mt} value={mt}>{mt}</option>)}
-                  </select>
+                  <CustomSelect
+                    value={m.material_type}
+                    onChange={val => updateCustMaterial(idx, "material_type", val as string)}
+                    options={(meta?.material_types || []).map((mt: string) => ({ value: mt, label: mt }))}
+                  />
                 </div>
                 <div className="w-24">
-                  <label className="block text-xs mb-1">Satuan</label>
-                  <select value={m.unit} onChange={e => updateCustMaterial(idx, "unit", e.target.value)} className="w-full border rounded text-sm p-1.5">
-                    {(meta?.material_units?.[m.material_type] || meta?.all_units || []).map((u: string) => <option key={u} value={u}>{u}</option>)}
-                  </select>
+                  <CustomSelect
+                    value={m.unit}
+                    onChange={val => updateCustMaterial(idx, "unit", val as string)}
+                    options={(meta?.material_units?.[m.material_type] || meta?.all_units || []).map((u: string) => ({ value: u, label: u }))}
+                  />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-xs mb-1">Jenis Kendaraan *</label>
-                  <select value={m.vehicle_type || "Tronton"} onChange={e => updateCustMaterial(idx, "vehicle_type", e.target.value)} className="w-full border rounded text-sm p-1.5" required>
-                    <option value="Tronton">Tronton</option>
-                    <option value="Colt Diesel">Colt Diesel</option>
-                  </select>
+                  <CustomSelect
+                    required
+                    value={m.vehicle_type || "Tronton"}
+                    onChange={val => updateCustMaterial(idx, "vehicle_type", val as string)}
+                    options={[
+                      { value: "Tronton", label: "Tronton" },
+                      { value: "Colt Diesel", label: "Colt Diesel" }
+                    ]}
+                  />
                 </div>
                 <div className="flex-1">
                   <label className="block text-xs mb-1">Harga/Satuan (opsional)</label>
@@ -124,11 +131,15 @@ export default function CustomerFormModal({
                   <input type="text" placeholder="Contoh: Budi" value={t.driver_name || ""} onChange={e => updateCustTruck(idx, "driver_name", e.target.value)} className="w-full border rounded text-sm p-1.5" />
                 </div>
                 <div className="flex-1 min-w-[120px]">
-                  <label className="block text-xs mb-1">Jenis Kendaraan *</label>
-                  <select value={t.vehicle_type} onChange={e => updateCustTruck(idx, "vehicle_type", e.target.value)} className="w-full border rounded text-sm p-1.5" required>
-                    <option value="Colt Diesel">Colt Diesel</option>
-                    <option value="Tronton">Tronton</option>
-                  </select>
+                  <CustomSelect
+                    required
+                    value={t.vehicle_type}
+                    onChange={val => updateCustTruck(idx, "vehicle_type", val as string)}
+                    options={[
+                      { value: "Colt Diesel", label: "Colt Diesel" },
+                      { value: "Tronton", label: "Tronton" }
+                    ]}
+                  />
                 </div>
                 <button type="button" onClick={() => removeCustTruck(idx)} className="p-2 text-red-500 hover:bg-red-100 rounded mb-0.5"><Trash2 size={14}/></button>
               </div>

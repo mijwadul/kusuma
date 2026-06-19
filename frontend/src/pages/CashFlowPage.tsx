@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { ArrowDownIcon, ArrowUpIcon, Download, RefreshCcw, CheckCircle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
+import CustomSelect from '../components/CustomSelect';
 import { useProjectsList } from '../hooks/useProjects';
 import { useCashFlowReport } from '../hooks/useReports';
 import { toLocalDateInput } from '../utils/formatters';
@@ -141,25 +142,19 @@ export default function CashFlowPage() {
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-gray-500">Filter Kategori</label>
-            <select
+            <CustomSelect
               value={selectedProject}
-              onChange={(e) => setSelectedProject(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-            >
-              <optgroup label="Kategori Umum">
-                <option value="all">🌐 Semua (General + Project)</option>
-                <option value="general">🏢 General (Tanpa Project)</option>
-              </optgroup>
-              {projects.length > 0 && (
-                <optgroup label="Per Project">
-                  {projects.map((p: any) => (
-                    <option key={p.id} value={String(p.id)}>
-                      {p.name}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-            </select>
+              onChange={(val) => setSelectedProject(val as string)}
+              options={[
+                { value: "all", label: "🌐 Semua (General + Project)" },
+                { value: "general", label: "🏢 General (Tanpa Project)" },
+                ...(projects.length > 0 ? [{ value: "divider", label: "─── Per Project ───", disabled: true }] : []),
+                ...projects.map((p: any) => ({
+                  value: String(p.id),
+                  label: `📁 ${p.name}`
+                }))
+              ]}
+            />
           </div>
         </div>
       </div>

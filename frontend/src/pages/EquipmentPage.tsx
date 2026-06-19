@@ -10,6 +10,7 @@ import VendorManagement from "../components/VendorManagement";
 import { useCurrentUser } from "../hooks/useAuth";
 import { useEquipment, useCreateEquipment, useUpdateEquipment, useDeleteEquipment, useEquipmentFuelReport, Equipment } from "../hooks/useEquipment";
 import { useVendors } from "../hooks/useVendors";
+import CustomSelect from "../components/CustomSelect";
 
 const EquipmentPage = () => {
   const navigate = useNavigate();
@@ -474,23 +475,17 @@ const EquipmentPage = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Brand
                   </label>
-                  <select
+                  <CustomSelect
                     value={formData.brand}
-                    onChange={(e) =>
-                      setFormData({ ...formData, brand: e.target.value })
-                    }
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  >
-                    <option value="">Select Brand</option>
-                    {brands.map((brand) => (
-                      <option key={brand} value={brand}>
-                        {brand}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, brand: val as string })}
+                    options={[
+                      { value: "", label: "Select Brand" },
+                      ...brands.map((brand) => ({ value: brand, label: brand }))
+                    ]}
+                  />
                   <div className="mt-2 flex space-x-2">
                     <input
                       type="text"
@@ -538,43 +533,31 @@ const EquipmentPage = () => {
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Type
                   </label>
-                  <select
-                    value={formData.type}
-                    onChange={(e) =>
-                      setFormData({ ...formData, type: e.target.value })
-                    }
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                  <CustomSelect
                     required
-                  >
-                    <option value="">Select Type</option>
-                    {equipmentTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
+                    value={formData.type}
+                    onChange={(val) => setFormData({ ...formData, type: val as string })}
+                    options={[
+                      { value: "", label: "Select Type" },
+                      ...equipmentTypes.map((type) => ({ value: type, label: type }))
+                    ]}
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Capacity (Ton)
                   </label>
-                  <select
+                  <CustomSelect
                     value={formData.capacity}
-                    onChange={(e) =>
-                      setFormData({ ...formData, capacity: e.target.value })
-                    }
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  >
-                    <option value="">Select Capacity</option>
-                    {capacityOptions.map((cap) => (
-                      <option key={cap} value={cap}>
-                        {cap} Ton
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, capacity: val as string })}
+                    options={[
+                      { value: "", label: "Select Capacity" },
+                      ...capacityOptions.map((cap) => ({ value: String(cap), label: `${cap} Ton` }))
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
@@ -613,38 +596,31 @@ const EquipmentPage = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Status
                   </label>
-                  <select
+                  <CustomSelect
                     value={formData.status}
-                    onChange={(e) =>
-                      setFormData({ ...formData, status: e.target.value })
-                    }
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  >
-                    <option value="active">Active</option>
-                    <option value="maintenance">Maintenance</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, status: val as string })}
+                    options={[
+                      { value: "active", label: "Active" },
+                      { value: "maintenance", label: "Maintenance" },
+                      { value: "inactive", label: "Inactive" }
+                    ]}
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Status Kepemilikan
                   </label>
-                  <select
+                  <CustomSelect
                     value={formData.ownership_status}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        ownership_status: e.target.value,
-                      })
-                    }
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                  >
-                    <option value="internal">Milik Sendiri</option>
-                    <option value="rental">Sewa/Rental</option>
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, ownership_status: val as string })}
+                    options={[
+                      { value: "internal", label: "Milik Sendiri" },
+                      { value: "rental", label: "Sewa/Rental" }
+                    ]}
+                  />
                 </div>
 
                 {formData.ownership_status === "rental" && (
@@ -770,26 +746,17 @@ const EquipmentPage = () => {
                       </div>
                     )}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
                         Vendor Perusahaan Sewa
                       </label>
-                      <select
+                      <CustomSelect
                         value={formData.vendor_id}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            vendor_id: e.target.value,
-                          })
-                        }
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                      >
-                        <option value="">-- Pilih Vendor --</option>
-                        {vendorsList.map((v: any) => (
-                          <option key={v.id} value={v.id}>
-                            {v.name}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(val) => setFormData({ ...formData, vendor_id: val as string })}
+                        options={[
+                          { value: "", label: "-- Pilih Vendor --" },
+                          ...vendorsList.map((v: any) => ({ value: String(v.id), label: v.name }))
+                        ]}
+                      />
                     </div>
                   </>
                 )}

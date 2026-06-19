@@ -14,6 +14,7 @@ import {
 } from "../hooks/useMaterialSales";
 import { useCustomersList, useProjectsList, Customer } from "../hooks/useProjects";
 import { toLocalDateInput } from "../utils/formatters";
+import CustomSelect from "../components/CustomSelect";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const formatIDR = (v?: number | string | null) =>
@@ -335,11 +336,11 @@ const SaleFormModal = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Jenis Kendaraan</label>
-              <select value={form.vehicle_type} onChange={e => setForm(p => ({...p, vehicle_type: e.target.value}))} className={inputCls} required>
-                {VEHICLE_TYPES.map(v => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={form.vehicle_type}
+                onChange={(val) => setForm(p => ({...p, vehicle_type: val as string}))}
+                options={VEHICLE_TYPES.map(v => ({ value: v, label: v }))}
+              />
             </div>
           </div>
 
@@ -366,24 +367,22 @@ const SaleFormModal = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Material</label>
-              <select value={form.material_type} onChange={e => setForm(p => ({...p, material_type: e.target.value}))} className={inputCls} required>
-                {MATERIAL_TYPES.map(m => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={form.material_type}
+                onChange={(val) => setForm(p => ({...p, material_type: val as string}))}
+                options={MATERIAL_TYPES.map(m => ({ value: m, label: m }))}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Satuan <span className="text-red-500">*</span></label>
-              <select
+              <CustomSelect
                 value={form.unit}
-                onChange={e => setForm(p => ({ ...p, unit: e.target.value, quantity: e.target.value === 'ritase' ? '1' : p.quantity }))}
-                className={inputCls}
-                required
-              >
-                {UNITS.map(u => (
-                  <option key={u} value={u}>{u === 'm3' ? 'Kubikasi (m³)' : u === 'ton' ? 'Tonase (ton)' : 'Ritase'}</option>
-                ))}
-              </select>
+                onChange={(val) => setForm(p => ({ ...p, unit: val as string, quantity: val === 'ritase' ? '1' : p.quantity }))}
+                options={UNITS.map(u => ({
+                  value: u,
+                  label: u === 'm3' ? 'Kubikasi (m³)' : u === 'ton' ? 'Tonase (ton)' : 'Ritase'
+                }))}
+              />
             </div>
           </div>
           
@@ -394,16 +393,17 @@ const SaleFormModal = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Project <span className="text-xs font-normal text-gray-400">(opsional)</span></label>
-              <select
+              <CustomSelect
                 value={form.project_id}
-                onChange={e => setForm(p => ({...p, project_id: e.target.value}))}
-                className={inputCls}
-              >
-                <option value="">-- Tanpa Project (General) --</option>
-                  {projects.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((p: any) => (
-                    <option key={p.id} value={String(p.id)}>{p.name}</option>
-                  ))}
-              </select>
+                onChange={(val) => setForm(p => ({...p, project_id: val as string}))}
+                options={[
+                  { value: "", label: "-- Tanpa Project (General) --" },
+                  ...projects.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((p: any) => ({
+                    value: String(p.id),
+                    label: p.name
+                  }))
+                ]}
+              />
             </div>
           </div>
 
@@ -466,28 +466,36 @@ const PriceFormModal = ({ editData, onClose }: { editData: MaterialPrice | null,
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Material</label>
-              <select value={form.material_type} onChange={(e) => {
-                setForm(p => ({...p, material_type: e.target.value, unit: "ritase"}));
-              }} className={inputCls}>
-                {MATERIAL_TYPES.map((m) => <option key={m} value={m}>{m}</option>)}
-              </select>
+              <CustomSelect
+                value={form.material_type}
+                onChange={(val) => setForm(p => ({...p, material_type: val as string, unit: "ritase"}))}
+                options={MATERIAL_TYPES.map(m => ({ value: m, label: m }))}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Jenis Kendaraan</label>
-              <select value={form.vehicle_type} onChange={e => setForm(p => ({...p, vehicle_type: e.target.value}))} className={inputCls}>
-                <option value="">Semua Kendaraan</option>
-                {VEHICLE_TYPES.map(v => <option key={v} value={v}>{v}</option>)}
-              </select>
+              <CustomSelect
+                value={form.vehicle_type}
+                onChange={(val) => setForm(p => ({...p, vehicle_type: val as string}))}
+                options={[
+                  { value: "", label: "Semua Kendaraan" },
+                  ...VEHICLE_TYPES.map(v => ({ value: v, label: v }))
+                ]}
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Satuan</label>
-              <select value={form.unit} onChange={(e) => setForm(p => ({ ...p, unit: e.target.value }))} className={inputCls}>
-                <option value="ritase">Ritase</option>
-                <option value="m3">Kubikasi (m³)</option>
-                <option value="ton">Tonase (ton)</option>
-              </select>
+              <CustomSelect
+                value={form.unit}
+                onChange={(val) => setForm(p => ({ ...p, unit: val as string }))}
+                options={[
+                  { value: "ritase", label: "Ritase" },
+                  { value: "m3", label: "Kubikasi (m³)" },
+                  { value: "ton", label: "Tonase (ton)" }
+                ]}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Harga / Satuan (Rp)</label>

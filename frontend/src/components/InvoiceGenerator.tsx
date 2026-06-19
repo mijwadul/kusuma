@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { X, FileText, Download, Loader2 } from "lucide-react";
 import { API_URL } from "../api/apiClient";
 import { toLocalDateInput } from "../utils/formatters";
+import CustomSelect from "./CustomSelect";
 
 const formatIDR = (v: any) =>
   Number(v ?? 0).toLocaleString("id-ID", {
@@ -292,20 +293,16 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Customer <span className="text-red-500">*</span>
                 </label>
-                <select
+                <CustomSelect
                   required
                   value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  className={inputCls}
-                >
-                  <option value="">-- Pilih Customer --</option>
-                  {uninvoicedCustomers.map((cName, i) => (
-                    <option key={i} value={cName}>{cName}</option>
-                  ))}
-                  {existingInvoice && !uninvoicedCustomers.includes(existingInvoice.customer_name) && (
-                    <option value={existingInvoice.customer_name}>{existingInvoice.customer_name}</option>
-                  )}
-                </select>
+                  onChange={(val) => setCustomerName(val as string)}
+                  options={[
+                    { value: "", label: "-- Pilih Customer --" },
+                    ...uninvoicedCustomers.map((cName) => ({ value: cName, label: cName })),
+                    ...(existingInvoice && !uninvoicedCustomers.includes(existingInvoice.customer_name) ? [{ value: existingInvoice.customer_name, label: existingInvoice.customer_name }] : [])
+                  ]}
+                />
                 <p className="text-xs text-gray-500 mt-1">
                   Hanya menampilkan customer yang memiliki tagihan belum dibuat invoice.
                 </p>
@@ -458,18 +455,19 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Jenis Diskon
                       </label>
-                      <select
+                      <CustomSelect
                         value={discountType}
-                        onChange={(e) => {
-                          setDiscountType(e.target.value);
-                          if (!e.target.value) setDiscountValue("");
+                        onChange={(val) => {
+                          const strVal = val as string;
+                          setDiscountType(strVal);
+                          if (!strVal) setDiscountValue("");
                         }}
-                        className={inputCls}
-                      >
-                        <option value="">Tidak Ada</option>
-                        <option value="percentage">Persentase (%)</option>
-                        <option value="nominal">Nominal (Rp)</option>
-                      </select>
+                        options={[
+                          { value: "", label: "Tidak Ada" },
+                          { value: "percentage", label: "Persentase (%)" },
+                          { value: "nominal", label: "Nominal (Rp)" }
+                        ]}
+                      />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">

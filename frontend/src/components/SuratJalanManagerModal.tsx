@@ -3,6 +3,7 @@ import { useState } from "react";
 import { X, Search, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { toLocalDateInput } from "../utils/formatters";
+import CustomSelect from "./CustomSelect";
 
 
 
@@ -204,10 +205,14 @@ export default function SuratJalanManagerModal({
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Customer</label>
-              <select value={filters.customer_name} onChange={e => setFilters((p: any) => ({...p, customer_name: e.target.value}))} className={inputCls}>
-                <option value="">-- Pilih Customer --</option>
-                {customers.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
-              </select>
+              <CustomSelect
+                value={filters.customer_name}
+                onChange={val => setFilters((p: any) => ({...p, customer_name: val as string}))}
+                options={[
+                  { value: "", label: "-- Pilih Customer --" },
+                  ...customers.map((c: any) => ({ value: c.name, label: c.name }))
+                ]}
+              />
             </div>
             <div className="flex items-end">
               <button 
@@ -264,13 +269,11 @@ export default function SuratJalanManagerModal({
                           <td className="px-3 py-2">
                             <div className="font-medium text-gray-800 mb-1 truncate max-w-[120px]" title={r.material_type}>{r.material_type}</div>
                             {showUnitDropdown ? (
-                                <select 
+                                <CustomSelect 
                                     value={itemData.unit} 
-                                    onChange={e => handleItemChange(r.id, "unit", e.target.value)}
-                                    className="w-full border border-gray-200 rounded p-1 text-xs"
-                                >
-                                    {validUnits.map((u: string) => <option key={u} value={u}>{u === "m3" ? "Kubikasi (m3)" : "Tonase (ton)"}</option>)}
-                                </select>
+                                    onChange={val => handleItemChange(r.id, "unit", val as string)}
+                                    options={validUnits.map((u: string) => ({ value: u, label: u === "m3" ? "Kubikasi (m3)" : "Tonase (ton)" }))}
+                                />
                             ) : (
                                 <div className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded text-[10px] uppercase font-bold w-fit">
                                     {itemData.unit === "m3" ? "M3" : "TON"}

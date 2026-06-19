@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Fuel, Save, History, AlertCircle, CheckCircle, Package, XCircle, Trash2, Info, Edit, Eye, Download, Plus } from 'lucide-react';
+import { Fuel, Save, History, AlertCircle, CheckCircle, Package, XCircle, Trash2, Info, Edit, Download, Plus } from 'lucide-react';
 import { toast } from 'sonner';
-import AlertModal from '../components/AlertModal';
-import { toLocalDateInput } from '../utils/formatters';
+import AlertModal from "../components/AlertModal";
+import CustomSelect from "../components/CustomSelect";
+import { toLocalDateInput } from "../utils/formatters";
 import { usePermissions } from '../hooks/usePermissions';
 import { useQuery } from '@tanstack/react-query';
 import apiClient, { API_URL } from '../api/apiClient';
@@ -18,7 +19,7 @@ import {
 } from '../hooks/useFuel';
 
 const FuelPricePage = () => {
-  const { currentUser, isGM, isFinance, isAdmin } = usePermissions();
+  const { isGM, isFinance, isAdmin } = usePermissions();
 
   const [liters, setLiters] = useState('');
   const [totalPrice, setTotalPrice] = useState('');
@@ -437,16 +438,17 @@ const FuelPricePage = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Project (Opsional)</label>
-                  <select
+                  <CustomSelect
                     value={projectId}
-                    onChange={(e) => setProjectId(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
-                  >
-                    <option value="">Pilih Project (Kosongkan jika General)</option>
-                    {projects.map((p: any) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setProjectId(val as string)}
+                    options={[
+                      { value: "", label: "Pilih Project (Kosongkan jika General)" },
+                      ...projects.map((p: any) => ({
+                        value: String(p.id),
+                        label: p.name
+                      }))
+                    ]}
+                  />
                 </div>
                 
                 <div>
@@ -831,16 +833,17 @@ const FuelPricePage = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Project <span className="font-normal text-gray-400">(opsional)</span></label>
-                <select
+                <CustomSelect
                   value={editForm.projectId}
-                  onChange={(e) => setEditForm({...editForm, projectId: e.target.value})}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                >
-                  <option value="">-- Tanpa Project (General) --</option>
-                  {projects.map((p: any) => (
-                    <option key={p.id} value={String(p.id)}>{p.name}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setEditForm({...editForm, projectId: val as string})}
+                  options={[
+                    { value: "", label: "-- Tanpa Project (General) --" },
+                    ...projects.map((p: any) => ({
+                      value: String(p.id),
+                      label: p.name
+                    }))
+                  ]}
+                />
               </div>
 
               <div>

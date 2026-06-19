@@ -19,6 +19,7 @@ import {
   Expense
 } from '../hooks/useExpenses';
 import { toLocalDateInput } from '../utils/formatters';
+import CustomSelect from '../components/CustomSelect';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const formatIDR = (v?: number | string | null) =>
@@ -153,11 +154,12 @@ const ExpenseModal = ({ expense, projects, onClose }: any) => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Kategori <span className="text-red-500">*</span></label>
-            <select name="category" value={form.category} onChange={handleChange} required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
-              {CATEGORIES.map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
-              ))}
-            </select>
+            <CustomSelect
+              required
+              value={form.category}
+              onChange={(val) => handleChange({ target: { name: 'category', value: val } } as any)}
+              options={CATEGORIES.map(c => ({ value: c.value, label: c.label }))}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Deskripsi <span className="text-red-500">*</span></label>
@@ -172,12 +174,14 @@ const ExpenseModal = ({ expense, projects, onClose }: any) => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Project <span className="text-gray-400 font-normal">(opsional)</span></label>
-            <select name="project_id" value={form.project_id} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
-              <option value="">-- Tanpa Project --</option>
-              {projects.map((p: any) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+            <CustomSelect
+              value={form.project_id}
+              onChange={(val) => handleChange({ target: { name: 'project_id', value: val } } as any)}
+              options={[
+                { value: "", label: "-- Tanpa Project --" },
+                ...projects.map((p: any) => ({ value: String(p.id), label: p.name }))
+              ]}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Catatan <span className="text-gray-400 font-normal">(opsional)</span></label>
@@ -488,10 +492,14 @@ export default function ExpensePage() {
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-gray-500">Kategori</label>
-            <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
-              <option value="">Semua Kategori</option>
-              {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-            </select>
+            <CustomSelect
+              value={filterCategory}
+              onChange={(val) => setFilterCategory(val as string)}
+              options={[
+                { value: "", label: "Semua Kategori" },
+                ...CATEGORIES.map((c) => ({ value: c.value, label: c.label }))
+              ]}
+            />
           </div>
           <div className="flex items-end gap-2">
             <button onClick={handleReset} className="flex-1 flex items-center justify-center gap-1.5 border border-gray-300 text-gray-600 px-3 py-2 rounded-lg text-sm hover:bg-gray-50 transition-colors">

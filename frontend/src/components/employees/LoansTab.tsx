@@ -5,6 +5,7 @@ import AlertModal from '../AlertModal';
 import LoanFormModal from './LoanFormModal';
 import { useLoans, useDeleteLoan, Loan } from '../../hooks/useLoans';
 import { useEmployees, Employee } from '../../hooks/useEmployees';
+import CustomSelect from '../CustomSelect';
 
 interface Props {
   canAccessFinancial: boolean;
@@ -52,10 +53,10 @@ const LoansTab: React.FC<Props> = ({ canAccessFinancial }) => {
     <div>
       {/* Add Loan Button & Filter */}
       <div className="mb-4 flex gap-4">
-        <select
+        <CustomSelect
           value={selectedEmployeeForLoan?.id || ''}
-          onChange={(event) => {
-            const value = event.target.value;
+          onChange={(val) => {
+            const value = val as string;
             if (!value) {
               setSelectedEmployeeForLoan(null);
             } else {
@@ -65,13 +66,11 @@ const LoansTab: React.FC<Props> = ({ canAccessFinancial }) => {
               }
             }
           }}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">Semua Karyawan</option>
-          {employees.map((emp: any) => (
-            <option key={emp.id} value={emp.id}>{emp.name} - {emp.position}</option>
-          ))}
-        </select>
+          options={[
+            { value: "", label: "Semua Karyawan" },
+            ...employees.map((emp: any) => ({ value: String(emp.id), label: `${emp.name} - ${emp.position}` }))
+          ]}
+        />
         <button
           onClick={() => openLoanForm()}
           disabled={!selectedEmployeeForLoan}

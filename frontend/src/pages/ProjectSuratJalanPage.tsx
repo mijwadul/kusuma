@@ -9,6 +9,7 @@ import { generatePremiumPDF } from '../utils/pdfGenerator';
 
 import { useVendorTrucks } from '../hooks/useHauling';
 import { useVendors } from '../hooks/useVendors';
+import CustomSelect from '../components/CustomSelect';
 
 const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300";
 
@@ -223,17 +224,17 @@ const SuratJalanFormModal = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Proyek</label>
-              <select
+              <CustomSelect
                 value={projectId}
-                onChange={e => setProjectId(e.target.value)}
-                className={inputCls}
-                required
-              >
-                <option value="">-- Pilih Proyek --</option>
-                {projects.map(p => (
-                  <option key={p.id} value={p.id}>{p.name} ({p.measurement_type === 'kubikasi' ? 'Kubikasi' : 'Tonase'})</option>
-                ))}
-              </select>
+                onChange={(val) => setProjectId(val as string)}
+                options={[
+                  { value: "", label: "-- Pilih Proyek --" },
+                  ...projects.map(p => ({
+                    value: String(p.id),
+                    label: `${p.name} (${p.measurement_type === 'kubikasi' ? 'Kubikasi' : 'Tonase'})`
+                  }))
+                ]}
+              />
             </div>
           </div>
 
@@ -469,16 +470,15 @@ const SuratJalanFormModal = ({
                     <span className="ml-2 text-xs text-emerald-600 font-normal">✓ terdeteksi otomatis</span>
                   )}
                 </label>
-                <select
-                  name="truck_type"
+                <CustomSelect
                   value={formData.truck_type}
-                  onChange={handleChange}
-                  className={inputCls}
-                >
-                  <option value="">-- Pilih Tipe --</option>
-                  <option value="tronton">Tronton</option>
-                  <option value="colt_diesel">Colt Diesel</option>
-                </select>
+                  onChange={(val) => handleChange({ target: { name: 'truck_type', value: val } } as any)}
+                  options={[
+                    { value: "", label: "-- Pilih Tipe --" },
+                    { value: "tronton", label: "Tronton" },
+                    { value: "colt_diesel", label: "Colt Diesel" }
+                  ]}
+                />
               </div>
             </div>
           )}
@@ -807,16 +807,19 @@ export default function ProjectSuratJalanPage() {
               Memuat proyek...
             </div>
           ) : (
-            <select
-              value={selectedProjectId}
-              onChange={e => setSelectedProjectId(e.target.value)}
-              className="w-full sm:w-64 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
-            >
-              <option value="">-- Pilih Proyek --</option>
-              {projects.map(p => (
-                <option key={p.id} value={p.id}>{p.name} ({p.measurement_type === 'kubikasi' ? 'Kubikasi' : 'Tonase'})</option>
-              ))}
-            </select>
+            <div className="w-full sm:w-64">
+              <CustomSelect
+                value={selectedProjectId}
+                onChange={(val) => setSelectedProjectId(val as string)}
+                options={[
+                  { value: "", label: "-- Pilih Proyek --" },
+                  ...projects.map(p => ({
+                    value: String(p.id),
+                    label: `${p.name} (${p.measurement_type === 'kubikasi' ? 'Kubikasi' : 'Tonase'})`
+                  }))
+                ]}
+              />
+            </div>
           )}
           
           <button
@@ -1048,17 +1051,18 @@ function PdfExportModal({ projects, defaultProjectId, vendors, onClose, onExport
         <div className="px-6 py-5 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Proyek <span className="text-red-500">*</span></label>
-            <select
+            <CustomSelect
               value={projectId}
-              onChange={e => setProjectId(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300"
+              onChange={(val) => setProjectId(val as string)}
               required
-            >
-              <option value="">-- Pilih Proyek --</option>
-              {projects.map(p => (
-                <option key={p.id} value={p.id}>{p.name} ({p.measurement_type === 'kubikasi' ? 'Kubikasi' : 'Tonase'})</option>
-              ))}
-            </select>
+              options={[
+                { value: "", label: "-- Pilih Proyek --" },
+                ...projects.map(p => ({
+                  value: String(p.id),
+                  label: `${p.name} (${p.measurement_type === 'kubikasi' ? 'Kubikasi' : 'Tonase'})`
+                }))
+              ]}
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -1082,17 +1086,18 @@ function PdfExportModal({ projects, defaultProjectId, vendors, onClose, onExport
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Vendor (kosongkan untuk semua)</label>
-            <select
+            <CustomSelect
               value={vendorId}
-              onChange={e => setVendorId(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300"
-            >
-              <option value="">Semua Vendor</option>
-              <option value="manual">Manual / Tanpa Vendor</option>
-              {vendors.map((v: any) => (
-                <option key={v.id} value={v.id}>{v.name}</option>
-              ))}
-            </select>
+              onChange={(val) => setVendorId(val as string)}
+              options={[
+                { value: "", label: "Semua Vendor" },
+                { value: "manual", label: "Manual / Tanpa Vendor" },
+                ...vendors.map((v: any) => ({
+                  value: String(v.id),
+                  label: v.name
+                }))
+              ]}
+            />
           </div>
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100 mt-4">
             <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200">Batal</button>

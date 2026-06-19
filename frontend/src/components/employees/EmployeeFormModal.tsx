@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useCreateEmployee, useUpdateEmployee, Employee, useEmployee } from '../../hooks/useEmployees';
+import CustomSelect from '../CustomSelect';
 
 const POSITION_OPTIONS = [
   'Operator', 'Mechanic', 'Driver', 'Supervisor', 'Manager',
@@ -205,43 +206,39 @@ const EmployeeFormModal: React.FC<Props> = ({ isOpen, onClose, editingEmployee, 
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Jabatan</label>
-                <select
+                <CustomSelect
                   value={employeeForm.position}
-                  onChange={(e) => setEmployeeForm({...employeeForm, position: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                >
-                  <option value="">Pilih Jabatan</option>
-                  {POSITION_OPTIONS.map(pos => (
-                    <option key={pos} value={pos}>{pos}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setEmployeeForm({...employeeForm, position: val as string})}
+                  options={[
+                    { value: "", label: "Pilih Jabatan" },
+                    ...POSITION_OPTIONS.map(pos => ({ value: pos, label: pos }))
+                  ]}
+                />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Departemen</label>
-                <select
+                <CustomSelect
                   value={employeeForm.department}
-                  onChange={(e) => setEmployeeForm({...employeeForm, department: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                >
-                  <option value="">Pilih Departemen</option>
-                  {DEPARTMENT_OPTIONS.map(dept => (
-                    <option key={dept} value={dept}>{dept}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setEmployeeForm({...employeeForm, department: val as string})}
+                  options={[
+                    { value: "", label: "Pilih Departemen" },
+                    ...DEPARTMENT_OPTIONS.map(dept => ({ value: dept, label: dept }))
+                  ]}
+                />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tipe Pekerjaan</label>
-                <select
+                <CustomSelect
                   value={employeeForm.employment_type}
-                  onChange={(e) => setEmployeeForm({...employeeForm, employment_type: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                >
-                  <option value="permanent">Tetap</option>
-                  <option value="contract">Kontrak</option>
-                  <option value="freelance">Freelance</option>
-                </select>
+                  onChange={(val) => setEmployeeForm({...employeeForm, employment_type: val as string})}
+                  options={[
+                    { value: "permanent", label: "Tetap" },
+                    { value: "contract", label: "Kontrak" },
+                    { value: "freelance", label: "Freelance" }
+                  ]}
+                />
               </div>
               
               <div>

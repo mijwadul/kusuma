@@ -1,24 +1,25 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import {
-  DollarSign,
   TrendingUp,
+  Plus,
+  Download,
+  FileText,
+  Pencil,
+  X,
+  DollarSign,
   FolderOpen,
   ShoppingCart,
-  Plus,
-  Pencil,
-  Trash2,
-  X,
   Calendar,
   Loader2,
   RefreshCw,
-  FileText,
-  Download,
+  Trash2,
 } from "lucide-react";
 import { toLocalDateInput } from "../utils/formatters";
 
 import AlertModal from "../components/AlertModal";
 import InvoiceGenerator from "../components/InvoiceGenerator";
+import CustomSelect from "../components/CustomSelect";
 import {
   useIncomeRecords,
   useCreateIncomeRecord,
@@ -719,15 +720,15 @@ export default function IncomePage() {
                       <td className="px-4 py-3 text-right font-semibold text-emerald-700 tabular-nums whitespace-nowrap">{formatIDR(r.total_amount)}</td>
                       <td className="px-4 py-3 text-center whitespace-nowrap">{statusBadge(r.status)}</td>
                       <td className="px-4 py-3 text-center whitespace-nowrap">
-                        <select
+                        <CustomSelect
                           value={r.status}
-                          onChange={(e) => handleUpdateInvoiceStatus(r.id, e.target.value)}
-                          className="border border-gray-200 rounded-lg text-xs px-2 py-1 focus:ring-emerald-300 focus:outline-none bg-white"
-                        >
-                          <option value="unpaid">Unpaid</option>
-                          <option value="paid">Paid</option>
-                          <option value="cancelled">Cancelled</option>
-                        </select>
+                          onChange={(val) => handleUpdateInvoiceStatus(r.id, val as string)}
+                          options={[
+                            { value: "unpaid", label: "Unpaid" },
+                            { value: "paid", label: "Paid" },
+                            { value: "cancelled", label: "Cancelled" }
+                          ]}
+                        />
                       </td>
                       <td className="px-4 py-3 text-center whitespace-nowrap flex items-center justify-center gap-1">
                         <button
@@ -802,16 +803,23 @@ export default function IncomePage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Proyek <span className="text-red-500">*</span></label>
-                    <select required value={projectForm.project_id} onChange={(e) => setProjectForm(p => ({ ...p, project_id: e.target.value }))} className={inputCls("blue")}>
-                      <option value="">-- Pilih Proyek --</option>
-                      {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
+                    <CustomSelect
+                      required
+                      value={projectForm.project_id}
+                      onChange={(val) => setProjectForm(p => ({ ...p, project_id: val as string }))}
+                      options={[
+                        { value: "", label: "-- Pilih Proyek --" },
+                        ...projects.map((p: any) => ({ value: String(p.id), label: p.name }))
+                      ]}
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Termin Pembayaran</label>
-                    <select value={projectForm.payment_term} onChange={(e) => setProjectForm(p => ({ ...p, payment_term: e.target.value }))} className={inputCls("blue")}>
-                      {PAYMENT_TERMS.map((t) => <option key={t} value={t}>{t.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</option>)}
-                    </select>
+                    <CustomSelect
+                      value={projectForm.payment_term}
+                      onChange={(val) => setProjectForm(p => ({ ...p, payment_term: val as string }))}
+                      options={PAYMENT_TERMS.map((t) => ({ value: t, label: t.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()) }))}
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Jumlah (Rp) <span className="text-red-500">*</span></label>
@@ -819,10 +827,14 @@ export default function IncomePage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Metode Pembayaran</label>
-                    <select value={projectForm.payment_method} onChange={(e) => setProjectForm(p => ({ ...p, payment_method: e.target.value }))} className={inputCls("blue")}>
-                      <option value="transfer">Transfer</option>
-                      <option value="cash">Cash</option>
-                    </select>
+                    <CustomSelect
+                      value={projectForm.payment_method}
+                      onChange={(val) => setProjectForm(p => ({ ...p, payment_method: val as string }))}
+                      options={[
+                        { value: "transfer", label: "Transfer" },
+                        { value: "cash", label: "Cash" }
+                      ]}
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Deskripsi <span className="text-red-500">*</span></label>
@@ -884,17 +896,25 @@ export default function IncomePage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Jenis Material <span className="text-red-500">*</span></label>
-                    <select required value={materialForm.material_type} onChange={(e) => setMaterialForm(p => ({ ...p, material_type: e.target.value, unit: p.unit || "ritase", quantity: "1", unit_price: "" }))} className={inputCls("emerald")}>
-                      {MATERIAL_TYPES.map((m) => <option key={m} value={m}>{m}</option>)}
-                    </select>
+                    <CustomSelect
+                      required
+                      value={materialForm.material_type}
+                      onChange={(val) => setMaterialForm(p => ({ ...p, material_type: val as string, unit: p.unit || "ritase", quantity: "1", unit_price: "" }))}
+                      options={MATERIAL_TYPES.map((m) => ({ value: m, label: m }))}
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Satuan <span className="text-red-500">*</span></label>
-                    <select required value={materialForm.unit} onChange={(e) => setMaterialForm(p => ({ ...p, unit: e.target.value, quantity: e.target.value === "ritase" ? "1" : p.quantity, unit_price: "" }))} className={inputCls("emerald")}>
-                      <option value="ritase">Ritase</option>
-                      <option value="m3">Kubikasi (m³)</option>
-                      <option value="ton">Tonase (ton)</option>
-                    </select>
+                    <CustomSelect
+                      required
+                      value={materialForm.unit}
+                      onChange={(val) => setMaterialForm(p => ({ ...p, unit: val as string, quantity: val === "ritase" ? "1" : p.quantity, unit_price: "" }))}
+                      options={[
+                        { value: "ritase", label: "Ritase" },
+                        { value: "m3", label: "Kubikasi (m³)" },
+                        { value: "ton", label: "Tonase (ton)" }
+                      ]}
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Total (Rp) <span className="text-red-500">*</span></label>
@@ -902,10 +922,14 @@ export default function IncomePage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Metode Pembayaran</label>
-                    <select value={materialForm.payment_method} onChange={(e) => setMaterialForm(p => ({ ...p, payment_method: e.target.value }))} className={inputCls("emerald")}>
-                      <option value="transfer">Transfer</option>
-                      <option value="cash">Cash</option>
-                    </select>
+                    <CustomSelect
+                      value={materialForm.payment_method}
+                      onChange={(val) => setMaterialForm(p => ({ ...p, payment_method: val as string }))}
+                      options={[
+                        { value: "transfer", label: "Transfer" },
+                        { value: "cash", label: "Cash" }
+                      ]}
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Deskripsi <span className="text-red-500">*</span></label>
@@ -913,10 +937,14 @@ export default function IncomePage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Project <span className="text-xs text-gray-400 font-normal">(opsional)</span></label>
-                    <select value={materialForm.project_id} onChange={(e) => setMaterialForm(p => ({ ...p, project_id: e.target.value }))} className={inputCls("emerald")}>
-                      <option value="">-- Tanpa Project (General) --</option>
-                      {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
+                    <CustomSelect
+                      value={materialForm.project_id}
+                      onChange={(val) => setMaterialForm(p => ({ ...p, project_id: val as string }))}
+                      options={[
+                        { value: "", label: "-- Tanpa Project (General) --" },
+                        ...projects.map((p: any) => ({ value: String(p.id), label: p.name }))
+                      ]}
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Catatan <span className="text-xs text-gray-400">(opsional)</span></label>

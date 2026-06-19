@@ -10,14 +10,13 @@ import {
   FileText,
   ToggleLeft,
   ToggleRight,
-  Save,
-  Edit,
   Trash2,
   AlertTriangle,
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import AlertModal from "../components/AlertModal";
+import CustomSelect from "../components/CustomSelect";
 import { toLocalDateInput } from "../utils/formatters";
 
 // Custom hooks
@@ -312,18 +311,17 @@ export default function WorkLogsPage() {
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-col md:flex-row gap-4 items-end">
         <div className="flex-1 w-full">
           <label className="block text-sm font-medium text-gray-700 mb-1">Alat (Equipment)</label>
-          <select
+          <CustomSelect
             value={filterEquipmentId}
-            onChange={(e) => setFilterEquipmentId(e.target.value)}
-            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2 px-3 border"
-          >
-            <option value="">Semua Alat</option>
-            {equipment.map((eq) => (
-              <option key={eq.id} value={eq.id}>
-                {eq.name} - {eq.type}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setFilterEquipmentId(val as string)}
+            options={[
+              { value: "", label: "Semua Alat" },
+              ...equipment.map((eq) => ({
+                value: String(eq.id),
+                label: `${eq.name} - ${eq.type}`
+              }))
+            ]}
+          />
         </div>
         <div className="flex-1 w-full">
           <label className="block text-sm font-medium text-gray-700 mb-1">Mulai Tanggal</label>
@@ -435,20 +433,17 @@ export default function WorkLogsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   <Truck className="inline h-4 w-4 mr-1" /> Pilih Unit
                 </label>
-                <select
-                  name="equipment_id"
+                <CustomSelect
                   value={formData.equipment_id}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                >
-                  <option value="">-- Pilih Alat --</option>
-                  {equipment.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((eq) => (
-                    <option key={eq.id} value={eq.id}>
-                      {eq.name} {eq.brand ? ` · ${eq.brand}` : ""} · {eq.type} {eq.capacity ? ` · ${eq.capacity} Ton` : ""}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setFormData((prev) => ({ ...prev, equipment_id: val as string }))}
+                  options={[
+                    { value: "", label: "-- Pilih Alat --" },
+                    ...equipment.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((eq) => ({
+                      value: String(eq.id),
+                      label: `${eq.name} ${eq.brand ? ` · ${eq.brand}` : ""} · ${eq.type} ${eq.capacity ? ` · ${eq.capacity} Ton` : ""}`
+                    }))
+                  ]}
+                />
                 {selectedEquipment && (
                   <div className="mt-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-sm">
                     <div className="flex items-center gap-2 mb-1">
@@ -578,17 +573,17 @@ export default function WorkLogsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   <MapPin className="inline h-4 w-4 mr-1" /> Proyek
                 </label>
-                <select
-                  name="project_id"
+                <CustomSelect
                   value={formData.project_id}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">-- Pilih Proyek --</option>
-                  {projects.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((project) => (
-                    <option key={project.id} value={project.id}>{project.name}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setFormData((prev) => ({ ...prev, project_id: val as string }))}
+                  options={[
+                    { value: "", label: "-- Pilih Proyek --" },
+                    ...projects.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((project) => ({
+                      value: String(project.id),
+                      label: project.name
+                    }))
+                  ]}
+                />
               </div>
 
               {/* Operator */}
@@ -596,20 +591,20 @@ export default function WorkLogsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   <User className="inline h-4 w-4 mr-1" /> Nama Operator
                 </label>
-                <select
-                  name="operator_name"
+                <CustomSelect
                   value={formData.operator_name}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">-- Pilih Operator --</option>
-                  {operators.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((op) => (
-                    <option key={op.id} value={op.name}>{op.name}</option>
-                  ))}
-                  {formData.operator_name && !operators.some((op) => op.name === formData.operator_name) && (
-                    <option value={formData.operator_name}>{formData.operator_name} (tidak aktif)</option>
-                  )}
-                </select>
+                  onChange={(val) => setFormData((prev) => ({ ...prev, operator_name: val as string }))}
+                  options={[
+                    { value: "", label: "-- Pilih Operator --" },
+                    ...operators.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((op) => ({
+                      value: op.name,
+                      label: op.name
+                    })),
+                    ...(formData.operator_name && !operators.some((op) => op.name === formData.operator_name)
+                      ? [{ value: formData.operator_name, label: `${formData.operator_name} (tidak aktif)` }]
+                      : [])
+                  ]}
+                />
               </div>
             </div>
 
