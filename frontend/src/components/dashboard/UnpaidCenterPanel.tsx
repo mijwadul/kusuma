@@ -27,7 +27,7 @@ const UnpaidCenterPanel: React.FC<UnpaidCenterPanelProps> = ({ role, isGM, finan
             <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded-full">{financeSummary.unpaid_invoices?.length || 0}</span>
           </h3>
           <div className="space-y-2">
-            {!financeSummary.unpaid_invoices?.length ? <p className="text-xs text-slate-400">Tidak ada data.</p> : financeSummary.unpaid_invoices.map(inv => (
+            {!financeSummary.unpaid_invoices?.length ? <p className="text-xs text-slate-400">Tidak ada data.</p> : financeSummary.unpaid_invoices.map((inv: any) => (
               <div key={inv.id} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-xs">
                 <div>
                   <p className="text-xs font-bold text-slate-700">{inv.invoice_number}</p>
@@ -49,7 +49,7 @@ const UnpaidCenterPanel: React.FC<UnpaidCenterPanelProps> = ({ role, isGM, finan
             <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded-full">{financeSummary.unpaid_payroll?.length || 0}</span>
           </h3>
           <div className="space-y-2">
-            {!financeSummary.unpaid_payroll?.length ? <p className="text-xs text-slate-400">Tidak ada data.</p> : financeSummary.unpaid_payroll.map(p => (
+            {!financeSummary.unpaid_payroll?.length ? <p className="text-xs text-slate-400">Tidak ada data.</p> : financeSummary.unpaid_payroll.map((p: any) => (
               <div key={p.id} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-xs">
                 <div>
                   <p className="text-xs font-bold text-slate-700">{p.employee_name}</p>
@@ -71,7 +71,7 @@ const UnpaidCenterPanel: React.FC<UnpaidCenterPanelProps> = ({ role, isGM, finan
             <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded-full">{financeSummary.unpaid_fuel?.length || 0}</span>
           </h3>
           <div className="space-y-2">
-            {!financeSummary.unpaid_fuel?.length ? <p className="text-xs text-slate-400">Tidak ada data.</p> : financeSummary.unpaid_fuel.map(f => (
+            {!financeSummary.unpaid_fuel?.length ? <p className="text-xs text-slate-400">Tidak ada data.</p> : financeSummary.unpaid_fuel.map((f: any) => (
               <div key={f.id} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-xs">
                 <div>
                   <p className="text-xs font-bold text-slate-700">Solar {f.liters} L</p>
@@ -94,7 +94,7 @@ const UnpaidCenterPanel: React.FC<UnpaidCenterPanelProps> = ({ role, isGM, finan
             <span className="text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded-full">{financeSummary.unpaid_expenses?.length || 0}</span>
           </h3>
           <div className="space-y-2">
-            {!financeSummary.unpaid_expenses?.length ? <p className="text-xs text-slate-400">Tidak ada data.</p> : financeSummary.unpaid_expenses.map(e => (
+            {!financeSummary.unpaid_expenses?.length ? <p className="text-xs text-slate-400">Tidak ada data.</p> : financeSummary.unpaid_expenses.map((e: any) => (
               <div key={e.id} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-xs">
                 <div>
                   <p className="text-xs font-bold text-slate-700 uppercase">{e.category}</p>
