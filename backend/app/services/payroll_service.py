@@ -362,6 +362,32 @@ class PayrollService:
         return payroll
 
     @staticmethod
+    def unpay_payroll(db: Session, current_user: User, payroll_id: int) -> PayrollRecord:
+        payroll = db.query(PayrollRecord).filter(PayrollRecord.id == payroll_id).first()
+        if not payroll:
+            raise NotFoundError("Payroll record not found")
+
+        if payroll.payment_status != "paid":
+            raise ValidationError("Hanya payroll dengan status 'paid' yang dapat diubah menjadi unpaid.")
+
+        payroll.payment_status = "approved"
+        payroll.payment_date = None
+        
+        expense_description = f"Pembayaran Gaji: {payroll.employee.name if payroll.employee else '-'} (Periode {payroll.period_start} s/d {payroll.period_end})"
+        expense = db.query(Expense).filter(
+            Expense.category == "gaji",
+            Expense.description == expense_description,
+            Expense.amount == float(payroll.net_salary or 0)
+        ).first()
+        
+        if expense:
+            db.delete(expense)
+            
+        db.commit()
+        db.refresh(payroll)
+        return payroll
+
+    @staticmethod
     def try_auto_generate_operator_payroll(
         db: Session,
         employee: Employee,

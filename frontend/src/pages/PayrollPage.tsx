@@ -29,6 +29,8 @@ import {
   useUpdatePayroll,
   useApprovePayroll,
   useDeletePayroll,
+  useUnpayPayroll,
+  usePayPayroll,
 } from "../hooks/usePayroll";
 import { useEmployees } from "../hooks/useEmployees";
 import apiClient from "../api/apiClient";
@@ -137,6 +139,8 @@ const PayrollPage: React.FC = () => {
   const updateMutation = useUpdatePayroll();
   const approveMutation = useApprovePayroll();
   const deleteMutation = useDeletePayroll();
+  const unpayMutation = useUnpayPayroll();
+  const payMutation = usePayPayroll();
 
   // ── pagination ──
   const [currentPage, setCurrentPage] = useState(1);
@@ -159,9 +163,11 @@ const PayrollPage: React.FC = () => {
   // ── download ──
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
-  // ── delete / approve modals ──
+  // ── delete / approve / pay modals ──
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, payrollId: null as number | null, employeeName: "", periodStart: "" });
   const [approveModal, setApproveModal] = useState({ isOpen: false, payrollId: null as number | null });
+  const [unpayModal, setUnpayModal] = useState({ isOpen: false, payrollId: null as number | null });
+  const [payModal, setPayModal] = useState({ isOpen: false, payrollId: null as number | null });
 
   // ── role flags ──
   const role = currentUser?.role ?? "";
@@ -288,6 +294,42 @@ const PayrollPage: React.FC = () => {
       onError: (err: any) => {
         toast.error(err.response?.data?.detail ?? "Gagal menghapus slip gaji");
         setDeleteModal({ isOpen: false, payrollId: null, employeeName: "", periodStart: "" });
+      },
+    });
+  };
+
+  const handleUnpayClick = (payrollId: number) => {
+    setUnpayModal({ isOpen: true, payrollId });
+  };
+
+  const confirmUnpay = () => {
+    if (!unpayModal.payrollId) return;
+    unpayMutation.mutate(unpayModal.payrollId, {
+      onSuccess: () => {
+        toast.success("Pembayaran dibatalkan, status kembali menjadi Approved.");
+        setUnpayModal({ isOpen: false, payrollId: null });
+      },
+      onError: (err: any) => {
+        toast.error(err.response?.data?.detail ?? "Gagal membatalkan pembayaran payroll.");
+        setUnpayModal({ isOpen: false, payrollId: null });
+      },
+    });
+  };
+
+  const handlePayClick = (payrollId: number) => {
+    setPayModal({ isOpen: true, payrollId });
+  };
+
+  const confirmPay = () => {
+    if (!payModal.payrollId) return;
+    payMutation.mutate(payModal.payrollId, {
+      onSuccess: () => {
+        toast.success("Payroll berhasil dibayar!");
+        setPayModal({ isOpen: false, payrollId: null });
+      },
+      onError: (err: any) => {
+        toast.error(err.response?.data?.detail ?? "Gagal memproses pembayaran.");
+        setPayModal({ isOpen: false, payrollId: null });
       },
     });
   };
@@ -747,18 +789,6 @@ const PayrollPage: React.FC = () => {
                 </button>
               )}
 
-              {isGM && detailData.payment_status !== "paid" && (
-                <button
-                  onClick={() => {
-                    closeDetail();
-                    handleDeleteClick(detailData.id, detailData.employee_name ?? detailData.employee?.name ?? "karyawan", detailData.period_start);
-                  }}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-xl transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" /> Hapus
-                </button>
-              )}
-
               {isGM && detailData.payment_status === "pending" && (
                 <button
                   onClick={() => {
@@ -775,6 +805,30 @@ const PayrollPage: React.FC = () => {
                 <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-center gap-1">
                   <AlertCircle className="w-3.5 h-3.5" /> Menunggu approval GM
                 </span>
+              )}
+
+              {isFinance && detailData.payment_status === "approved" && (
+                <button
+                  onClick={() => {
+                    closeDetail();
+                    handlePayClick(detailData.id);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors"
+                >
+                  <DollarSign className="w-4 h-4" /> Pay (Bayar)
+                </button>
+              )}
+
+              {(isGM || isFinance) && detailData.payment_status === "paid" && (
+                <button
+                  onClick={() => {
+                    closeDetail();
+                    handleUnpayClick(detailData.id);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-xl transition-colors"
+                >
+                  <RefreshCw className="w-4 h-4" /> Unpay
+                </button>
               )}
 
               <button
@@ -828,6 +882,30 @@ const PayrollPage: React.FC = () => {
         title="Approve Slip Gaji"
         message="Approve slip gaji ini? Status akan berubah menjadi Approved dan slip gaji dapat didownload."
         confirmText="Approve"
+      />
+
+      {/* ─────────────────────────────────────────────────────────────────────
+          AlertModal: Unpay Payroll
+      ───────────────────────────────────────────────────────────────────── */}
+      <AlertModal
+        isOpen={unpayModal.isOpen}
+        onClose={() => setUnpayModal({ isOpen: false, payrollId: null })}
+        onConfirm={confirmUnpay}
+        title="Batalkan Pembayaran (Unpay)"
+        message="Yakin ingin membatalkan pembayaran payroll ini? Status akan dikembalikan menjadi 'Approved' dan catatan pengeluaran kas akan dihapus."
+        confirmText="Batalkan Pembayaran"
+      />
+
+      {/* ─────────────────────────────────────────────────────────────────────
+          AlertModal: Pay Payroll
+      ───────────────────────────────────────────────────────────────────── */}
+      <AlertModal
+        isOpen={payModal.isOpen}
+        onClose={() => setPayModal({ isOpen: false, payrollId: null })}
+        onConfirm={confirmPay}
+        title="Bayar Payroll"
+        message="Proses pembayaran slip gaji ini? Status akan berubah menjadi 'Paid' dan pengeluaran kas otomatis akan dicatat."
+        confirmText="Bayar"
       />
     </div>
   );

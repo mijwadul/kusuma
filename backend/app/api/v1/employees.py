@@ -421,6 +421,17 @@ def pay_payroll(
     from ...services.payroll_service import PayrollService
     return PayrollService.pay_payroll(db, current_user, payroll_id)
 
+@router.put("/payroll/{payroll_id}/unpay", response_model=PayrollResponse)
+def unpay_payroll(
+    payroll_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role not in ["finance", "gm", "admin"] and not current_user.is_admin and not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Not authorized to unpay payroll")
+    from ...services.payroll_service import PayrollService
+    return PayrollService.unpay_payroll(db, current_user, payroll_id)
+
 
 # ============================================
 # Attendance Endpoints

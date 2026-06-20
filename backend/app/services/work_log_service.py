@@ -217,6 +217,12 @@ class WorkLogService:
         db.commit()
         db.refresh(db_work_log)
         
+        if total_cost > 0 and equipment.ownership_status == "rental" and equipment.vendor_id:
+            vendor = db.query(Vendor).filter(Vendor.id == equipment.vendor_id).first()
+            if vendor:
+                vendor.balance_deposit = Decimal(str(vendor.balance_deposit or 0)) - total_cost
+                db.commit()
+        
         return db_work_log
 
     @staticmethod
@@ -242,6 +248,8 @@ class WorkLogService:
         
         hours_changed = 'total_hours' in update_data or 'rental_discount_hours' in update_data
         
+        old_cost = Decimal(str(work_log.total_cost or 0))
+        
         for key, value in update_data.items():
             setattr(work_log, key, value)
             
@@ -255,6 +263,16 @@ class WorkLogService:
             rate = Decimal(str(work_log.applied_rate))
             work_log.total_cost = billable_hours * rate
             
+        new_cost = Decimal(str(work_log.total_cost or 0))
+        cost_diff = new_cost - old_cost
+        
+        if cost_diff != 0:
+            equipment = db.query(Equipment).filter(Equipment.id == work_log.equipment_id).first()
+            if equipment and equipment.ownership_status == "rental" and equipment.vendor_id:
+                vendor = db.query(Vendor).filter(Vendor.id == equipment.vendor_id).first()
+                if vendor:
+                    vendor.balance_deposit = Decimal(str(vendor.balance_deposit or 0)) - cost_diff
+                    
         db.commit()
         db.refresh(work_log)
         

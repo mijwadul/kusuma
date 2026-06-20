@@ -91,6 +91,19 @@ export const usePayPayroll = () => {
   });
 };
 
+export const useUnpayPayroll = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiClient.put<PayrollRecord>(`/employees/payroll/${id}/unpay`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payroll'] });
+    },
+  });
+};
+
 export const useDeletePayroll = () => {
   const queryClient = useQueryClient();
   return useMutation({
