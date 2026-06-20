@@ -20,6 +20,7 @@ import { toLocalDateInput } from "../utils/formatters";
 import AlertModal from "../components/AlertModal";
 import InvoiceGenerator from "../components/InvoiceGenerator";
 import CustomSelect from "../components/CustomSelect";
+import CustomCombobox from "../components/CustomCombobox";
 import {
   useIncomeRecords,
   useCreateIncomeRecord,
@@ -869,20 +870,16 @@ export default function IncomePage() {
                       </label>
                     </div>
                     {!isNewCustomer ? (
-                      <>
-                        <input 
-                          type="text" 
-                          required 
-                          list="income-customers-list"
-                          value={materialForm.customer_name} 
-                          onChange={(e) => setMaterialForm(p => ({ ...p, customer_name: e.target.value }))} 
-                          placeholder="Pilih Pelanggan..." 
-                          className={inputCls("emerald")} 
+                        <CustomCombobox
+                          required
+                          value={materialForm.customer_name}
+                          onChange={(val) => setMaterialForm(p => ({ ...p, customer_name: val }))}
+                          placeholder="Pilih Pelanggan..."
+                          options={customers.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((c: any) => ({
+                            value: c.name,
+                            label: c.name
+                          }))}
                         />
-                        <datalist id="income-customers-list">
-                          {customers.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((c: any) => <option key={c.id} value={c.name} />)}
-                        </datalist>
-                      </>
                     ) : (
                       <input 
                         type="text" 

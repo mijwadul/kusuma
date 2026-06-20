@@ -3,6 +3,7 @@ import { Fuel, Save, History, AlertCircle, CheckCircle, Package, XCircle, Trash2
 import { toast } from 'sonner';
 import AlertModal from "../components/AlertModal";
 import CustomSelect from "../components/CustomSelect";
+import CustomCombobox from "../components/CustomCombobox";
 import { toLocalDateInput } from "../utils/formatters";
 import { usePermissions } from '../hooks/usePermissions';
 import { useQuery } from '@tanstack/react-query';
@@ -421,19 +422,12 @@ const FuelPricePage = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Vendor / Penjual</label>
-                  <input
-                    type="text"
-                    list="vendor-list"
+                  <CustomCombobox
                     value={vendorName}
-                    onChange={(e) => setVendorName(e.target.value)}
+                    onChange={(val) => setVendorName(val)}
                     placeholder="Ketik manual atau pilih dari daftar"
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
+                    options={vendorList.map((v: string) => ({ value: v, label: v }))}
                   />
-                  <datalist id="vendor-list">
-                    {vendorList.map((v: string, idx: number) => (
-                      <option key={idx} value={v} />
-                    ))}
-                  </datalist>
                 </div>
                 
                 <div>
@@ -765,19 +759,12 @@ const FuelPricePage = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Vendor / Penjual</label>
-                  <input
-                    type="text"
-                    list="edit-vendor-list"
+                  <CustomCombobox
                     value={editForm.vendorName}
-                    onChange={(e) => setEditForm({...editForm, vendorName: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                    onChange={(val) => setEditForm({...editForm, vendorName: val})}
                     placeholder="Contoh: Pertamina SPBU 14..."
+                    options={vendorList.map((vendor: string) => ({ value: vendor, label: vendor }))}
                   />
-                  <datalist id="edit-vendor-list">
-                    {vendorList.map((vendor: string, index: number) => (
-                      <option key={index} value={vendor} />
-                    ))}
-                  </datalist>
                 </div>
               </div>
 

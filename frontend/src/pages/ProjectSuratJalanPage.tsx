@@ -10,6 +10,7 @@ import { generatePremiumPDF } from '../utils/pdfGenerator';
 import { useVendorTrucks } from '../hooks/useHauling';
 import { useVendors } from '../hooks/useVendors';
 import CustomSelect from '../components/CustomSelect';
+import CustomCombobox from '../components/CustomCombobox';
 
 const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300";
 
@@ -247,14 +248,10 @@ const SuratJalanFormModal = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Vendor Hauling</label>
-              <input
-                type="text"
-                name="vendor_name"
-                list="vendor-list"
-                value={formData.vendor_name}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  const foundVendor = vendors.find((v: any) => v.name.toLowerCase() === val.trim().toLowerCase());
+              <CustomCombobox
+                value={formData.vendor_name || ''}
+                onChange={(val) => {
+                  const foundVendor = vendors?.find((x: any) => x.name.toLowerCase() === val.trim().toLowerCase());
                   setFormData(prev => ({ 
                     ...prev, 
                     vendor_name: val,
@@ -263,41 +260,24 @@ const SuratJalanFormModal = ({
                   }));
                   setIsAutoFilled(false);
                 }}
-                className={inputCls}
                 placeholder="Pilih atau ketik vendor..."
-                autoComplete="off"
+                options={vendors ? vendors.map((v: any) => ({ value: v.name, label: v.name })) : []}
               />
-              <datalist id="vendor-list">
-                {vendors?.map((v: any) => (
-                  <option key={v.id} value={v.name} />
-                ))}
-              </datalist>
             </div>
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Nomor Polisi</label>
-              <input
-                type="text"
-                name="license_plate"
-                list="truck-list"
+              <CustomCombobox
                 value={formData.license_plate}
-                onChange={handleNopolChange}
-                className={inputCls}
+                onChange={(val) => handleNopolChange({ target: { name: 'license_plate', value: val } } as any)}
                 required
                 placeholder="Contoh: B 1234 CD"
-                autoComplete="off"
+                options={
+                  formData.vendor_id && vendorTrucks 
+                    ? vendorTrucks.map((t: any) => ({ value: t.nopol, label: t.supir_default }))
+                    : trucksHistory.map((t: any) => ({ value: t.nopol, label: t.nopol }))
+                }
               />
-              <datalist id="truck-list">
-                {formData.vendor_id && vendorTrucks ? (
-                  vendorTrucks.map((t: any) => (
-                    <option key={t.id} value={t.nopol}>{t.supir_default}</option>
-                  ))
-                ) : (
-                  trucksHistory.map((t: any) => (
-                    <option key={t.nopol} value={t.nopol} />
-                  ))
-                )}
-              </datalist>
             </div>
 
             <div>

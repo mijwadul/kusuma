@@ -15,6 +15,7 @@ import {
 import { useCustomersList, useProjectsList, Customer } from "../hooks/useProjects";
 import { toLocalDateInput } from "../utils/formatters";
 import CustomSelect from "../components/CustomSelect";
+import CustomCombobox from "../components/CustomCombobox";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const formatIDR = (v?: number | string | null) =>
@@ -257,18 +258,16 @@ const SaleFormModal = ({
               </div>
               {!isNewCustomer ? (
                 <>
-                  <input 
-                    type="text" 
-                    required 
-                    list="customers-list"
-                    value={form.customer_name} 
-                    onChange={e => setForm(p => ({...p, customer_name: e.target.value}))} 
+                  <CustomCombobox
+                    required
+                    value={form.customer_name}
+                    onChange={(val) => setForm(p => ({...p, customer_name: val}))}
                     placeholder="Pilih Pelanggan..."
-                    className={inputCls} 
+                    options={customers.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((c: any) => ({
+                      value: c.name,
+                      label: c.name
+                    }))}
                   />
-                  <datalist id="customers-list">
-                    {customers.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((c: any) => <option key={c.id} value={c.name} />)}
-                  </datalist>
                 </>
               ) : (
                 <input 
@@ -286,12 +285,10 @@ const SaleFormModal = ({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Plat Nomor</label>
-              <input 
-                type="text" 
-                list="trucks-list"
-                value={form.license_plate} 
-                onChange={e => {
-                  const val = e.target.value.toUpperCase();
+              <CustomCombobox
+                value={form.license_plate}
+                onChange={(rawVal) => {
+                  const val = rawVal.toUpperCase();
                   setForm(p => {
                     const newForm = {...p, license_plate: val};
                     for (const cust of customers) {
@@ -314,15 +311,10 @@ const SaleFormModal = ({
                     }
                     return newForm;
                   });
-                }} 
+                }}
                 placeholder="Nopol Truk..."
-                className={inputCls} 
+                options={currentCust ? (currentCust.trucks || []).map(t => ({ value: t.license_plate, label: t.license_plate })) : []}
               />
-              <datalist id="trucks-list">
-                {currentCust ? (currentCust.trucks || []).map(t => (
-                  <option key={t.license_plate} value={t.license_plate}>{t.license_plate}</option>
-                )) : null}
-              </datalist>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Nama Supir</label>
