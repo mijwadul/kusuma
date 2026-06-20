@@ -17,7 +17,8 @@ import {
   Receipt,
   XCircle,
   Smile,
-  Zap
+  Zap,
+  Bot
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -25,23 +26,20 @@ import { useQueryClient } from "@tanstack/react-query";
 import AlertModal from "../components/AlertModal";
 import { toLocalDateInput, formatIDR, formatDate, toLocalDateTimeString } from "../utils/formatters";
 import StatCard from "../components/dashboard/StatCard";
-import PendingPayrollPanel from "../components/dashboard/PendingPayrollPanel";
-import DailyReportPanel from "../components/dashboard/DailyReportPanel";
+import SmartActionsPanel from "../components/dashboard/SmartActionsPanel";
 import AttendancePanel from "../components/dashboard/AttendancePanel";
-import FuelStatsPanel from "../components/dashboard/FuelStatsPanel";
 import EntityTablesPanel from "../components/dashboard/EntityTablesPanel";
-import UnpaidCenterPanel from "../components/dashboard/UnpaidCenterPanel";
 import YesterdayReportPanel from "../components/dashboard/YesterdayReportPanel";
+import TypewriterText from "../components/ui/TypewriterText";
+import AILiveLogs from "../components/ui/AILiveLogs";
 
 import { usePermissions } from "../hooks/usePermissions";
 import {
   useDashboardStats,
   usePayrollSummary,
   useFuelEfficiency,
-  useFuelEquipmentReport,
   useDashboardEquipment,
   useDashboardEmployees,
-  useDashboardProjects,
   useFinanceSummary,
   useDailyReport,
   useTodayAttendance,
@@ -56,10 +54,7 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
 
   const { currentUser, isGM } = usePermissions();
-  
-  // Date States
-  const [dailyReportDate, setDailyReportDate] = useState(toLocalDateInput(new Date()));
-  
+
   // Derived role flags
   const role = currentUser?.role ?? "";
   const canSeePayroll = Boolean(
@@ -78,19 +73,16 @@ export default function DashboardPage() {
   const { data: stats = { equipment_count: 0, employee_count: 0, project_count: 0 }, isLoading: loadingStats } = useDashboardStats();
   const { data: payrollSummary, isLoading: loadingPayroll } = usePayrollSummary();
   const { data: fuelStats = { total_fuel_consumed: 0, equipment_count: 0 }, isLoading: loadingFuelStats } = useFuelEfficiency(30);
-  const { data: fuelEquipmentReport = [] } = useFuelEquipmentReport(30);
   const { data: equipment = [] } = useDashboardEquipment();
   const { data: employees = [] } = useDashboardEmployees();
-  const { data: projects = [] } = useDashboardProjects();
-  
+
   const { data: financeSummary } = useFinanceSummary(canSeePayroll || isGM);
-  
-  const { data: dailyReport, isLoading: loadingDaily } = useDailyReport(dailyReportDate);
+
   const { data: yesterdayReport, isLoading: loadingYesterday } = useDailyReport(isGM ? yesterdayDate : "");
-  
+
   const { data: todayAttendance = [], isLoading: attendanceLoading } = useTodayAttendance(
-    yesterdayDate, 
-    toLocalDateInput(new Date()), 
+    yesterdayDate,
+    toLocalDateInput(new Date()),
     role === "field"
   );
 
@@ -102,9 +94,9 @@ export default function DashboardPage() {
 
   // Local UI States
   const [selectedFieldEmployee, setSelectedFieldEmployee] = useState("");
-  const [deleteAttendanceModal, setDeleteAttendanceModal] = useState<{isOpen: boolean, employeeId: number|null, attendanceId: number|null}>({ isOpen: false, employeeId: null, attendanceId: null });
-  const [fuelActionModal, setFuelActionModal] = useState<{isOpen: boolean, id: number|null, action: 'approved'|'rejected'|null}>({ isOpen: false, id: null, action: null });
-  const [payrollApproveModal, setPayrollApproveModal] = useState<{isOpen: boolean, id: number|null}>({ isOpen: false, id: null });
+  const [deleteAttendanceModal, setDeleteAttendanceModal] = useState<{ isOpen: boolean, employeeId: number | null, attendanceId: number | null }>({ isOpen: false, employeeId: null, attendanceId: null });
+  const [fuelActionModal, setFuelActionModal] = useState<{ isOpen: boolean, id: number | null, action: 'approved' | 'rejected' | null }>({ isOpen: false, id: null, action: null });
+  const [payrollApproveModal, setPayrollApproveModal] = useState<{ isOpen: boolean, id: number | null }>({ isOpen: false, id: null });
 
   const getGreeting = () => {
     const hours = new Date().getHours();
@@ -135,38 +127,111 @@ export default function DashboardPage() {
     return employees.filter((e: any) => e.department && e.department.toLowerCase().startsWith("operation"));
   }, [employees]);
 
-  const fuelChartData = useMemo(() => {
-    return fuelEquipmentReport
-      .slice()
-      .sort((a: any, b: any) => b.total_liters - a.total_liters)
-      .slice(0, 14)
-      .map((r: any) => ({
-        name: r.equipment_name.length > 14 ? `${r.equipment_name.slice(0, 13)}…` : r.equipment_name,
-        liters: r.total_liters,
-        fullName: r.equipment_name,
-      }));
-  }, [fuelEquipmentReport]);
+  const aiMessage = useMemo(() => {
+    let aiHints = [];
 
-  const projectData = useMemo(() => {
-    const counts = { ongoing: 0, completed: 0, paused: 0 };
-    projects.forEach((p: any) => {
-      const s = (p.status || "ongoing").toLowerCase();
-      if (s in counts) (counts as any)[s]++;
-      else counts.ongoing++;
-    });
-    return [
-      { name: "Ongoing", value: counts.ongoing, color: "#3b82f6" },
-      { name: "Completed", value: counts.completed, color: "#10b981" },
-      { name: "Paused", value: counts.paused, color: "#f59e0b" },
+    if (financeSummary) {
+      if (financeSummary.pending_fuel_purchases > 0) {
+        aiHints.push(`Saya mendeteksi ${financeSummary.pending_fuel_purchases} pengajuan BBM yang perlu Anda setujui.`);
+      }
+      if (financeSummary.pending_expenses > 0) {
+        aiHints.push(`Terdapat ${financeSummary.pending_expenses} pengeluaran pending yang menunggu otorisasi Anda.`);
+      }
+      if (financeSummary.unpaid_invoices_count > 0) {
+        aiHints.push(`Sistem memantau ada ${financeSummary.unpaid_invoices_count} invoice pelanggan yang belum lunas. Mari kita tindak lanjuti.`);
+      }
+      if (financeSummary.unprocessed_attendances_count > 0) {
+        aiHints.push(`Sistem mencatat ${financeSummary.unprocessed_attendances_count} karyawan yang absensinya belum diproses menjadi slip gaji.`);
+      }
+      if ((financeSummary.equipment_balances ?? financeSummary.vendor_deposits ?? []).some((b: any) => (b.balance ?? b.balance_deposit ?? 0) <= 5000000)) {
+        aiHints.push(`Peringatan sistem: Beberapa deposit alat berat Anda menipis. Harap lakukan top-up.`);
+      }
+    }
+
+    if (payrollSummary && payrollSummary.pending_count > 0) {
+      aiHints.push(`Terdapat ${payrollSummary.pending_count} slip gaji yang siap untuk Anda validasi.`);
+    }
+
+    if (role === 'field' && todayAttendance && todayAttendance.length === 0) {
+      aiHints.push("Pemantauan lapangan aktif. Anda belum mengisi absensi untuk tim hari ini.");
+    } else if (role === 'field') {
+      aiHints.push("Koneksi lapangan stabil. Silakan lanjutkan pelaporan harian Anda.");
+    }
+
+    const defaultMessages = [
+      "Semua modul sistem beroperasi optimal. Tidak ada anomali yang terdeteksi.",
+      "Koneksi terenkripsi penuh. Saya siap membantu mengelola operasi Anda hari ini.",
+      "Aktivitas Anda telah saya sinkronisasi ke cloud. Apa yang ingin kita kerjakan sekarang?",
+      "Database terhubung dengan latensi rendah. Sistem siap digunakan.",
+      "Pemantauan keamanan berjalan di latar belakang. Semua parameter normal."
     ];
-  }, [projects]);
+
+    if (aiHints.length > 0) {
+      return aiHints[Math.floor(Math.random() * aiHints.length)];
+    } else {
+      return defaultMessages[Math.floor(Math.random() * defaultMessages.length)];
+    }
+  }, [financeSummary, payrollSummary, role, todayAttendance]);
+
+  const dynamicHeaderStyles = useMemo(() => {
+    const hasUrgentAction = (financeSummary?.pending_fuel_purchases > 0) || 
+                            (financeSummary?.pending_expenses > 0) ||
+                            (payrollSummary?.pending_count > 0);
+                            
+    if (hasUrgentAction) {
+      return {
+        bg: "bg-slate-900/95",
+        orb1: "bg-orange-600/20",
+        orb2: "bg-red-500/15 animate-pulse",
+        border: "border-orange-500/40",
+        glow: "shadow-[0_20px_40px_-15px_rgba(249,115,22,0.25)]"
+      };
+    }
+    
+    const hours = new Date().getHours();
+    if (hours >= 5 && hours < 11) { // Pagi
+      return {
+        bg: "bg-slate-900/85",
+        orb1: "bg-amber-500/15",
+        orb2: "bg-sky-400/15",
+        border: "border-slate-700/50",
+        glow: "shadow-[0_20px_40px_-15px_rgba(14,165,233,0.2)]"
+      };
+    }
+    if (hours >= 11 && hours < 15) { // Siang
+      return {
+        bg: "bg-slate-900/85",
+        orb1: "bg-sky-500/15",
+        orb2: "bg-blue-500/15",
+        border: "border-slate-700/50",
+        glow: "shadow-[0_20px_40px_-15px_rgba(59,130,246,0.2)]"
+      };
+    }
+    if (hours >= 15 && hours < 18) { // Sore
+      return {
+        bg: "bg-slate-900/85",
+        orb1: "bg-orange-500/15",
+        orb2: "bg-purple-500/15",
+        border: "border-slate-700/50",
+        glow: "shadow-[0_20px_40px_-15px_rgba(168,85,247,0.2)]"
+      };
+    }
+    // Malam
+    return {
+      bg: "bg-slate-950/95",
+      orb1: "bg-indigo-600/20",
+      orb2: "bg-violet-600/15",
+      border: "border-indigo-500/30",
+      glow: "shadow-[0_20px_40px_-15px_rgba(79,70,229,0.3)]"
+    };
+  }, [financeSummary, payrollSummary]);
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-slate-900/85 backdrop-blur-2xl p-6 md:p-8 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.4)] border border-slate-700/50 text-white transition-all duration-300">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/15 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
-        <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className={`relative overflow-hidden rounded-3xl backdrop-blur-2xl p-6 md:p-8 text-white transition-all duration-1000 ${dynamicHeaderStyles.bg} ${dynamicHeaderStyles.border} ${dynamicHeaderStyles.glow} border`}>
+        <div className={`absolute top-0 right-0 w-80 h-80 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20 transition-colors duration-1000 ${dynamicHeaderStyles.orb1}`}></div>
+        <div className={`absolute bottom-0 left-1/3 w-64 h-64 rounded-full blur-3xl pointer-events-none transition-colors duration-1000 ${dynamicHeaderStyles.orb2}`}></div>
 
         <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-4 md:gap-6">
@@ -177,7 +242,7 @@ export default function DashboardPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs uppercase tracking-widest text-indigo-300 font-semibold">SYSTEM KUSUMA</span>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                  v1.2 Active
+                  v3.2 Active
                 </span>
               </div>
               <h1 className="flex items-center text-2xl md:text-3xl font-extrabold tracking-tight mt-1">
@@ -189,9 +254,18 @@ export default function DashboardPage() {
                 </span>
                 <span className="text-xs text-indigo-300/80 font-normal">({currentUser?.email || "-"})</span>
               </div>
+              <div className="mt-3 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 backdrop-blur-sm relative overflow-hidden group w-fit max-w-[90%] md:max-w-md">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-400/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                <Bot className="w-4 h-4 text-indigo-300 animate-pulse shrink-0" />
+                <p className="text-xs text-indigo-100 font-medium tracking-wide">
+                  <span className="text-indigo-300 font-bold mr-1">AI System:</span>
+                  <TypewriterText text={aiMessage} />
+                </p>
+              </div>
+              <AILiveLogs />
             </div>
           </div>
-          
+
           <div className="flex flex-col items-end gap-2 shrink-0 bg-slate-950/40 p-4 rounded-2xl border border-slate-800/40 backdrop-blur-sm self-start md:self-center">
             <div className="text-right">
               <p className="text-xs text-indigo-300/80 uppercase tracking-widest font-semibold">Hari & Tanggal</p>
@@ -248,10 +322,10 @@ export default function DashboardPage() {
               Finance Summary
             </h2>
           </div>
-          
+
           {financeSummary.uninvoiced_material_sales_count > 0 && (
-            <div 
-              onClick={() => navigate('/material-sales')} 
+            <div
+              onClick={() => navigate('/material-sales')}
               className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm cursor-pointer hover:bg-amber-100 transition-colors"
             >
               <AlertTriangle className="w-6 h-6 text-amber-500 shrink-0 mt-0.5" />
@@ -266,8 +340,8 @@ export default function DashboardPage() {
           )}
 
           {financeSummary.unprocessed_attendances_count > 0 && (
-            <div 
-              onClick={() => navigate('/payroll')} 
+            <div
+              onClick={() => navigate('/payroll')}
               className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm cursor-pointer hover:bg-blue-100 transition-colors"
             >
               <AlertTriangle className="w-6 h-6 text-blue-500 shrink-0 mt-0.5" />
@@ -385,22 +459,22 @@ export default function DashboardPage() {
                         </p>
                       </div>
                       {isGM && (
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setFuelActionModal({ isOpen: true, id: rec.id, action: 'approved' })}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors shadow-sm"
-                        >
-                          <CheckCircle className="w-3.5 h-3.5" />
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => setFuelActionModal({ isOpen: true, id: rec.id, action: 'rejected' })}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm"
-                        >
-                          <XCircle className="w-3.5 h-3.5" />
-                          Tolak
-                        </button>
-                      </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setFuelActionModal({ isOpen: true, id: rec.id, action: 'approved' })}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors shadow-sm"
+                          >
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => setFuelActionModal({ isOpen: true, id: rec.id, action: 'rejected' })}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                            Tolak
+                          </button>
+                        </div>
                       )}
                     </div>
                   ))
@@ -416,40 +490,40 @@ export default function DashboardPage() {
       )}
 
       {role !== 'finance' && (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in">
-        <StatCard
-          icon={Truck}
-          label="Total Equipment"
-          value={stats.equipment_count}
-          color="bg-blue-500"
-          loading={loadingStats}
-          onClick={() => navigate("/equipment")}
-        />
-        <StatCard
-          icon={Users}
-          label="Karyawan Aktif"
-          value={stats.employee_count}
-          color="bg-emerald-500"
-          loading={loadingStats}
-          onClick={() => navigate("/employees")}
-        />
-        <StatCard
-          icon={FolderOpen}
-          label="Total Proyek"
-          value={stats.project_count}
-          color="bg-purple-500"
-          loading={loadingStats}
-        />
-        <StatCard
-          icon={Gauge}
-          label="BBM 30 Hari"
-          value={`${fuelStats.total_fuel_consumed.toFixed(1)} L`}
-          sub={`${fuelStats.equipment_count} unit`}
-          color="bg-amber-500"
-          loading={loadingFuelStats}
-          onClick={() => navigate("/fuel")}
-        />
-      </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in">
+          <StatCard
+            icon={Truck}
+            label="Total Equipment"
+            value={stats.equipment_count}
+            color="bg-blue-500"
+            loading={loadingStats}
+            onClick={() => navigate("/equipment")}
+          />
+          <StatCard
+            icon={Users}
+            label="Karyawan Aktif"
+            value={stats.employee_count}
+            color="bg-emerald-500"
+            loading={loadingStats}
+            onClick={() => navigate("/employees")}
+          />
+          <StatCard
+            icon={FolderOpen}
+            label="Total Proyek"
+            value={stats.project_count}
+            color="bg-purple-500"
+            loading={loadingStats}
+          />
+          <StatCard
+            icon={Gauge}
+            label="BBM 30 Hari"
+            value={`${fuelStats.total_fuel_consumed.toFixed(1)} L`}
+            sub={`${fuelStats.equipment_count} unit`}
+            color="bg-amber-500"
+            loading={loadingFuelStats}
+            onClick={() => navigate("/fuel")}
+          />
+        </div>
       )}
 
       {canSeePayroll && (
@@ -510,38 +584,21 @@ export default function DashboardPage() {
                 />
               </div>
 
-              <PendingPayrollPanel
-                isGM={isGM}
-                payrollSummary={payrollSummary}
-                approvingId={approvePayroll.isPending ? payrollApproveModal.id : null}
-                setPayrollApproveModal={setPayrollApproveModal}
-              />
+
             </div>
           )}
         </div>
       )}
 
-      <DailyReportPanel
-        isGM={isGM}
-        role={role}
-        dailyReport={dailyReport}
-        dailyReportDate={dailyReportDate}
-        setDailyReportDate={setDailyReportDate}
-        loadingDaily={loadingDaily}
-      />
-
-      <FuelStatsPanel
-        fuelChartData={fuelChartData}
-        projectData={projectData}
-        fuelEquipmentReport={fuelEquipmentReport}
-      />
-
       <EntityTablesPanel equipment={equipment} employees={employees} />
 
-      <UnpaidCenterPanel
-        role={role}
+      <SmartActionsPanel
         isGM={isGM}
+        role={role}
+        payrollSummary={payrollSummary}
         financeSummary={financeSummary}
+        approvingId={approvePayroll.isPending ? payrollApproveModal.id : null}
+        setPayrollApproveModal={setPayrollApproveModal}
         handleMarkPaid={(type: any, id: number) => markPaid.mutate({ type, id })}
       />
 

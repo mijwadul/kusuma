@@ -37,7 +37,10 @@ const StatCard: React.FC<StatCardProps> = ({ icon: Icon, label, value, sub, colo
         {loading ? (
           <div className="h-8 w-24 skeleton-box"></div>
         ) : (
-          <p className="text-lg sm:text-xl md:text-2xl font-extrabold text-slate-800 tracking-tight mt-1.5 tabular-nums fluid-metric-value">{value}</p>
+          <p className="text-lg sm:text-xl md:text-2xl font-extrabold text-slate-800 tracking-tight mt-1.5 tabular-nums fluid-metric-value relative">
+            {value}
+            <span className="absolute inset-0 bg-indigo-400 blur-xl opacity-20 animate-pulse mix-blend-multiply pointer-events-none rounded-full"></span>
+          </p>
         )}
         
         <div className="flex items-center space-x-2">
