@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { toast } from "sonner";
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/apiClient';
-import { Building2, Plus, Edit, Trash2, CheckCircle, XCircle, Pencil, Truck, ChevronDown, ChevronRight, AlertTriangle } from "lucide-react";
+import { Building2, Plus, Edit, Trash2, CheckCircle, XCircle, Pencil, Truck, ChevronDown, ChevronRight, AlertTriangle, Zap } from "lucide-react";
 import { useVendors, useCreateVendor, useUpdateVendor, useDeleteVendor, useVendorTopups, useCreateVendorTopup, useUpdateVendorTopup, useDeleteVendorTopup, useApproveVendorTopup, useEquipmentBalances, Vendor } from "../hooks/useVendors";
 import { useEquipment } from "../hooks/useEquipment";
 import { toLocalDateInput } from "../utils/formatters";
@@ -36,7 +36,7 @@ export default function VendorManagement({ userRole }: Props) {
   const isGM = userRole === "gm" || userRole === "admin";
   const canManage = ["gm", "finance", "admin"].includes(userRole);
 
-  const { data: vendors = [] as Vendor[], isLoading: loadingVendors } = useVendors('equipment', { enabled: canManage });
+  const { data: vendors = [] as Vendor[] } = useVendors('equipment', { enabled: canManage });
   const { data: topups = [] as any[] } = useVendorTopups({ enabled: canManage });
   const { data: allEquipment = [] as any[] } = useEquipment({ enabled: canManage });
   const { data: equipmentBalances = [] as any[] } = useEquipmentBalances({ enabled: canManage });
@@ -308,8 +308,7 @@ export default function VendorManagement({ userRole }: Props) {
                             ? "bg-amber-100 text-amber-800"
                             : "bg-emerald-100 text-emerald-800"
                         }`}>
-                          {b.balance < 0 && <AlertTriangle size={12} />}
-                          {b.balance < 0 ? "⚠️ Minus: " : b.balance <= 5000000 ? "⚡ Menipis: " : ""}
+                          {b.balance < 0 ? <><AlertTriangle size={14} /> Minus: </> : b.balance <= 5000000 ? <><Zap size={14} /> Menipis: </> : ""}
                           {formatIDR(b.balance)}
                         </span>
                       </td>
@@ -429,7 +428,7 @@ export default function VendorManagement({ userRole }: Props) {
                   ]}
                 />
                 {editVendorEquipments.length === 0 && (
-                  <p className="text-xs text-amber-600 mt-1">⚠️ Vendor ini belum memiliki alat berat rental terdaftar.</p>
+                  <p className="text-xs text-amber-600 mt-1"><AlertTriangle size={14} className="inline-block mr-1 mb-0.5"/> Vendor ini belum memiliki alat berat rental terdaftar.</p>
                 )}
               </div>
               <div>
@@ -513,7 +512,7 @@ export default function VendorManagement({ userRole }: Props) {
                 </label>
                 {vendorEquipments.length === 0 ? (
                   <div className="bg-amber-50 border border-amber-200 rounded p-3 text-sm text-amber-700">
-                    ⚠️ Vendor ini belum memiliki alat berat rental yang terdaftar di sistem. Daftarkan alat berat terlebih dahulu di menu Equipment.
+                    <AlertTriangle size={16} className="inline-block mr-1 mb-0.5"/> Vendor ini belum memiliki alat berat rental yang terdaftar di sistem. Daftarkan alat berat terlebih dahulu di menu Equipment.
                   </div>
                 ) : (
                   <CustomSelect

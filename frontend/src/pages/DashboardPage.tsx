@@ -16,6 +16,8 @@ import {
   Wallet,
   Receipt,
   XCircle,
+  Smile,
+  Zap
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -178,8 +180,8 @@ export default function DashboardPage() {
                   v1.2 Active
                 </span>
               </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight mt-1">
-                {getGreeting()}, <span className="bg-gradient-to-r from-blue-200 via-indigo-100 to-white bg-clip-text text-transparent">{currentUser?.full_name || "User"}</span>! 👋
+              <h1 className="flex items-center text-2xl md:text-3xl font-extrabold tracking-tight mt-1">
+                {getGreeting()}, <span className="bg-gradient-to-r from-blue-200 via-indigo-100 to-white bg-clip-text text-transparent mx-1.5">{currentUser?.full_name || "User"}</span>! <Smile className="w-6 h-6 md:w-8 md:h-8 text-yellow-300 ml-1.5" />
               </h1>
               <div className="flex flex-wrap items-center gap-2 mt-1.5">
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${getRoleLabelAndIcon(role).badge}`}>
@@ -299,8 +301,8 @@ export default function DashboardPage() {
                             <span className="text-xs font-semibold text-gray-700">{eqName}</span>
                             {vendorName && <span className="text-xs text-gray-400">({vendorName})</span>}
                           </div>
-                          <span className={`text-xs font-bold tabular-nums ${balance < 0 ? "text-red-700" : "text-amber-700"}`}>
-                            {balance < 0 ? "⚠️ " : "⚡ "}{formatIDR(balance)}
+                          <span className={`flex items-center gap-1 text-xs font-bold tabular-nums ${balance < 0 ? "text-red-700" : "text-amber-700"}`}>
+                            {balance < 0 ? <AlertTriangle size={14} className="text-red-500" /> : <Zap size={14} className="text-amber-500" />} {formatIDR(balance)}
                           </span>
                         </div>
                       );

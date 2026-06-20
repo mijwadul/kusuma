@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
-import { ArrowDownIcon, ArrowUpIcon, Download, RefreshCcw, CheckCircle } from 'lucide-react';
+import { ArrowDownIcon, ArrowUpIcon, Download, RefreshCcw, CheckCircle, Globe, Building2, Folder } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 import CustomSelect from '../components/CustomSelect';
@@ -146,12 +146,12 @@ export default function CashFlowPage() {
               value={selectedProject}
               onChange={(val) => setSelectedProject(val as string)}
               options={[
-                { value: "all", label: "🌐 Semua (General + Project)" },
-                { value: "general", label: "🏢 General (Tanpa Project)" },
+                { value: "all", label: <div className="flex items-center gap-2"><Globe size={14} className="text-gray-400"/> Semua (General + Project)</div> },
+                { value: "general", label: <div className="flex items-center gap-2"><Building2 size={14} className="text-gray-400"/> General (Tanpa Project)</div> },
                 ...(projects.length > 0 ? [{ value: "divider", label: "─── Per Project ───", disabled: true }] : []),
                 ...projects.map((p: any) => ({
                   value: String(p.id),
-                  label: `📁 ${p.name}`
+                  label: <div className="flex items-center gap-2"><Folder size={14} className="text-blue-500"/> {p.name}</div>
                 }))
               ]}
             />

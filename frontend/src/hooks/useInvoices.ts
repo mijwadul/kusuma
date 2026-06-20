@@ -68,6 +68,19 @@ export const useUpdateInvoiceStatus = () => {
   });
 };
 
+export const useUpdateInvoice = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<Invoice> }) => {
+      const response = await apiClient.put(`/invoices/${id}`, data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    },
+  });
+};
+
 export const useDeleteInvoice = () => {
   const queryClient = useQueryClient();
   return useMutation({

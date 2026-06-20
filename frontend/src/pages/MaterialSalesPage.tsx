@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import {
-  Plus, Pencil, Trash2, X, Loader2, ShoppingCart, Settings, Truck, FileText, Download
+  Plus, Pencil, Trash2, X, Loader2, ShoppingCart, Settings, Truck, FileText, Download, Scale, Package
 } from "lucide-react";
 import { generatePremiumPDF } from "../utils/pdfGenerator";
 import apiClient from "../api/apiClient";
@@ -870,7 +870,7 @@ export default function MaterialSalesPage() {
                         p.unit === 'ton' ? 'bg-orange-50 text-orange-700' :
                         'bg-purple-50 text-purple-700'
                       }`}>
-                        {p.unit === 'm3' ? '📐 Kubikasi (m³)' : p.unit === 'ton' ? '⚖️ Tonase (ton)' : '🚚 Ritase'}
+                        {p.unit === 'm3' ? <><Package size={14} /> Kubikasi (m³)</> : p.unit === 'ton' ? <><Scale size={14} /> Tonase (ton)</> : <><Truck size={14} /> Ritase</>}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-gray-800 whitespace-nowrap">{formatIDR(p.price_per_unit)}</td>

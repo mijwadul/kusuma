@@ -69,12 +69,7 @@ const MATERIAL_TYPES = [
   "Clay",
 ];
 
-const TABS = [
-  { key: "all", label: "📂 Semua" },
-  { key: "project_payment", label: "📁 Pembayaran Proyek" },
-  { key: "material_sale", label: "🪨 Penjualan Material" },
-  { key: "invoices", label: "📄 Daftar Invoice" },
-];
+// TABS removed in favor of inline buttons
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 const SummaryCard = ({ icon: Icon, label, value, color }: any) => (
@@ -573,18 +568,31 @@ export default function IncomePage() {
         <SummaryCard icon={TrendingUp} label="Jumlah Transaksi" value={summary.count} color="bg-purple-500" />
       </div>
 
-      <div className="tabs-scrollable bg-gray-100 p-1 rounded-xl flex gap-1">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === tab.key ? "bg-white text-gray-800 shadow-sm" : "text-gray-600 hover:text-gray-800"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="flex gap-2 p-1 bg-gray-100 rounded-xl w-fit flex-wrap">
+        <button
+          onClick={() => setActiveTab("all")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === "all" ? "bg-white shadow text-gray-800" : "text-gray-600 hover:text-gray-800"}`}
+        >
+          <FolderOpen size={16} /> Semua
+        </button>
+        <button
+          onClick={() => setActiveTab("project_payment")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === "project_payment" ? "bg-white shadow text-blue-700" : "text-gray-600 hover:text-gray-800"}`}
+        >
+          <DollarSign size={16} /> Pembayaran Proyek
+        </button>
+        <button
+          onClick={() => setActiveTab("material_sale")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === "material_sale" ? "bg-white shadow text-emerald-700" : "text-gray-600 hover:text-gray-800"}`}
+        >
+          <ShoppingCart size={16} /> Penjualan Material
+        </button>
+        <button
+          onClick={() => setActiveTab("invoices")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === "invoices" ? "bg-white shadow text-indigo-700" : "text-gray-600 hover:text-gray-800"}`}
+        >
+          <FileText size={16} /> Daftar Invoice
+        </button>
       </div>
 
       {activeTab !== "invoices" && (
@@ -781,7 +789,9 @@ export default function IncomePage() {
                     modalTab === "project_payment" ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
-                  📁 Pembayaran Proyek
+                  <div className="flex items-center justify-center gap-2">
+                    <DollarSign size={16} /> Pembayaran Proyek
+                  </div>
                 </button>
                 <button
                   type="button"
@@ -790,7 +800,9 @@ export default function IncomePage() {
                     modalTab === "material_sale" ? "bg-emerald-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
-                  🪨 Penjualan Material
+                  <div className="flex items-center justify-center gap-2">
+                    <ShoppingCart size={16} /> Penjualan Material
+                  </div>
                 </button>
               </div>
             )}
