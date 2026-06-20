@@ -13,7 +13,7 @@ const UnpaidCenterPanel: React.FC<UnpaidCenterPanelProps> = ({ role, isGM, finan
   if (!(role === 'finance' || isGM) || !financeSummary) return null;
 
   return (
-    <div id="unpaid-center" className="bg-white rounded-3xl border border-red-100 shadow-sm overflow-hidden p-6 mt-8">
+    <div id="unpaid-center" className="w-full">
       <h2 className="text-lg font-bold text-red-600 flex items-center gap-2 mb-6">
         <AlertTriangle className="w-5 h-5" />
         Unpaid Center - Menunggu Pelunasan
