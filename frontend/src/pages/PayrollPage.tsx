@@ -777,7 +777,7 @@ const PayrollPage: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-3 px-6 py-4 border-t border-gray-100">
-              {isFinance && detailData.payment_status === "pending" && (
+              {isFinance && detailData.payment_status !== "paid" && (
                 <button
                   onClick={() => {
                     closeDetail();
