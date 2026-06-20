@@ -7,6 +7,8 @@ class Invoice(Base):
     __tablename__ = "invoices"
 
     id = Column(Integer, primary_key=True, index=True)
+    invoice_type = Column(String(30), default="material_sale", nullable=False)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
     invoice_number = Column(String(50), unique=True, index=True, nullable=False)
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True)
     customer_name = Column(String(200), nullable=False)

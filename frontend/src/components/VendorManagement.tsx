@@ -41,6 +41,8 @@ export default function VendorManagement({ userRole }: Props) {
   const { data: allEquipment = [] as any[] } = useEquipment({ enabled: canManage });
   const { data: equipmentBalances = [] as any[] } = useEquipmentBalances({ enabled: canManage });
   
+  const equipmentTopups = topups.filter(t => vendors.some(v => v.id === t.vendor_id));
+  
   const { data: projects = [] as any[] } = useQuery({
     queryKey: ['projects'],
     queryFn: async () => {
@@ -321,7 +323,7 @@ export default function VendorManagement({ userRole }: Props) {
         </table>
       </div>
 
-      {topups.length > 0 && (
+      {equipmentTopups.length > 0 && (
         <>
           <h3 className="text-lg font-bold text-gray-800 mb-4">Riwayat Top-Up Deposit</h3>
           <div className="overflow-x-auto border border-gray-100 rounded-lg max-h-96">
@@ -339,7 +341,7 @@ export default function VendorManagement({ userRole }: Props) {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {[...topups].sort((a, b) => new Date(b.topup_date).getTime() - new Date(a.topup_date).getTime()).map(t => {
+                {[...equipmentTopups].sort((a, b) => new Date(b.topup_date).getTime() - new Date(a.topup_date).getTime()).map(t => {
                   const v = vendors.find((x: any) => x.id === t.vendor_id);
                   return (
                     <tr key={t.id}>

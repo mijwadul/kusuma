@@ -22,6 +22,15 @@ class InvoicePreviewItem(BaseModel):
     description: str
     license_plate: Optional[str] = None
     driver_name: Optional[str] = None
+    sj_gross_weight: Optional[float] = None
+    sj_tare_weight: Optional[float] = None
+    sj_weight_minus: Optional[float] = None
+    sj_net_weight: Optional[float] = None
+    sj_length: Optional[float] = None
+    sj_width: Optional[float] = None
+    sj_height: Optional[float] = None
+    sj_volume_minus: Optional[float] = None
+    sj_volume: Optional[float] = None
 
 class InvoicePreviewResponse(BaseModel):
     customer_name: str
@@ -32,6 +41,8 @@ class InvoicePreviewResponse(BaseModel):
     total_amount: float
 
 class InvoiceCreate(BaseModel):
+    invoice_type: Optional[str] = "material_sale"
+    project_id: Optional[int] = None
     customer_name: str
     customer_id: Optional[int] = None
     start_date: date
@@ -43,6 +54,8 @@ class InvoiceCreate(BaseModel):
     discount_value: Optional[float] = None
 
 class InvoiceUpdate(BaseModel):
+    invoice_type: Optional[str] = None
+    project_id: Optional[int] = None
     customer_name: Optional[str] = None
     customer_id: Optional[int] = None
     start_date: Optional[date] = None
@@ -55,6 +68,8 @@ class InvoiceUpdate(BaseModel):
 
 class InvoiceResponse(BaseModel):
     id: int
+    invoice_type: str
+    project_id: Optional[int] = None
     invoice_number: str
     customer_name: str
     customer_id: Optional[int] = None
@@ -102,6 +117,8 @@ def get_uninvoiced_customers(
 
 @router.get("/preview", response_model=InvoicePreviewResponse)
 def preview_invoice(
+    invoice_type: Optional[str] = Query("material_sale", description="Tipe invoice: material_sale atau project"),
+    project_id: Optional[int] = Query(None, description="ID proyek"),
     customer_name: Optional[str] = Query(None, description="Nama customer"),
     customer_id: Optional[int] = Query(None, description="ID customer"),
     start_date: date = Query(..., description="Tanggal awal"),
@@ -110,7 +127,7 @@ def preview_invoice(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return InvoiceService.preview_invoice(db, customer_name, customer_id, start_date, end_date, invoice_id)
+    return InvoiceService.preview_invoice(db, invoice_type, project_id, customer_name, customer_id, start_date, end_date, invoice_id)
 
 @router.post("", response_model=InvoiceResponse, status_code=status.HTTP_201_CREATED)
 def create_invoice(
@@ -180,6 +197,8 @@ def export_invoice_pdf_endpoint(
     # Get items for the invoice
     preview_data = InvoiceService.preview_invoice(
         db=db,
+        invoice_type=inv.invoice_type,
+        project_id=inv.project_id,
         customer_name=inv.customer_name,
         customer_id=inv.customer_id,
         start_date=inv.start_date,

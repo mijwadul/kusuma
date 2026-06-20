@@ -281,7 +281,7 @@ interface MenuItem {
         path: "/projects",
         icon: FolderOpen,
         label: "Project Management",
-        show: true,
+        show: isFinance,
       },
     ];
     

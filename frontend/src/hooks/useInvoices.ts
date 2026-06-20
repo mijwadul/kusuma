@@ -12,18 +12,23 @@ export interface InvoiceItem {
 
 export interface Invoice {
   id: number;
+  invoice_type: string;
+  project_id?: number | null;
   invoice_number: string;
   invoice_date: string;
-  due_date: string;
+  start_date: string;
+  end_date: string;
   customer_name: string;
-  customer_address?: string;
-  project_name?: string;
+  customer_id?: number | null;
   total_amount: number;
   status: string;
   notes?: string;
-  items: InvoiceItem[];
+  discount_type?: string | null;
+  discount_value?: number | null;
+  discount_amount?: number | null;
+  final_amount?: number | null;
+  is_downloaded: boolean;
   created_at?: string;
-  created_by?: number;
 }
 
 export const useInvoices = (options?: any) => {

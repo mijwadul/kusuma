@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 
 from ..models.income_record import IncomeRecord
 from ..models.invoice import Invoice
+from ..models.surat_jalan import SuratJalan
+from ..models.project import Project
 from ..models.user import User
 from ..core.exceptions import AuthorizationError, NotFoundError, ValidationError
 from ..api.v1.invoices import (
@@ -17,84 +19,172 @@ from ..api.v1.invoices import (
 
 class InvoiceService:
     @staticmethod
-    def preview_invoice(db: Session, customer_name: Optional[str], customer_id: Optional[int], start_date: date, end_date: date, invoice_id: Optional[int] = None) -> InvoicePreviewResponse:
-        query = (
-            db.query(IncomeRecord)
-            .filter(
-                IncomeRecord.income_type == "material_sale",
-                IncomeRecord.income_date >= start_date,
-                IncomeRecord.income_date <= end_date,
-            )
-        )
-        
-        if customer_id is not None:
-            query = query.filter(IncomeRecord.customer_id == customer_id)
-        elif customer_name is not None:
-            query = query.filter(IncomeRecord.customer_name.ilike(customer_name))
-        
-        if invoice_id is not None:
-            query = query.filter(
-                (IncomeRecord.is_invoiced == False) | 
-                (IncomeRecord.is_invoiced == None) | 
-                (IncomeRecord.invoice_id == invoice_id)
-            )
-        else:
-            query = query.filter(
-                (IncomeRecord.is_invoiced == False) | 
-                (IncomeRecord.is_invoiced == None)
-            )
+    def preview_invoice(db: Session, invoice_type: str, project_id: Optional[int], customer_name: Optional[str], customer_id: Optional[int], start_date: date, end_date: date, invoice_id: Optional[int] = None) -> InvoicePreviewResponse:
+        if invoice_type == "project":
+            if not project_id:
+                raise ValidationError("Project ID is required for project invoice")
             
-        records = query.order_by(IncomeRecord.income_date.asc()).all()
+            project = db.query(Project).filter(Project.id == project_id).first()
+            if not project:
+                raise NotFoundError("Project not found")
 
-        items = []
-        total = 0.0
-        for r in records:
-            amt = float(r.amount or 0)
+            # Determine unit_price
+            unit_price = 0.0
+            if project.material_items and len(project.material_items) > 0:
+                unit_price = project.material_items[0].unit_price or 0.0
+
+            measurement_type = project.measurement_type or 'tonase'
             
-            desc = r.description or "-"
-            unit_val = r.unit or "ritase"
-            qty_val = float(r.quantity or 1)
-            price_val = float(r.unit_price or 0)
-
-            has_sj_m3 = (unit_val == "m3" and r.sj_length is not None)
-            has_sj_ton = (unit_val == "ton" and r.sj_gross_weight is not None)
-
-            if has_sj_m3:
-                sj_info = f"[P:{r.sj_length} L:{r.sj_width} T:{r.sj_height} M:{r.sj_volume_minus}]"
-                desc = f"{desc} {sj_info}"
-            elif has_sj_ton:
-                sj_info = f"[B1:{r.sj_gross_weight} B2:{r.sj_tare_weight} M:{r.sj_weight_minus}]"
-                desc = f"{desc} {sj_info}"
-            else:
-                unit_val = "ritase"
-
-            items.append(
-                InvoicePreviewItem(
-                    id=r.id,
-                    income_date=r.income_date,
-                    material_type=r.material_type or "-",
-                    quantity=qty_val,
-                    unit=unit_val,
-                    unit_price=price_val,
-                    amount=amt,
-                    description=desc,
-                    license_plate=r.license_plate,
-                    driver_name=r.driver_name,
+            query = (
+                db.query(SuratJalan)
+                .filter(
+                    SuratJalan.project_id == project_id,
+                    func.date(SuratJalan.created_at) >= start_date,
+                    func.date(SuratJalan.created_at) <= end_date,
                 )
             )
-            total += amt
 
-        return InvoicePreviewResponse(
-            customer_name=customer_name or "",
-            customer_id=customer_id,
-            start_date=start_date,
-            end_date=end_date,
-            items=items,
-            total_amount=total,
-        )
+            if invoice_id is not None:
+                query = query.filter(
+                    (SuratJalan.is_invoiced == False) | 
+                    (SuratJalan.is_invoiced == None) | 
+                    (SuratJalan.invoice_id == invoice_id)
+                )
+            else:
+                query = query.filter(
+                    (SuratJalan.is_invoiced == False) | 
+                    (SuratJalan.is_invoiced == None)
+                )
+
+            records = query.order_by(SuratJalan.created_at.asc()).all()
+            
+            items = []
+            total = 0.0
+            for r in records:
+                if measurement_type == 'tonase':
+                    qty_val = float(r.netto or 0)
+                    unit_val = "ton"
+                    sj_info = f"[B1:{r.bruto} B2:{r.tarra} M:{r.minus_berat}]"
+                else:
+                    qty_val = float(r.volume or 0)
+                    unit_val = "m3"
+                    sj_info = f"[P:{r.panjang} L:{r.lebar} T:{r.tinggi} M:{r.minus_tinggi}]"
+                
+                amt = qty_val * unit_price
+                desc = f"Surat Jalan {r.nopol or '-'} {sj_info}"
+
+                items.append(
+                    InvoicePreviewItem(
+                        id=r.id,
+                        income_date=r.created_at.date(),
+                        material_type=project.name,
+                        quantity=qty_val,
+                        unit=unit_val,
+                        unit_price=unit_price,
+                        amount=amt,
+                        description=desc,
+                        license_plate=r.nopol,
+                        driver_name=r.nama_supir,
+                        sj_gross_weight=r.bruto,
+                        sj_tare_weight=r.tarra,
+                        sj_weight_minus=r.minus_berat,
+                        sj_net_weight=r.netto,
+                        sj_length=r.panjang,
+                        sj_width=r.lebar,
+                        sj_height=r.tinggi,
+                        sj_volume_minus=r.minus_tinggi,
+                        sj_volume=r.volume,
+                    )
+                )
+                total += amt
+
+            return InvoicePreviewResponse(
+                customer_name=project.client_name or project.name,
+                customer_id=None,
+                start_date=start_date,
+                end_date=end_date,
+                items=items,
+                total_amount=total,
+            )
+        else:
+            query = (
+                db.query(IncomeRecord)
+                .filter(
+                    IncomeRecord.income_type == "material_sale",
+                    IncomeRecord.income_date >= start_date,
+                    IncomeRecord.income_date <= end_date,
+                )
+            )
+            
+            if customer_id is not None:
+                query = query.filter(IncomeRecord.customer_id == customer_id)
+            elif customer_name is not None:
+                query = query.filter(IncomeRecord.customer_name.ilike(customer_name))
+            
+            if invoice_id is not None:
+                query = query.filter(
+                    (IncomeRecord.is_invoiced == False) | 
+                    (IncomeRecord.is_invoiced == None) | 
+                    (IncomeRecord.invoice_id == invoice_id)
+                )
+            else:
+                query = query.filter(
+                    (IncomeRecord.is_invoiced == False) | 
+                    (IncomeRecord.is_invoiced == None)
+                )
+                
+            records = query.order_by(IncomeRecord.income_date.asc()).all()
+
+            items = []
+            total = 0.0
+            for r in records:
+                amt = float(r.amount or 0)
+                
+                desc = r.description or "-"
+                unit_val = r.unit or "ritase"
+                qty_val = float(r.quantity or 1)
+                price_val = float(r.unit_price or 0)
+
+                has_sj_m3 = (unit_val == "m3" and r.sj_length is not None)
+                has_sj_ton = (unit_val == "ton" and r.sj_gross_weight is not None)
+
+                if has_sj_m3:
+                    sj_info = f"[P:{r.sj_length} L:{r.sj_width} T:{r.sj_height} M:{r.sj_volume_minus}]"
+                    desc = f"{desc} {sj_info}"
+                elif has_sj_ton:
+                    sj_info = f"[B1:{r.sj_gross_weight} B2:{r.sj_tare_weight} M:{r.sj_weight_minus}]"
+                    desc = f"{desc} {sj_info}"
+                else:
+                    unit_val = "ritase"
+
+                items.append(
+                    InvoicePreviewItem(
+                        id=r.id,
+                        income_date=r.income_date,
+                        material_type=r.material_type or "-",
+                        quantity=qty_val,
+                        unit=unit_val,
+                        unit_price=price_val,
+                        amount=amt,
+                        description=desc,
+                        license_plate=r.license_plate,
+                        driver_name=r.driver_name,
+                    )
+                )
+                total += amt
+
+            return InvoicePreviewResponse(
+                customer_name=customer_name or "",
+                customer_id=customer_id,
+                start_date=start_date,
+                end_date=end_date,
+                items=items,
+                total_amount=total,
+            )
 
     @staticmethod
     def create_invoice(db: Session, current_user: User, data: InvoiceCreate) -> InvoiceResponse:
+        from sqlalchemy import func
         existing_invoice = db.query(Invoice).filter(
             Invoice.customer_name.ilike(data.customer_name),
             Invoice.start_date <= data.end_date,
@@ -135,6 +225,8 @@ class InvoiceService:
             final_amount = data.total_amount - discount_amount
 
         new_invoice = Invoice(
+            invoice_type=data.invoice_type,
+            project_id=data.project_id,
             invoice_number=invoice_number,
             customer_name=data.customer_name,
             customer_id=data.customer_id,
@@ -154,29 +246,43 @@ class InvoiceService:
         db.commit()
         db.refresh(new_invoice)
 
-        records_query = db.query(IncomeRecord).filter(
-            IncomeRecord.income_type == "material_sale",
-            IncomeRecord.income_date >= data.start_date,
-            IncomeRecord.income_date <= data.end_date,
-            (IncomeRecord.is_invoiced == False) | (IncomeRecord.is_invoiced == None)
-        )
-        
-        if data.customer_id is not None:
-            records_query = records_query.filter(IncomeRecord.customer_id == data.customer_id)
+        if data.invoice_type == "project":
+            records_query = db.query(SuratJalan).filter(
+                SuratJalan.project_id == data.project_id,
+                func.date(SuratJalan.created_at) >= data.start_date,
+                func.date(SuratJalan.created_at) <= data.end_date,
+                (SuratJalan.is_invoiced == False) | (SuratJalan.is_invoiced == None)
+            )
+            records_to_mark = records_query.all()
+            for r in records_to_mark:
+                r.is_invoiced = True
+                r.invoice_id = new_invoice.id
         else:
-            records_query = records_query.filter(IncomeRecord.customer_name.ilike(data.customer_name))
+            records_query = db.query(IncomeRecord).filter(
+                IncomeRecord.income_type == "material_sale",
+                IncomeRecord.income_date >= data.start_date,
+                IncomeRecord.income_date <= data.end_date,
+                (IncomeRecord.is_invoiced == False) | (IncomeRecord.is_invoiced == None)
+            )
             
-        records_to_mark = records_query.all()
-        
-        for r in records_to_mark:
-            r.is_invoiced = True
-            r.invoice_id = new_invoice.id
+            if data.customer_id is not None:
+                records_query = records_query.filter(IncomeRecord.customer_id == data.customer_id)
+            else:
+                records_query = records_query.filter(IncomeRecord.customer_name.ilike(data.customer_name))
+                
+            records_to_mark = records_query.all()
+            
+            for r in records_to_mark:
+                r.is_invoiced = True
+                r.invoice_id = new_invoice.id
             
         if records_to_mark:
             db.commit()
 
         return InvoiceResponse(
             id=new_invoice.id,
+            invoice_type=new_invoice.invoice_type,
+            project_id=new_invoice.project_id,
             invoice_number=new_invoice.invoice_number,
             customer_name=new_invoice.customer_name,
             customer_id=new_invoice.customer_id,
@@ -200,6 +306,8 @@ class InvoiceService:
         return [
             InvoiceResponse(
                 id=inv.id,
+                invoice_type=inv.invoice_type,
+                project_id=inv.project_id,
                 invoice_number=inv.invoice_number,
                 customer_name=inv.customer_name,
                 customer_id=inv.customer_id,
@@ -238,6 +346,8 @@ class InvoiceService:
         
         return InvoiceResponse(
             id=inv.id,
+            invoice_type=inv.invoice_type,
+            project_id=inv.project_id,
             invoice_number=inv.invoice_number,
             customer_name=inv.customer_name,
             customer_id=inv.customer_id,
@@ -278,6 +388,8 @@ class InvoiceService:
         
         return InvoiceResponse(
             id=inv.id,
+            invoice_type=inv.invoice_type,
+            project_id=inv.project_id,
             invoice_number=inv.invoice_number,
             customer_name=inv.customer_name,
             customer_id=inv.customer_id,
@@ -297,6 +409,7 @@ class InvoiceService:
 
     @staticmethod
     def update_invoice(db: Session, current_user: User, invoice_id: int, data: InvoiceUpdate) -> InvoiceResponse:
+        from sqlalchemy import func
         inv = db.query(Invoice).filter(Invoice.id == invoice_id).first()
         if not inv:
             raise NotFoundError("Invoice not found")
@@ -309,33 +422,56 @@ class InvoiceService:
         if not is_admin_or_gm:
             raise AuthorizationError("Not authorized to edit invoice")
             
-        records_to_unmark = db.query(IncomeRecord).filter(IncomeRecord.invoice_id == inv.id).all()
-        for r in records_to_unmark:
-            r.is_invoiced = False
-            r.invoice_id = None
-            
-        db.flush()
-            
-        update_data = data.model_dump(exclude_unset=True)
-        for key, value in update_data.items():
-            setattr(inv, key, value)
-            
-        records_query = db.query(IncomeRecord).filter(
-            IncomeRecord.income_type == "material_sale",
-            IncomeRecord.income_date >= inv.start_date,
-            IncomeRecord.income_date <= inv.end_date,
-            (IncomeRecord.is_invoiced == False) | (IncomeRecord.is_invoiced == None)
-        )
-        
-        if inv.customer_id is not None:
-            records_query = records_query.filter(IncomeRecord.customer_id == inv.customer_id)
+        if inv.invoice_type == "project":
+            records_to_unmark = db.query(SuratJalan).filter(SuratJalan.invoice_id == inv.id).all()
+            for r in records_to_unmark:
+                r.is_invoiced = False
+                r.invoice_id = None
+                
+            db.flush()
+                
+            update_data = data.model_dump(exclude_unset=True)
+            for key, value in update_data.items():
+                setattr(inv, key, value)
+                
+            records_query = db.query(SuratJalan).filter(
+                SuratJalan.project_id == inv.project_id,
+                func.date(SuratJalan.created_at) >= inv.start_date,
+                func.date(SuratJalan.created_at) <= inv.end_date,
+                (SuratJalan.is_invoiced == False) | (SuratJalan.is_invoiced == None)
+            )
+            records_to_mark = records_query.all()
+            for r in records_to_mark:
+                r.is_invoiced = True
+                r.invoice_id = inv.id
         else:
-            records_query = records_query.filter(IncomeRecord.customer_name.ilike(inv.customer_name))
+            records_to_unmark = db.query(IncomeRecord).filter(IncomeRecord.invoice_id == inv.id).all()
+            for r in records_to_unmark:
+                r.is_invoiced = False
+                r.invoice_id = None
+                
+            db.flush()
+                
+            update_data = data.model_dump(exclude_unset=True)
+            for key, value in update_data.items():
+                setattr(inv, key, value)
+                
+            records_query = db.query(IncomeRecord).filter(
+                IncomeRecord.income_type == "material_sale",
+                IncomeRecord.income_date >= inv.start_date,
+                IncomeRecord.income_date <= inv.end_date,
+                (IncomeRecord.is_invoiced == False) | (IncomeRecord.is_invoiced == None)
+            )
             
-        records_to_mark = records_query.all()
-        for r in records_to_mark:
-            r.is_invoiced = True
-            r.invoice_id = inv.id
+            if inv.customer_id is not None:
+                records_query = records_query.filter(IncomeRecord.customer_id == inv.customer_id)
+            else:
+                records_query = records_query.filter(IncomeRecord.customer_name.ilike(inv.customer_name))
+                
+            records_to_mark = records_query.all()
+            for r in records_to_mark:
+                r.is_invoiced = True
+                r.invoice_id = inv.id
             
         if "total_amount" in update_data or "discount_type" in update_data or "discount_value" in update_data:
             if inv.discount_type == "percentage" and inv.discount_value:
@@ -357,6 +493,8 @@ class InvoiceService:
         
         return InvoiceResponse(
             id=inv.id,
+            invoice_type=inv.invoice_type,
+            project_id=inv.project_id,
             invoice_number=inv.invoice_number,
             customer_name=inv.customer_name,
             customer_id=inv.customer_id,
@@ -388,10 +526,16 @@ class InvoiceService:
         if not is_admin_or_gm:
             raise AuthorizationError("Not authorized to delete invoice")
             
-        records_to_unmark = db.query(IncomeRecord).filter(IncomeRecord.invoice_id == invoice_id).all()
-        for r in records_to_unmark:
-            r.is_invoiced = False
-            r.invoice_id = None
+        if inv.invoice_type == "project":
+            records_to_unmark = db.query(SuratJalan).filter(SuratJalan.invoice_id == invoice_id).all()
+            for r in records_to_unmark:
+                r.is_invoiced = False
+                r.invoice_id = None
+        else:
+            records_to_unmark = db.query(IncomeRecord).filter(IncomeRecord.invoice_id == invoice_id).all()
+            for r in records_to_unmark:
+                r.is_invoiced = False
+                r.invoice_id = None
             
         db.delete(inv)
         db.commit()

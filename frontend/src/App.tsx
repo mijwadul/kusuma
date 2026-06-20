@@ -40,18 +40,18 @@ import { motion } from 'framer-motion';
 
 const MainLayout: React.FC = () => {
   const location = useLocation();
-  
+
   return (
     <Sidebar>
       <motion.div
-          key={location.pathname}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="min-h-full"
-        >
-          <Outlet />
-        </motion.div>
+        key={location.pathname}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+        className="min-h-full"
+      >
+        <Outlet />
+      </motion.div>
     </Sidebar>
   );
 };
@@ -79,12 +79,12 @@ const App: React.FC = () => {
             >
               <Route path="/dashboard" element={<RoleProtectedRoute allowedRoles={[]}><DashboardPage /></RoleProtectedRoute>} />
               <Route path="/equipment" element={<RoleProtectedRoute allowedRoles={[]}><EquipmentPage /></RoleProtectedRoute>} />
-              <Route path="/projects" element={<RoleProtectedRoute allowedRoles={[]}><ProjectsPage /></RoleProtectedRoute>} />
-              
+              <Route path="/projects" element={<RoleProtectedRoute allowedRoles={["gm", "admin", "finance", "checker"]}><ProjectsPage /></RoleProtectedRoute>} />
+
               <Route path="/fuel" element={<RoleProtectedRoute allowedRoles={["field", "helper", "finance", "checker", "gm", "admin"]}><FuelPage /></RoleProtectedRoute>} />
               <Route path="/work-logs" element={<RoleProtectedRoute allowedRoles={["field", "helper", "finance", "checker", "gm", "admin"]}><WorkLogsPage /></RoleProtectedRoute>} />
               <Route path="/material-sales" element={<RoleProtectedRoute allowedRoles={["field", "helper", "finance", "checker", "gm", "admin"]}><MaterialSalesPage /></RoleProtectedRoute>} />
-              
+
               <Route path="/income" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><IncomePage /></RoleProtectedRoute>} />
               <Route path="/finance/fuel-price" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><FuelPricePage /></RoleProtectedRoute>} />
               <Route path="/payroll" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><PayrollPage /></RoleProtectedRoute>} />
@@ -96,7 +96,7 @@ const App: React.FC = () => {
               <Route path="/users" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]}><UsersPage /></RoleProtectedRoute>} />
               <Route path="/attendance" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]}><AttendancePage /></RoleProtectedRoute>} />
               <Route path="/cashflow" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]}><CashFlowPage /></RoleProtectedRoute>} />
-              
+
               <Route path="/projects/surat-jalan" element={<RoleProtectedRoute allowedRoles={["field", "gm", "admin"]}><ProjectSuratJalanPage /></RoleProtectedRoute>} />
               <Route path="/projects/pekerja" element={<RoleProtectedRoute allowedRoles={["field", "gm", "admin"]}><ProjectEmployeesPage /></RoleProtectedRoute>} />
             </Route>

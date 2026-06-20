@@ -9,6 +9,7 @@ import {
   X,
   Loader2,
   Truck,
+  FileText,
 } from "lucide-react";
 
 import apiClient from '../api/apiClient';
@@ -30,6 +31,7 @@ import {
 import ProjectFormModal from "../components/projects/ProjectFormModal";
 import CustomerFormModal from "../components/projects/CustomerFormModal";
 import HaulingPricesModal from "../components/HaulingPricesModal";
+import ProjectInvoiceTab from "../components/projects/ProjectInvoiceTab";
 
 const formatIDR = (v?: number | string | null) =>
   Number(v ?? 0).toLocaleString("id-ID", {
@@ -39,7 +41,7 @@ const formatIDR = (v?: number | string | null) =>
   });
 
 export default function ProjectsPage() {
-  const [activeTab, setActiveTab] = useState<"projects" | "customers">("projects");
+  const [activeTab, setActiveTab] = useState<"projects" | "customers" | "invoice">("projects");
   const { isGM: isGMPermission } = usePermissions();
 
   // Queries
@@ -92,7 +94,7 @@ export default function ProjectsPage() {
 
   const isGM = isGMPermission;
 
-  const isLoading = activeTab === "projects" ? loadingProjects : loadingCustomers;
+  const isLoading = activeTab === "projects" ? loadingProjects : activeTab === "customers" ? loadingCustomers : false;
 
   const handleDelete = async () => {
     try {
@@ -315,11 +317,19 @@ export default function ProjectsPage() {
         >
           <Users size={16} /> Customer
         </button>
+        <button
+          onClick={() => setActiveTab("invoice")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === "invoice" ? "bg-white shadow text-indigo-700" : "text-gray-600 hover:text-gray-800"}`}
+        >
+          <FileText size={16} /> Invoice Project
+        </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px]">
+      <div className={activeTab === "invoice" ? "" : "bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px]"}>
         {isLoading ? (
           <div className="flex justify-center py-20 text-gray-400"><Loader2 className="animate-spin" size={24} /></div>
+        ) : activeTab === "invoice" ? (
+          <ProjectInvoiceTab />
         ) : activeTab === "projects" ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
