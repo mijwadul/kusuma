@@ -274,7 +274,10 @@ const SuratJalanFormModal = ({
                 placeholder="Contoh: B 1234 CD"
                 options={
                   formData.vendor_id && vendorTrucks 
-                    ? vendorTrucks.map((t: any) => ({ value: t.nopol, label: t.supir_default }))
+                    ? vendorTrucks.map((t: any) => ({ 
+                        value: t.nopol, 
+                        label: t.supir_default ? `${t.nopol} (${t.supir_default})` : t.nopol 
+                      }))
                     : trucksHistory.map((t: any) => ({ value: t.nopol, label: t.nopol }))
                 }
               />
