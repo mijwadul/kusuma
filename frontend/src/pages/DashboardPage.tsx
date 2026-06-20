@@ -235,9 +235,7 @@ export default function DashboardPage() {
 
         <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-4 md:gap-6">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center font-bold text-2xl shadow-lg border border-blue-400/30 text-white transform hover:rotate-6 transition-transform">
-              {currentUser?.full_name ? currentUser.full_name.charAt(0).toUpperCase() : "?"}
-            </div>
+
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs uppercase tracking-widest text-indigo-300 font-semibold">SYSTEM KUSUMA</span>
