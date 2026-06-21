@@ -35,7 +35,8 @@ class IncomeRecordBase(BaseModel):
 
 
 class IncomeRecordCreate(IncomeRecordBase):
-    pass
+    migrate_truck: Optional[bool] = False
+    old_customer_name: Optional[str] = None
 
 
 class IncomeRecordUpdate(BaseModel):
@@ -64,6 +65,9 @@ class IncomeRecordUpdate(BaseModel):
     sj_gross_weight: Optional[float] = None
     sj_tare_weight: Optional[float] = None
     sj_weight_minus: Optional[float] = None
+    
+    migrate_truck: Optional[bool] = False
+    old_customer_name: Optional[str] = None
     
     notes: Optional[str] = None
 

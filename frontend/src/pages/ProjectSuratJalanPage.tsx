@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useProjectsList } from '../hooks/useProjects';
 import { useCreateSuratJalan, useProjectSuratJalans, useUpdateSuratJalan, useDeleteSuratJalan, useSuratJalanTrucks } from '../hooks/useSuratJalan';
 import { toast } from 'sonner';
-import { Plus, X, Loader2, Truck, FileText, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, X, Loader2, Truck, FileText, ChevronDown, ChevronRight, Trash2, Pencil } from 'lucide-react';
 import AlertModal from '../components/AlertModal';
 import { toLocalDateTimeInputString, truncToTwo, formatNopol, formatTitleCase } from '../utils/formatters';
 import { generatePremiumPDF } from '../utils/pdfGenerator';
@@ -53,6 +53,19 @@ const SuratJalanFormModal = ({
   const [pendingFieldChange, setPendingFieldChange] = useState<{name: string, value: string} | null>(null);
   const [showEditAlert, setShowEditAlert] = useState(false);
   
+  const [migrationTarget, setMigrationTarget] = useState<{
+    nopol: string;
+    driver: string;
+    oldVendorName: string;
+    newVendorName: string;
+    newVendorId: string;
+    truckId: string;
+    truckType: string;
+    length: string;
+    width: string;
+    height: string;
+  } | null>(null);
+  
   const { data: vendors = [] } = useVendors('hauling');
 
   const { data: vendorTrucks } = useVendorTrucks(formData.vendor_id ? Number(formData.vendor_id) : undefined);
@@ -63,40 +76,44 @@ const SuratJalanFormModal = ({
   const handleNopolChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = formatNopol(e.target.value);
     
-    let foundVendorTruck = null;
-    if (formData.vendor_id && vendorTrucks) {
-      foundVendorTruck = vendorTrucks.find((t: any) => t.nopol.toUpperCase() === val);
-    }
+    // Always search through trucksHistory first to find ownership globally
+    const foundGlobal = trucksHistory.find((t: any) => t.nopol.toUpperCase() === val);
+    
+    if (foundGlobal) {
+      if (formData.vendor_id && foundGlobal.vendor_id && foundGlobal.vendor_id.toString() !== formData.vendor_id) {
+        // SCENARIO B: Vendor is already selected, but user types a nopol belonging to a different vendor.
+        const currentVendorName = vendors.find((v: any) => v.id.toString() === formData.vendor_id)?.name || formData.vendor_name;
+        setMigrationTarget({
+          nopol: val,
+          driver: foundGlobal.nama_supir || formData.driver_name,
+          oldVendorName: foundGlobal.vendor_name || "Vendor Lain",
+          newVendorName: currentVendorName || "Vendor Baru",
+          newVendorId: formData.vendor_id,
+          truckId: foundGlobal.truck_id?.toString() || '',
+          truckType: foundGlobal.truck_type || formData.truck_type,
+          length: foundGlobal.panjang?.toString() || formData.length,
+          width: foundGlobal.lebar?.toString() || formData.width,
+          height: foundGlobal.tinggi?.toString() || formData.height,
+        });
+        return; // wait for modal
+      }
 
-    if (foundVendorTruck) {
       setFormData(prev => ({
         ...prev,
         license_plate: val,
-        truck_id: foundVendorTruck.id.toString(),
-        driver_name: foundVendorTruck.supir_default || prev.driver_name,
-        length: foundVendorTruck.panjang?.toString() || prev.length,
-        width: foundVendorTruck.lebar?.toString() || prev.width,
-        height: foundVendorTruck.tinggi?.toString() || prev.height,
-        truck_type: foundVendorTruck.tipe_truk || prev.truck_type
+        truck_id: foundGlobal.truck_id?.toString() || '',
+        vendor_id: foundGlobal.vendor_id ? foundGlobal.vendor_id.toString() : prev.vendor_id,
+        vendor_name: foundGlobal.vendor_name || prev.vendor_name,
+        driver_name: foundGlobal.nama_supir || prev.driver_name,
+        length: foundGlobal.panjang?.toString() || prev.length,
+        width: foundGlobal.lebar?.toString() || prev.width,
+        height: foundGlobal.tinggi?.toString() || prev.height,
+        truck_type: foundGlobal.truck_type || prev.truck_type
       }));
       setIsAutoFilled(true);
     } else {
-      const found = trucksHistory.find((t: any) => t.nopol.toUpperCase() === val);
-      if (found) {
-        setFormData(prev => ({
-          ...prev,
-          license_plate: val,
-          truck_id: '',
-          driver_name: found.nama_supir || prev.driver_name,
-          length: found.panjang?.toString() || prev.length,
-          width: found.lebar?.toString() || prev.width,
-          height: found.tinggi?.toString() || prev.height,
-        }));
-        setIsAutoFilled(true);
-      } else {
-        setFormData(prev => ({ ...prev, license_plate: val, truck_id: '' }));
-        setIsAutoFilled(false);
-      }
+      setFormData(prev => ({ ...prev, license_plate: val, truck_id: '' }));
+      setIsAutoFilled(false);
     }
   };
 
@@ -157,8 +174,8 @@ const SuratJalanFormModal = ({
   const proj = projects.find(p => p.id.toString() === projectId);
   const measurementType = proj?.measurement_type || 'tonase';
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent, isMigrationConfirmed = false) => {
+    if (e) e.preventDefault();
     if (!projectId) {
       toast.error('Pilih proyek terlebih dahulu');
       return;
@@ -175,6 +192,7 @@ const SuratJalanFormModal = ({
         nopol: formData.license_plate,
         asal_tambang: formData.origin,
         created_at: formData.created_at || undefined,
+        migrate_truck: isMigrationConfirmed
       };
 
       if (measurementType === 'tonase') {
@@ -252,13 +270,36 @@ const SuratJalanFormModal = ({
                 value={formData.vendor_name || ''}
                 onChange={(val) => {
                   const foundVendor = vendors?.find((x: any) => x.name.toLowerCase() === val.trim().toLowerCase());
+                  
+                  // SCENARIO A: Truck already selected, but user changes the vendor
+                  if (formData.license_plate && isAutoFilled && formData.vendor_id && foundVendor && foundVendor.id.toString() !== formData.vendor_id) {
+                    setMigrationTarget({
+                      nopol: formData.license_plate,
+                      driver: formData.driver_name,
+                      oldVendorName: formData.vendor_name,
+                      newVendorName: foundVendor.name,
+                      newVendorId: foundVendor.id.toString(),
+                      truckId: formData.truck_id,
+                      truckType: formData.truck_type,
+                      length: formData.length,
+                      width: formData.width,
+                      height: formData.height,
+                    });
+                    return;
+                  }
+
                   setFormData(prev => ({ 
                     ...prev, 
                     vendor_name: val,
                     vendor_id: foundVendor ? foundVendor.id.toString() : '',
-                    truck_id: '', license_plate: '', driver_name: '', length: '', width: '', height: '' 
+                    truck_id: prev.license_plate ? prev.truck_id : '', 
+                    license_plate: prev.license_plate ? prev.license_plate : '', 
+                    driver_name: prev.license_plate ? prev.driver_name : '', 
+                    length: prev.license_plate ? prev.length : '', 
+                    width: prev.license_plate ? prev.width : '', 
+                    height: prev.license_plate ? prev.height : '' 
                   }));
-                  setIsAutoFilled(false);
+                  if (!formData.license_plate) setIsAutoFilled(false);
                 }}
                 placeholder="Pilih atau ketik vendor..."
                 options={vendors ? vendors.map((v: any) => ({ value: v.name, label: v.name })) : []}
@@ -273,12 +314,17 @@ const SuratJalanFormModal = ({
                 required
                 placeholder="Contoh: B 1234 CD"
                 options={
-                  formData.vendor_id && vendorTrucks 
-                    ? vendorTrucks.map((t: any) => ({ 
-                        value: t.nopol, 
-                        label: t.supir_default ? `${t.nopol} (${t.supir_default})` : t.nopol 
-                      }))
-                    : trucksHistory.map((t: any) => ({ value: t.nopol, label: t.nopol }))
+                  // Always show all trucks but prioritize vendor trucks if selected
+                  Array.from(new Set([
+                    ...(formData.vendor_id && vendorTrucks ? vendorTrucks : []),
+                    ...trucksHistory
+                  ].map(t => t.nopol))).map(nopol => {
+                    const t = trucksHistory.find((x: any) => x.nopol === nopol) || vendorTrucks?.find((x: any) => x.nopol === nopol);
+                    return {
+                      value: t.nopol,
+                      label: t.nama_supir || t.supir_default ? `${t.nopol} (${t.nama_supir || t.supir_default})` : t.nopol
+                    };
+                  })
                 }
               />
             </div>
@@ -475,6 +521,55 @@ const SuratJalanFormModal = ({
         </form>
       </div>
 
+      {migrationTarget && (
+        <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <h3 className="text-lg font-bold text-gray-800 mb-2">Pindah Kepemilikan Armada</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Armada nopol <strong>{migrationTarget.nopol}</strong> dengan supir <strong>{migrationTarget.driver}</strong> ini sebelumnya milik <strong>{migrationTarget.oldVendorName}</strong>. Apakah Anda yakin ingin memindahkannya ke <strong>{migrationTarget.newVendorName}</strong>?
+            </p>
+            <div className="bg-amber-50 text-amber-800 text-xs p-3 rounded-xl border border-amber-200 mb-5">
+              <p className="font-semibold mb-1">Jika Anda setuju:</p>
+              <ol className="list-decimal pl-4 space-y-1">
+                <li>Transaksi ini akan dicatat atas nama {migrationTarget.newVendorName}.</li>
+                <li>Sistem akan memindahkan kepemilikan armada di database secara permanen ke {migrationTarget.newVendorName}.</li>
+                <li>Data riwayat transaksi di masa lalu tidak akan rusak/berubah.</li>
+              </ol>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setMigrationTarget(null)}
+                className="flex-1 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => {
+                  setFormData(prev => ({
+                    ...prev,
+                    license_plate: migrationTarget.nopol,
+                    driver_name: migrationTarget.driver,
+                    vendor_id: migrationTarget.newVendorId,
+                    vendor_name: migrationTarget.newVendorName,
+                    truck_id: migrationTarget.truckId,
+                    truck_type: migrationTarget.truckType,
+                    length: migrationTarget.length,
+                    width: migrationTarget.width,
+                    height: migrationTarget.height
+                  }));
+                  setIsAutoFilled(true);
+                  setMigrationTarget(null);
+                  handleSubmit(undefined, true);
+                }}
+                className="flex-1 py-2.5 bg-amber-600 text-white rounded-xl text-sm font-semibold hover:bg-amber-700 transition-colors"
+              >
+                Ya, Pindahkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <AlertModal
         isOpen={showEditAlert}
         onClose={() => {
@@ -579,10 +674,10 @@ const SuratJalanDetailModal = ({
         </div>
         <div className="px-6 py-4 bg-gray-50 rounded-b-2xl flex justify-end gap-3 border-t border-gray-100">
           <button onClick={onDelete} className="flex-1 flex items-center justify-center gap-2 py-2.5 border border-red-200 text-red-600 hover:bg-red-50 rounded-xl text-sm font-semibold transition-colors">
-            Hapus
+            <Trash2 size={16} /> Hapus
           </button>
-          <button onClick={onEdit} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm">
-            Edit Data
+          <button onClick={onEdit} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-xl text-sm font-semibold transition-colors">
+            <Pencil size={16} /> Edit
           </button>
         </div>
       </div>

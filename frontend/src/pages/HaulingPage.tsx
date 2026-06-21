@@ -4,6 +4,7 @@ import { Truck, Plus, Edit, Trash2, ChevronDown, ChevronRight, Building2, Save, 
 import { useVendors, useCreateVendor, useUpdateVendor, useDeleteVendor, useCreateVendorTopup, useVendorTopups, useUpdateVendorTopup, useDeleteVendorTopup, Vendor } from '../hooks/useVendors';
 import { useVendorTrucks, useCreateVendorTruck, useUpdateVendorTruck, useDeleteVendorTruck, useAllHaulingObligations } from '../hooks/useHauling';
 import CustomSelect from '../components/CustomSelect';
+import { formatNopol, formatTitleCase } from '../utils/formatters';
 
 export default function HaulingPage() {
   const [expandedVendors, setExpandedVendors] = useState<Record<number, boolean>>({});
@@ -397,7 +398,7 @@ export default function HaulingPage() {
             <form onSubmit={handleTruckSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Nopol (Nomor Polisi) <span className="text-red-500">*</span></label>
-                  <input required value={truckData.nopol} onChange={e=>setTruckData({...truckData, nopol: e.target.value})} className="w-full border rounded p-2 focus:ring-2 focus:ring-indigo-300 outline-none uppercase font-bold" placeholder="B 1234 CD" />
+                  <input required value={truckData.nopol} onChange={e=>setTruckData({...truckData, nopol: formatNopol(e.target.value)})} className="w-full border rounded p-2 focus:ring-2 focus:ring-indigo-300 outline-none uppercase font-bold" placeholder="B 1234 CD" />
                 </div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Tipe Truk</label>
                   <CustomSelect
@@ -411,7 +412,7 @@ export default function HaulingPage() {
                 </div>
               </div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Nama Supir (Default)</label>
-                <input value={truckData.supir_default} onChange={e=>setTruckData({...truckData, supir_default: e.target.value})} className="w-full border rounded p-2 focus:ring-2 focus:ring-indigo-300 outline-none" placeholder="Nama Supir" />
+                <input value={truckData.supir_default} onChange={e=>setTruckData({...truckData, supir_default: formatTitleCase(e.target.value)})} className="w-full border rounded p-2 focus:ring-2 focus:ring-indigo-300 outline-none" placeholder="Contoh: Budi" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Ukuran Bak (Meter) - Opsional</label>

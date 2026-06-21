@@ -125,12 +125,17 @@ class SuratJalanService:
         if data.vendor_id and data.nopol:
             nopol_clean = data.nopol.strip().upper()
             if data.truck_id:
-                # Update dimensi truk yang sudah ada jika ada perubahan ukuran
+                # Update dimensi truk yang sudah ada jika ada perubahan ukuran, dan migrasikan jika vendor berbeda
                 truck = db.query(VendorTruck).filter(VendorTruck.id == data.truck_id).first()
-                if truck and project.measurement_type == "kubikasi":
-                    if data.panjang is not None: truck.panjang = data.panjang
-                    if data.lebar is not None: truck.lebar = data.lebar
-                    if data.tinggi is not None: truck.tinggi = data.tinggi
+                if truck:
+                    # Migrate truck to new vendor if requested
+                    if data.vendor_id and getattr(data, 'migrate_truck', False) and truck.vendor_id != data.vendor_id:
+                        truck.vendor_id = data.vendor_id
+                        
+                    if project.measurement_type == "kubikasi":
+                        if data.panjang is not None: truck.panjang = data.panjang
+                        if data.lebar is not None: truck.lebar = data.lebar
+                        if data.tinggi is not None: truck.tinggi = data.tinggi
             else:
                 # Cek apakah nopol sudah ada di vendor_trucks (untuk vendor ini atau vendor manapun)
                 existing_truck = db.query(VendorTruck).filter(
@@ -273,6 +278,10 @@ class SuratJalanService:
                 # Update dimensi truk yang sudah ada
                 truck = db.query(VendorTruck).filter(VendorTruck.id == sj.truck_id).first()
                 if truck:
+                    # Migrate truck to new vendor if requested
+                    if sj.vendor_id and getattr(data, 'migrate_truck', False) and truck.vendor_id != sj.vendor_id:
+                        truck.vendor_id = sj.vendor_id
+                        
                     if not truck.supir_default and sj.nama_supir:
                         truck.supir_default = sj.nama_supir
                     if project.measurement_type == "kubikasi":
@@ -357,7 +366,11 @@ class SuratJalanService:
                     "nama_supir": sj.nama_supir,
                     "panjang": sj.panjang,
                     "lebar": sj.lebar,
-                    "tinggi": sj.tinggi
+                    "tinggi": sj.tinggi,
+                    "vendor_id": sj.vendor_id,
+                    "vendor_name": sj.vendor.name if sj.vendor else None,
+                    "truck_id": sj.truck_id,
+                    "truck_type": None # Can't fetch easily from SJ, fallback below
                 }
                 
         return list(trucks.values())

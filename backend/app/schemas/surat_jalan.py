@@ -22,6 +22,7 @@ class SuratJalanCreate(BaseModel):
     lebar: Optional[float] = None
     tinggi: Optional[float] = None
     minus_tinggi: Optional[float] = 0.0
+    migrate_truck: Optional[bool] = False
 
     created_at: Optional[str] = None
 
@@ -45,6 +46,7 @@ class SuratJalanUpdate(BaseModel):
     lebar: Optional[float] = None
     tinggi: Optional[float] = None
     minus_tinggi: Optional[float] = None
+    migrate_truck: Optional[bool] = False
 
     created_at: Optional[str] = None
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { X, Plus, Trash2, Loader2 } from 'lucide-react';
 import { Customer } from '../../hooks/useProjects';
 import CustomSelect from '../CustomSelect';
+import { formatNopol, formatTitleCase } from '../../utils/formatters';
 
 interface CustomerFormModalProps {
   show: boolean;
@@ -124,11 +125,11 @@ export default function CustomerFormModal({
               <div key={idx} className="flex items-end gap-2 mb-2 p-2 bg-gray-50 rounded border flex-wrap">
                 <div className="flex-1 min-w-[120px]">
                   <label className="block text-xs mb-1">Plat Nomor *</label>
-                  <input type="text" required placeholder="Contoh: B 1234 CD" value={t.license_plate} onChange={e => updateCustTruck(idx, "license_plate", e.target.value)} className="w-full border rounded text-sm p-1.5 uppercase" />
+                  <input type="text" required placeholder="Contoh: B 1234 CD" value={t.license_plate} onChange={e => updateCustTruck(idx, "license_plate", formatNopol(e.target.value))} className="w-full border rounded text-sm p-1.5 uppercase" />
                 </div>
                 <div className="flex-1 min-w-[120px]">
                   <label className="block text-xs mb-1">Nama Supir</label>
-                  <input type="text" placeholder="Contoh: Budi" value={t.driver_name || ""} onChange={e => updateCustTruck(idx, "driver_name", e.target.value)} className="w-full border rounded text-sm p-1.5" />
+                  <input type="text" placeholder="Contoh: Budi" value={t.driver_name || ""} onChange={e => updateCustTruck(idx, "driver_name", formatTitleCase(e.target.value))} className="w-full border rounded text-sm p-1.5" />
                 </div>
                 <div className="flex-1 min-w-[120px]">
                   <CustomSelect

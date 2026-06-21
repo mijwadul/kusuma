@@ -13,7 +13,7 @@ import {
   IncomeRecord, MaterialPrice
 } from "../hooks/useMaterialSales";
 import { useCustomersList, useProjectsList, Customer } from "../hooks/useProjects";
-import { toLocalDateInput } from "../utils/formatters";
+import { toLocalDateInput, formatNopol, formatTitleCase } from "../utils/formatters";
 import CustomSelect from "../components/CustomSelect";
 import CustomCombobox from "../components/CustomCombobox";
 
@@ -90,6 +90,13 @@ const SaleFormModal = ({
 
   const [saveTruckToCustomer, setSaveTruckToCustomer] = useState(true);
   const [isNewCustomer, setIsNewCustomer] = useState(false);
+  const [migrationTarget, setMigrationTarget] = useState<{
+    nopol: string;
+    driver: string;
+    oldCustomerName: string;
+    newCustomerName: string;
+    vehicleType: string;
+  } | null>(null);
 
   const createIncomeMutation = useCreateIncomeRecord();
   const updateIncomeMutation = useUpdateIncomeRecord();
@@ -161,8 +168,8 @@ const SaleFormModal = ({
     return () => { cancelled = true; clearTimeout(timer); };
   }, [form.material_type, form.unit, form.customer_name, form.vehicle_type]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent, isMigrationConfirmed = false) => {
+    if (e) e.preventDefault();
     
     let finalCustomerName = form.customer_name;
     if (!isNewCustomer) {
@@ -198,7 +205,9 @@ const SaleFormModal = ({
         sj_gross_weight: form.sj_gross_weight ? parseFloat(form.sj_gross_weight) : undefined,
         sj_tare_weight: form.sj_tare_weight ? parseFloat(form.sj_tare_weight) : undefined,
         sj_weight_minus: form.sj_weight_minus ? parseFloat(form.sj_weight_minus) : undefined,
-      };
+        migrate_truck: isMigrationConfirmed,
+        old_customer_name: isMigrationConfirmed && migrationTarget ? migrationTarget.oldCustomerName : undefined,
+      } as any;
 
       if (editData) {
         await updateIncomeMutation.mutateAsync({ id: editData.id, data: payload });
@@ -261,7 +270,23 @@ const SaleFormModal = ({
                   <CustomCombobox
                     required
                     value={form.customer_name}
-                    onChange={(val) => setForm(p => ({...p, customer_name: val}))}
+                    onChange={(val) => {
+                      const foundCust = customers.find(c => c.name === val);
+                      if (form.license_plate && currentCust && foundCust && currentCust.name !== foundCust.name) {
+                        const truckInCurrent = (currentCust.trucks || []).find(t => t.license_plate === form.license_plate);
+                        if (truckInCurrent) {
+                          setMigrationTarget({
+                            nopol: form.license_plate,
+                            driver: form.driver_name,
+                            oldCustomerName: currentCust.name,
+                            newCustomerName: foundCust.name,
+                            vehicleType: form.vehicle_type,
+                          });
+                          return;
+                        }
+                      }
+                      setForm(p => ({...p, customer_name: val}));
+                    }}
                     placeholder="Pilih Pelanggan..."
                     options={customers.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((c: any) => ({
                       value: c.name,
@@ -288,32 +313,68 @@ const SaleFormModal = ({
               <CustomCombobox
                 value={form.license_plate}
                 onChange={(rawVal) => {
-                  const val = rawVal.toUpperCase();
+                  const val = formatNopol(rawVal);
+                  
+                  let foundInOther: any = null;
+                  let foundInCurrent: any = null;
+
+                  for (const cust of customers) {
+                    const truck = (cust.trucks || []).find(t => t.license_plate.toUpperCase() === val);
+                    if (truck) {
+                      if (currentCust && cust.name !== currentCust.name) {
+                        foundInOther = { cust, truck };
+                      } else if (currentCust && cust.name === currentCust.name) {
+                        foundInCurrent = truck;
+                      } else if (!currentCust) {
+                        foundInOther = { cust, truck }; 
+                      }
+                    }
+                  }
+
+                  if (currentCust && foundInOther && !foundInCurrent) {
+                     setMigrationTarget({
+                       nopol: val,
+                       driver: foundInOther.truck.driver_name || "",
+                       oldCustomerName: foundInOther.cust.name,
+                       newCustomerName: currentCust.name,
+                       vehicleType: foundInOther.truck.vehicle_type || "Colt Diesel",
+                     });
+                     return;
+                  }
+
+                  const targetCust = foundInCurrent ? { cust: currentCust, truck: foundInCurrent } : foundInOther;
+
                   setForm(p => {
                     const newForm = {...p, license_plate: val};
-                    for (const cust of customers) {
-                      if (cust.trucks) {
-                        const truck = cust.trucks.find(t => t.license_plate.toUpperCase() === val);
-                        if (truck) {
-                          newForm.customer_name = cust.name;
-                          newForm.driver_name = truck.driver_name || "";
-                          newForm.vehicle_type = truck.vehicle_type || "Colt Diesel";
-                          
-                          const pref = cust.material_preferences?.find(m => m.vehicle_type === newForm.vehicle_type) || cust.material_preferences?.[0];
-                          if (pref) {
-                            newForm.material_type = pref.material_type;
-                          }
-                          newForm.unit = "ritase";
-                          newForm.quantity = "1";
-                          break;
-                        }
+                    if (targetCust) {
+                      newForm.customer_name = targetCust.cust.name;
+                      newForm.driver_name = targetCust.truck.driver_name || "";
+                      newForm.vehicle_type = targetCust.truck.vehicle_type || "Colt Diesel";
+                      
+                      const pref = targetCust.cust.material_preferences?.find((m: any) => m.vehicle_type === newForm.vehicle_type) || targetCust.cust.material_preferences?.[0];
+                      if (pref) {
+                        newForm.material_type = pref.material_type;
                       }
+                      newForm.unit = "ritase";
+                      newForm.quantity = "1";
                     }
                     return newForm;
                   });
                 }}
-                placeholder="Nopol Truk..."
-                options={currentCust ? (currentCust.trucks || []).map(t => ({ value: t.license_plate, label: t.license_plate })) : []}
+                placeholder="Contoh: B 1234 CD"
+                options={
+                  Array.from(new Set([
+                    ...(currentCust?.trucks || []),
+                    ...customers.flatMap(c => c.trucks || [])
+                  ].map(t => t.license_plate))).map(plate => {
+                    const t = currentCust?.trucks?.find(x => x.license_plate === plate) || 
+                              customers.flatMap(c => c.trucks || []).find(x => x.license_plate === plate);
+                    return {
+                      value: t?.license_plate || plate,
+                      label: t?.driver_name ? `${t?.license_plate} (${t?.driver_name})` : (t?.license_plate || plate)
+                    }
+                  })
+                }
               />
             </div>
             <div>
@@ -321,8 +382,8 @@ const SaleFormModal = ({
               <input 
                 type="text" 
                 value={form.driver_name} 
-                onChange={e => setForm(p => ({...p, driver_name: e.target.value}))} 
-                placeholder="Nama Supir..."
+                onChange={e => setForm(p => ({...p, driver_name: formatTitleCase(e.target.value)}))} 
+                placeholder="Contoh: Budi"
                 className={inputCls} 
               />
             </div>
@@ -408,6 +469,51 @@ const SaleFormModal = ({
           </div>
         </form>
       </div>
+
+      {migrationTarget && (
+        <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <h3 className="text-lg font-bold text-gray-800 mb-2">Pindah Kepemilikan Armada</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Armada nopol <strong>{migrationTarget.nopol}</strong> dengan supir <strong>{migrationTarget.driver}</strong> ini sebelumnya milik pelanggan <strong>{migrationTarget.oldCustomerName}</strong>. Apakah Anda yakin ingin memindahkannya ke <strong>{migrationTarget.newCustomerName}</strong>?
+            </p>
+            <div className="bg-amber-50 text-amber-800 text-xs p-3 rounded-xl border border-amber-200 mb-5">
+              <p className="font-semibold mb-1">Jika Anda setuju:</p>
+              <ol className="list-decimal pl-4 space-y-1">
+                <li>Transaksi ini akan dicatat atas nama {migrationTarget.newCustomerName}.</li>
+                <li>Sistem akan memindahkan kepemilikan armada di database secara permanen ke {migrationTarget.newCustomerName}.</li>
+                <li>Data armada akan dihapus dari profil {migrationTarget.oldCustomerName}.</li>
+                <li>Data riwayat transaksi di masa lalu tidak akan rusak/berubah.</li>
+              </ol>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setMigrationTarget(null)}
+                className="flex-1 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => {
+                  setForm(prev => ({
+                    ...prev,
+                    license_plate: migrationTarget.nopol,
+                    driver_name: migrationTarget.driver,
+                    customer_name: migrationTarget.newCustomerName,
+                    vehicle_type: migrationTarget.vehicleType
+                  }));
+                  setMigrationTarget(null);
+                  handleSubmit(undefined, true);
+                }}
+                className="flex-1 py-2.5 bg-amber-600 text-white rounded-xl text-sm font-semibold hover:bg-amber-700 transition-colors"
+              >
+                Ya, Pindahkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

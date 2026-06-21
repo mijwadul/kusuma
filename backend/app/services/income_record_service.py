@@ -134,6 +134,21 @@ class IncomeRecordService:
                     customer.trucks_json = json.dumps(trucks)
                     db.add(customer)
 
+            # Migration: Remove from old customer
+            if getattr(data, 'migrate_truck', False) and getattr(data, 'old_customer_name', None) and data.license_plate:
+                old_cust_name = data.old_customer_name.strip()
+                old_customer = db.query(Customer).filter(func.trim(Customer.name).ilike(old_cust_name)).first()
+                if old_customer and old_customer.trucks_json:
+                    try:
+                        old_trucks = json.loads(old_customer.trucks_json)
+                        plate_upper = data.license_plate.strip().upper()
+                        new_trucks = [t for t in old_trucks if t.get("license_plate", "").upper() != plate_upper]
+                        if len(new_trucks) != len(old_trucks):
+                            old_customer.trucks_json = json.dumps(new_trucks)
+                            db.add(old_customer)
+                    except Exception:
+                        pass
+
         record = IncomeRecord(
             income_date=data.income_date,
             income_type=data.income_type,
@@ -350,6 +365,22 @@ class IncomeRecordService:
                 if updated:
                     customer.trucks_json = json.dumps(trucks)
                     db.add(customer)
+
+            # Migration: Remove from old customer
+            if getattr(data, 'migrate_truck', False) and getattr(data, 'old_customer_name', None) and record.license_plate:
+                old_cust_name = data.old_customer_name.strip()
+                from sqlalchemy.sql import func
+                old_customer = db.query(Customer).filter(func.trim(Customer.name).ilike(old_cust_name)).first()
+                if old_customer and old_customer.trucks_json:
+                    try:
+                        old_trucks = json.loads(old_customer.trucks_json)
+                        plate_upper = record.license_plate.strip().upper()
+                        new_trucks = [t for t in old_trucks if t.get("license_plate", "").upper() != plate_upper]
+                        if len(new_trucks) != len(old_trucks):
+                            old_customer.trucks_json = json.dumps(new_trucks)
+                            db.add(old_customer)
+                    except Exception:
+                        pass
 
         db.commit()
         db.refresh(record)
