@@ -159,6 +159,11 @@ class SuratJalanService:
                 else:
                     # Truk sudah ada, link ke SJ dan update supir default jika kosong
                     sj.truck_id = existing_truck.id
+                    
+                    # Migrate truck to new vendor if requested
+                    if data.vendor_id and getattr(data, 'migrate_truck', False) and existing_truck.vendor_id != data.vendor_id:
+                        existing_truck.vendor_id = data.vendor_id
+
                     if not existing_truck.supir_default and data.nama_supir:
                         existing_truck.supir_default = data.nama_supir
                     if project.measurement_type == "kubikasi":
@@ -309,6 +314,11 @@ class SuratJalanService:
                     sj.truck_id = new_truck.id
                 else:
                     sj.truck_id = existing_truck.id
+                    
+                    # Migrate truck to new vendor if requested
+                    if sj.vendor_id and getattr(data, 'migrate_truck', False) and existing_truck.vendor_id != sj.vendor_id:
+                        existing_truck.vendor_id = sj.vendor_id
+
                     if not existing_truck.supir_default and sj.nama_supir:
                         existing_truck.supir_default = sj.nama_supir
                     if project.measurement_type == "kubikasi":
