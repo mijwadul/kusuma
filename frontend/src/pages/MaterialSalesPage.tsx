@@ -168,12 +168,13 @@ const SaleFormModal = ({
     return () => { cancelled = true; clearTimeout(timer); };
   }, [form.material_type, form.unit, form.customer_name, form.vehicle_type]);
 
-  const handleSubmit = async (e?: React.FormEvent, isMigrationConfirmed = false) => {
+  const handleSubmit = async (e?: React.FormEvent, isMigrationConfirmed = false, migrationData?: any) => {
     if (e) e.preventDefault();
     
-    let finalCustomerName = form.customer_name;
+    const finalForm = migrationData ? { ...form, ...migrationData } : form;
+    let finalCustomerName = finalForm.customer_name;
     if (!isNewCustomer) {
-      const exactCust = customers.find(c => (c.name || "").toLowerCase().trim() === (form.customer_name || "").toLowerCase().trim());
+      const exactCust = customers.find(c => (c.name || "").toLowerCase().trim() === (finalForm.customer_name || "").toLowerCase().trim());
       if (!exactCust) {
         toast.error("Nama pelanggan tidak cocok. Pastikan tidak salah ketik, atau pilih 'Pelanggan Baru'.");
         return;
@@ -183,28 +184,28 @@ const SaleFormModal = ({
 
     try {
       const payload: Partial<IncomeRecord> = {
-        income_date: form.income_date,
+        income_date: finalForm.income_date,
         income_type: "material_sale",
-        description: `Penjualan ${form.material_type || "Unknown"} - ${finalCustomerName}`,
+        description: `Penjualan ${finalForm.material_type || "Unknown"} - ${finalCustomerName}`,
         customer_name: finalCustomerName,
-        license_plate: form.license_plate,
-        driver_name: form.driver_name,
-        vehicle_type: form.vehicle_type,
-        material_type: form.material_type,
-        quantity: parseFloat(form.quantity) || 1,
-        unit: form.unit || "ritase",
-        unit_price: parseFloat(form.unit_price) || 0,
-        amount: (parseFloat(form.quantity) || 1) * (parseFloat(form.unit_price) || 0),
-        payment_method: form.payment_method || "transfer",
-        notes: form.notes,
-        project_id: form.project_id ? parseInt(form.project_id) : undefined,
-        sj_length: form.sj_length ? parseFloat(form.sj_length) : undefined,
-        sj_width: form.sj_width ? parseFloat(form.sj_width) : undefined,
-        sj_height: form.sj_height ? parseFloat(form.sj_height) : undefined,
-        sj_volume_minus: form.sj_volume_minus ? parseFloat(form.sj_volume_minus) : undefined,
-        sj_gross_weight: form.sj_gross_weight ? parseFloat(form.sj_gross_weight) : undefined,
-        sj_tare_weight: form.sj_tare_weight ? parseFloat(form.sj_tare_weight) : undefined,
-        sj_weight_minus: form.sj_weight_minus ? parseFloat(form.sj_weight_minus) : undefined,
+        license_plate: finalForm.license_plate,
+        driver_name: finalForm.driver_name,
+        vehicle_type: finalForm.vehicle_type,
+        material_type: finalForm.material_type,
+        quantity: parseFloat(finalForm.quantity) || 1,
+        unit: finalForm.unit || "ritase",
+        unit_price: parseFloat(finalForm.unit_price) || 0,
+        amount: (parseFloat(finalForm.quantity) || 1) * (parseFloat(finalForm.unit_price) || 0),
+        payment_method: finalForm.payment_method || "transfer",
+        notes: finalForm.notes,
+        project_id: finalForm.project_id ? parseInt(finalForm.project_id) : undefined,
+        sj_length: finalForm.sj_length ? parseFloat(finalForm.sj_length) : undefined,
+        sj_width: finalForm.sj_width ? parseFloat(finalForm.sj_width) : undefined,
+        sj_height: finalForm.sj_height ? parseFloat(finalForm.sj_height) : undefined,
+        sj_volume_minus: finalForm.sj_volume_minus ? parseFloat(finalForm.sj_volume_minus) : undefined,
+        sj_gross_weight: finalForm.sj_gross_weight ? parseFloat(finalForm.sj_gross_weight) : undefined,
+        sj_tare_weight: finalForm.sj_tare_weight ? parseFloat(finalForm.sj_tare_weight) : undefined,
+        sj_weight_minus: finalForm.sj_weight_minus ? parseFloat(finalForm.sj_weight_minus) : undefined,
         migrate_truck: isMigrationConfirmed,
         old_customer_name: isMigrationConfirmed && migrationTarget ? migrationTarget.oldCustomerName : undefined,
       } as any;
@@ -220,9 +221,9 @@ const SaleFormModal = ({
           await addTruckMutation.mutateAsync({
             customerId: currentCust.id,
             data: {
-              license_plate: form.license_plate.toUpperCase(),
-              driver_name: form.driver_name,
-              vehicle_type: form.vehicle_type
+              license_plate: finalForm.license_plate.toUpperCase(),
+              driver_name: finalForm.driver_name,
+              vehicle_type: finalForm.vehicle_type
             }
           });
         } catch (e) {
@@ -244,7 +245,7 @@ const SaleFormModal = ({
           <h2 className="text-lg font-semibold">{editData ? "Edit Penjualan" : "Catat Penjualan"}</h2>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"><X size={18} /></button>
         </div>
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+        <form onSubmit={(e) => handleSubmit(e)} className="px-6 py-5 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Tanggal</label>
@@ -495,15 +496,18 @@ const SaleFormModal = ({
               </button>
               <button
                 onClick={() => {
-                  setForm(prev => ({
-                    ...prev,
+                  const newFormData = {
                     license_plate: migrationTarget.nopol,
                     driver_name: migrationTarget.driver,
                     customer_name: migrationTarget.newCustomerName,
                     vehicle_type: migrationTarget.vehicleType
+                  };
+                  setForm(prev => ({
+                    ...prev,
+                    ...newFormData
                   }));
                   setMigrationTarget(null);
-                  handleSubmit(undefined, true);
+                  handleSubmit(undefined, true, newFormData);
                 }}
                 className="flex-1 py-2.5 bg-amber-600 text-white rounded-xl text-sm font-semibold hover:bg-amber-700 transition-colors"
               >

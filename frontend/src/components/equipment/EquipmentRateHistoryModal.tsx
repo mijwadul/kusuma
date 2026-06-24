@@ -1,6 +1,7 @@
-import React from 'react';
-import { X, Calendar, Clock, DollarSign, ArrowRight } from 'lucide-react';
-import { useEquipmentRateHistory } from '../../hooks/useEquipment';
+import React, { useState } from 'react';
+import { X, Calendar, Clock, DollarSign, ArrowRight, Edit2, Trash2, Check, XCircle } from 'lucide-react';
+import { useEquipmentRateHistory, useUpdateEquipmentRateHistory, useDeleteEquipmentRateHistory } from '../../hooks/useEquipment';
+import { toast } from 'sonner';
 
 interface EquipmentRateHistoryModalProps {
   equipmentId: number | null;
@@ -13,6 +14,57 @@ const EquipmentRateHistoryModal: React.FC<EquipmentRateHistoryModalProps> = ({ e
   const { data: history, isLoading } = useEquipmentRateHistory(equipmentId || 0, {
     enabled: isOpen && !!equipmentId
   });
+
+  const updateMutation = useUpdateEquipmentRateHistory();
+  const deleteMutation = useDeleteEquipmentRateHistory();
+
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({
+    new_rate: '',
+    effective_date: '',
+  });
+
+  const handleEditClick = (record: any) => {
+    setEditingId(record.id);
+    setEditForm({
+      new_rate: record.new_rate?.toString() || '',
+      effective_date: record.effective_date ? record.effective_date.split('T')[0] : '',
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+  };
+
+  const handleSaveEdit = async (id: number) => {
+    if (!equipmentId) return;
+    try {
+      await updateMutation.mutateAsync({
+        equipmentId,
+        historyId: id,
+        data: {
+          new_rate: Number(editForm.new_rate),
+          effective_date: editForm.effective_date ? editForm.effective_date : undefined,
+        }
+      });
+      toast.success('Riwayat harga sewa berhasil diperbarui dan sistem telah melakukan rekalkulasi!');
+      setEditingId(null);
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || 'Gagal memperbarui riwayat harga sewa');
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!equipmentId) return;
+    if (!window.confirm('Apakah Anda yakin ingin menghapus riwayat harga ini? Sistem akan merevisi ulang seluruh tagihan pemakaian yang terdampak.')) return;
+    
+    try {
+      await deleteMutation.mutateAsync({ equipmentId, historyId: id });
+      toast.success('Riwayat harga sewa berhasil dihapus dan sistem telah melakukan rekalkulasi!');
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || 'Gagal menghapus riwayat harga sewa');
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -83,42 +135,67 @@ const EquipmentRateHistoryModal: React.FC<EquipmentRateHistoryModalProps> = ({ e
 
                     <div className="flex flex-col items-end justify-center space-y-2">
                       <div className="flex items-center gap-2">
-                        {record.trigger_type === 'immediate' && (
-                          <span className="px-2.5 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">
-                            Langsung Berlaku
-                          </span>
-                        )}
-                        {record.trigger_type === 'deposit' && (
-                          <span className="px-2.5 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full">
-                            Antrean Deposit
-                          </span>
-                        )}
-                        {record.trigger_type === 'date' && (
-                          <span className="px-2.5 py-1 bg-purple-100 text-purple-800 text-xs font-semibold rounded-full flex items-center gap-1">
-                            <Calendar size={12} />
-                            Berlaku sejak: {formatDate(record.effective_date, false)}
-                          </span>
+                        {editingId === record.id ? (
+                           <div className="flex flex-col items-end gap-2 bg-gray-50 p-3 rounded-lg border">
+                             <div>
+                               <label className="text-xs text-gray-500 block mb-1">Harga Baru (Rp)</label>
+                               <input type="number" className="border rounded px-2 py-1 text-sm w-32" value={editForm.new_rate} onChange={e => setEditForm({...editForm, new_rate: e.target.value})} />
+                             </div>
+                             <div>
+                               <label className="text-xs text-gray-500 block mb-1">Berlaku Sejak</label>
+                               <input type="date" className="border rounded px-2 py-1 text-sm w-32" value={editForm.effective_date} onChange={e => setEditForm({...editForm, effective_date: e.target.value})} />
+                             </div>
+                             <div className="flex gap-2 mt-2">
+                               <button onClick={() => handleSaveEdit(record.id)} className="bg-green-600 text-white p-1.5 rounded hover:bg-green-700" disabled={updateMutation.isPending}><Check size={16}/></button>
+                               <button onClick={handleCancelEdit} className="bg-gray-200 text-gray-700 p-1.5 rounded hover:bg-gray-300"><XCircle size={16}/></button>
+                             </div>
+                           </div>
+                        ) : (
+                          <>
+                            {record.trigger_type === 'immediate' && (
+                              <span className="px-2.5 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">
+                                Langsung Berlaku
+                              </span>
+                            )}
+                            {record.trigger_type === 'deposit' && (
+                              <span className="px-2.5 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full">
+                                Antrean Deposit
+                              </span>
+                            )}
+                            {record.trigger_type === 'date' && (
+                              <span className="px-2.5 py-1 bg-purple-100 text-purple-800 text-xs font-semibold rounded-full flex items-center gap-1">
+                                <Calendar size={12} />
+                                Berlaku sejak: {formatDate(record.effective_date, false)}
+                              </span>
+                            )}
+                            <div className="flex gap-1 ml-2">
+                              <button onClick={() => handleEditClick(record)} className="text-blue-600 hover:bg-blue-50 p-1 rounded transition-colors"><Edit2 size={16}/></button>
+                              <button onClick={() => handleDelete(record.id)} className="text-red-600 hover:bg-red-50 p-1 rounded transition-colors" disabled={deleteMutation.isPending}><Trash2 size={16}/></button>
+                            </div>
+                          </>
                         )}
                       </div>
                       
-                      <div>
-                        {record.status === 'applied' ? (
-                          <div className="text-sm text-emerald-600 font-medium flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                            Aktif ({record.applied_at ? formatDate(record.applied_at, true) : 'Sekarang'})
-                          </div>
-                        ) : record.status === 'pending' ? (
-                          <div className="text-sm text-amber-600 font-medium flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                            Menunggu...
-                          </div>
-                        ) : (
-                          <div className="text-sm text-red-600 font-medium flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                            Dibatalkan
-                          </div>
-                        )}
-                      </div>
+                      {editingId !== record.id && (
+                        <div>
+                          {record.status === 'applied' ? (
+                            <div className="text-sm text-emerald-600 font-medium flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                              Aktif ({record.applied_at ? formatDate(record.applied_at, true) : 'Sekarang'})
+                            </div>
+                          ) : record.status === 'pending' ? (
+                            <div className="text-sm text-amber-600 font-medium flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                              Menunggu...
+                            </div>
+                          ) : (
+                            <div className="text-sm text-red-600 font-medium flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                              Dibatalkan
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

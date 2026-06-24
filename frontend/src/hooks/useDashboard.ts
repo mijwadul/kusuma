@@ -205,7 +205,8 @@ export const useAttendanceAction = () => {
       queryClient.invalidateQueries({ queryKey: ['todayAttendance'] });
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Gagal menyimpan absensi');
+      const detail = error.response?.data?.detail;
+      toast.error(typeof detail === 'string' ? detail : (detail ? JSON.stringify(detail) : 'Gagal menyimpan absensi'));
     },
   });
 };

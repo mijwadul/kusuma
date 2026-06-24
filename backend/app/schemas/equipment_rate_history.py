@@ -15,6 +15,11 @@ class EquipmentRateHistoryBase(BaseModel):
 class EquipmentRateHistoryCreate(EquipmentRateHistoryBase):
     pass
 
+class EquipmentRateHistoryUpdate(BaseModel):
+    new_rate: Optional[Decimal] = None
+    effective_date: Optional[date] = None
+    trigger_type: Optional[str] = None
+
 class EquipmentRateHistory(EquipmentRateHistoryBase):
     id: int
     created_at: datetime

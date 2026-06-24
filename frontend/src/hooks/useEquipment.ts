@@ -104,3 +104,34 @@ export const useEquipmentLedger = (equipmentId: number, options?: any) => {
     ...options
   });
 };
+
+export const useUpdateEquipmentRateHistory = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ equipmentId, historyId, data }: { equipmentId: number, historyId: number, data: Partial<EquipmentRateHistory> }) => {
+      const response = await apiClient.put<EquipmentRateHistory>(`/equipment/${equipmentId}/rate-history/${historyId}`, data);
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['equipment-rate-history', variables.equipmentId] });
+      queryClient.invalidateQueries({ queryKey: ['equipment-ledger', variables.equipmentId] });
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['financeSummary'] });
+    },
+  });
+};
+
+export const useDeleteEquipmentRateHistory = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ equipmentId, historyId }: { equipmentId: number, historyId: number }) => {
+      await apiClient.delete(`/equipment/${equipmentId}/rate-history/${historyId}`);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['equipment-rate-history', variables.equipmentId] });
+      queryClient.invalidateQueries({ queryKey: ['equipment-ledger', variables.equipmentId] });
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['financeSummary'] });
+    },
+  });
+};

@@ -48,7 +48,7 @@ export default function LoginPage() {
       let errorMsg = 'Login gagal. Periksa email dan password Anda.';
 
       if (error.code === 'ERR_NETWORK') {
-        errorMsg = 'Gagal terhubung ke server. Pastikan Firewall port 8000 di Google Cloud sudah dibuka dan Anda memiliki koneksi internet.';
+        errorMsg = 'Gagal terhubung ke server. Pastikan Anda memiliki koneksi internet yang stabil atau coba beberapa saat lagi.';
       } else if (error.response?.data?.detail) {
         const detail = error.response.data.detail;
         errorMsg = typeof detail === 'string' ? detail : JSON.stringify(detail);

@@ -161,7 +161,8 @@ export default function AttendancePage() {
       }
       handleCancelEdit();
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || error.message || 'Terjadi kesalahan saat menyimpan absensi');
+      const detail = error.response?.data?.detail;
+      toast.error(typeof detail === 'string' ? detail : (detail ? JSON.stringify(detail) : (error.message || 'Terjadi kesalahan saat menyimpan absensi')));
     }
   };
 
@@ -205,7 +206,8 @@ export default function AttendancePage() {
       toast.success('Absensi berhasil dihapus');
       setDeleteModal({ isOpen: false, attendanceId: null });
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || error.message || 'Gagal menghapus absensi');
+      const detail = error.response?.data?.detail;
+      toast.error(typeof detail === 'string' ? detail : (detail ? JSON.stringify(detail) : (error.message || 'Gagal menghapus absensi')));
     }
   };
 

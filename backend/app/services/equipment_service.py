@@ -275,3 +275,127 @@ class EquipmentService:
         # When user tops up, balance_deposit increases. When work log is done, what happens to vendor.balance_deposit?
         
         db.commit()
+
+    @staticmethod
+    def update_equipment_rate_history(db: Session, equipment_id: int, history_id: int, update_data: dict) -> 'EquipmentRateHistory':
+        from ..models import EquipmentRateHistory
+        history = db.query(EquipmentRateHistory).filter(
+            EquipmentRateHistory.id == history_id,
+            EquipmentRateHistory.equipment_id == equipment_id
+        ).first()
+        if not history:
+            raise NotFoundError("History not found")
+
+        for key, value in update_data.items():
+            if value is not None:
+                setattr(history, key, value)
+        
+        db.commit()
+        db.refresh(history)
+
+        EquipmentService.recalculate_equipment_costs(db, equipment_id)
+        EquipmentService._update_current_rate_from_history(db, equipment_id)
+        
+        return history
+
+    @staticmethod
+    def delete_equipment_rate_history(db: Session, equipment_id: int, history_id: int) -> None:
+        from ..models import EquipmentRateHistory
+        history = db.query(EquipmentRateHistory).filter(
+            EquipmentRateHistory.id == history_id,
+            EquipmentRateHistory.equipment_id == equipment_id
+        ).first()
+        if not history:
+            raise NotFoundError("History not found")
+
+        db.delete(history)
+        db.commit()
+
+        EquipmentService.recalculate_equipment_costs(db, equipment_id)
+        EquipmentService._update_current_rate_from_history(db, equipment_id)
+
+    @staticmethod
+    def _update_current_rate_from_history(db: Session, equipment_id: int):
+        from ..models import EquipmentRateHistory
+        equipment = db.query(Equipment).filter(Equipment.id == equipment_id).first()
+        if not equipment: return
+        
+        latest_history = db.query(EquipmentRateHistory).filter(
+            EquipmentRateHistory.equipment_id == equipment_id,
+            EquipmentRateHistory.status == "applied"
+        ).order_by(
+            EquipmentRateHistory.effective_date.desc().nulls_last(),
+            EquipmentRateHistory.applied_at.desc().nulls_last(),
+            EquipmentRateHistory.created_at.desc()
+        ).first()
+        
+        if latest_history:
+            equipment.rental_rate_per_hour = latest_history.new_rate
+            db.commit()
+
+    @staticmethod
+    def recalculate_equipment_costs(db: Session, equipment_id: int) -> None:
+        from decimal import Decimal
+        from ..models import WorkLog, Vendor, EquipmentRateHistory
+        
+        equipment = db.query(Equipment).filter(Equipment.id == equipment_id).first()
+        if not equipment or not equipment.vendor_id or equipment.ownership_status != "rental":
+            return
+            
+        vendor = db.query(Vendor).filter(Vendor.id == equipment.vendor_id).first()
+        if not vendor:
+            return
+
+        histories = db.query(EquipmentRateHistory).filter(
+            EquipmentRateHistory.equipment_id == equipment_id,
+            EquipmentRateHistory.status == "applied"
+        ).order_by(
+            EquipmentRateHistory.effective_date.asc().nulls_last(),
+            EquipmentRateHistory.applied_at.asc().nulls_last(),
+            EquipmentRateHistory.created_at.asc()
+        ).all()
+
+        def get_rate_for_date(w_date) -> Decimal:
+            applicable_history = None
+            for h in histories:
+                h_date = h.effective_date
+                if not h_date:
+                    if h.applied_at: h_date = h.applied_at.date()
+                    else: h_date = h.created_at.date()
+                if h_date <= w_date:
+                    applicable_history = h
+            
+            if applicable_history:
+                return applicable_history.new_rate
+            else:
+                if histories and histories[0].old_rate is not None:
+                    return histories[0].old_rate
+                return Decimal(str(equipment.rental_rate_per_hour or 0))
+
+        work_logs = db.query(WorkLog).filter(WorkLog.equipment_id == equipment_id).all()
+        total_difference = Decimal("0")
+        
+        for log in work_logs:
+            w_date = log.work_date
+            if not w_date: continue
+            
+            applicable_rate = Decimal(str(get_rate_for_date(w_date)))
+            
+            hours = Decimal(str(log.total_hours or 0))
+            discount = Decimal(str(log.rental_discount_hours or 0))
+            if discount < 0: discount = Decimal("0")
+            if discount > hours: discount = hours
+            
+            billable_hours = hours - discount
+            old_cost = Decimal(str(log.total_cost or 0))
+            
+            new_cost = billable_hours * applicable_rate
+            difference = new_cost - old_cost
+            
+            log.applied_rate = applicable_rate
+            log.total_cost = new_cost
+            log.split_details = None
+            total_difference += difference
+
+        vendor.balance_deposit = Decimal(str(vendor.balance_deposit or 0)) - total_difference
+        db.commit()

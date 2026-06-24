@@ -174,36 +174,38 @@ const SuratJalanFormModal = ({
   const proj = projects.find(p => p.id.toString() === projectId);
   const measurementType = proj?.measurement_type || 'tonase';
 
-  const handleSubmit = async (e?: React.FormEvent, isMigrationConfirmed = false) => {
+  const handleSubmit = async (e?: React.FormEvent, isMigrationConfirmed = false, migrationData?: any) => {
     if (e) e.preventDefault();
     if (!projectId) {
       toast.error('Pilih proyek terlebih dahulu');
       return;
     }
 
+    const finalFormData = migrationData ? { ...formData, ...migrationData } : formData;
+
     try {
       const payload: any = {
         project_id: parseInt(projectId),
-        vendor_id: formData.vendor_id ? parseInt(formData.vendor_id) : null,
-        vendor_name: formData.vendor_name || undefined,
-        truck_id: formData.truck_id ? parseInt(formData.truck_id) : null,
-        truck_type: formData.truck_type || undefined,
-        nama_supir: formData.driver_name,
-        nopol: formData.license_plate,
-        asal_tambang: formData.origin,
-        created_at: formData.created_at || undefined,
+        vendor_id: finalFormData.vendor_id ? parseInt(finalFormData.vendor_id) : null,
+        vendor_name: finalFormData.vendor_name || undefined,
+        truck_id: finalFormData.truck_id ? parseInt(finalFormData.truck_id) : null,
+        truck_type: finalFormData.truck_type || undefined,
+        nama_supir: finalFormData.driver_name,
+        nopol: finalFormData.license_plate,
+        asal_tambang: finalFormData.origin,
+        created_at: finalFormData.created_at || undefined,
         migrate_truck: isMigrationConfirmed
       };
 
       if (measurementType === 'tonase') {
-        payload.bruto = parseFloat(formData.gross_weight);
-        payload.tarra = parseFloat(formData.tare_weight);
-        payload.minus_berat = parseFloat(formData.minus_weight) || 0;
+        payload.bruto = parseFloat(finalFormData.gross_weight);
+        payload.tarra = parseFloat(finalFormData.tare_weight);
+        payload.minus_berat = parseFloat(finalFormData.minus_weight) || 0;
       } else {
-        payload.panjang = parseFloat(formData.length);
-        payload.lebar = parseFloat(formData.width);
-        payload.tinggi = parseFloat(formData.height);
-        payload.minus_tinggi = parseFloat(formData.minus_height) || 0;
+        payload.panjang = parseFloat(finalFormData.length);
+        payload.lebar = parseFloat(finalFormData.width);
+        payload.tinggi = parseFloat(finalFormData.height);
+        payload.minus_tinggi = parseFloat(finalFormData.minus_height) || 0;
       }
 
       if (sjToEdit) {
@@ -545,8 +547,7 @@ const SuratJalanFormModal = ({
               </button>
               <button
                 onClick={() => {
-                  setFormData(prev => ({
-                    ...prev,
+                  const newFormData = {
                     license_plate: migrationTarget.nopol,
                     driver_name: migrationTarget.driver,
                     vendor_id: migrationTarget.newVendorId,
@@ -556,10 +557,14 @@ const SuratJalanFormModal = ({
                     length: migrationTarget.length,
                     width: migrationTarget.width,
                     height: migrationTarget.height
+                  };
+                  setFormData(prev => ({
+                    ...prev,
+                    ...newFormData
                   }));
                   setIsAutoFilled(true);
                   setMigrationTarget(null);
-                  handleSubmit(undefined, true);
+                  handleSubmit(undefined, true, newFormData);
                 }}
                 className="flex-1 py-2.5 bg-amber-600 text-white rounded-xl text-sm font-semibold hover:bg-amber-700 transition-colors"
               >
