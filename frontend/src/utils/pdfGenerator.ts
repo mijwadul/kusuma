@@ -28,9 +28,8 @@ export const generatePremiumPDF = async ({
   const pageWidth = doc.internal.pageSize.width;
   const pageHeight = doc.internal.pageSize.height;
 
-  // 1. Corporate Header Block (Clean White)
-  
   // Load Logo
+  let logoImg: HTMLImageElement | null = null;
   try {
     const img = new Image();
     img.src = '/logo.png';
@@ -38,112 +37,80 @@ export const generatePremiumPDF = async ({
       img.onload = resolve;
       img.onerror = reject;
     });
-    doc.addImage(img, 'PNG', 14, 10, 24, 24);
+    logoImg = img;
   } catch (e) {
     console.warn("Logo not found or failed to load", e);
   }
 
-  // Company Name
-  doc.setTextColor(30, 41, 59); // #1e293b Slate 800
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.text('PT. Kusuma Samudera Berkah', 42, 16);
-  
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'italic');
-  doc.setTextColor(100, 116, 139); // #64748b Slate 500
-  doc.text('Pertambangan & Konstruksi', 42, 22);
-
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Jl. Pendidikan Tlogosadang, Kec. Paciran,', 42, 27);
-  doc.text('Kab. Lamongan Jawa Timur 62264', 42, 31);
-
-  // Document Title
-  doc.setTextColor(30, 58, 138); // #1e3a8a Blue 900
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  const titleWidth = doc.getTextWidth(title);
-  doc.text(title, pageWidth - 14 - titleWidth, 20);
-
-  // Document Date / Subtitle
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(100, 116, 139); // Slate 500
-  let rightY = 26;
-  if (dateRange) {
-    const dateText = `Periode: ${dateRange}`;
-    const dateWidth = doc.getTextWidth(dateText);
-    doc.text(dateText, pageWidth - 14 - dateWidth, rightY);
-    rightY += 6;
-  }
-  if (subtitle) {
-    const subWidth = doc.getTextWidth(subtitle);
-    doc.text(subtitle, pageWidth - 14 - subWidth, rightY);
-  }
-
-  // Blue Separator Line
-  doc.setDrawColor(30, 64, 175); // #1e40af Blue 800
-  doc.setLineWidth(0.8);
-  doc.line(14, 38, pageWidth - 14, 38);
-
-
-  // 3. Main Data Table
-  autoTable(doc, {
-    startY: 48,
-    head: tableHead,
-    body: tableBody,
-    theme: 'plain',
-    headStyles: { 
-      fillColor: [13, 148, 136], // Teal 600 (#0D9488) - Corporate Accent
-      textColor: 255, 
-      fontStyle: 'bold',
-      halign: 'left',
-    },
-    bodyStyles: {
-      textColor: [30, 41, 59], // Slate 800
-      fontSize: 9,
-      lineColor: [226, 232, 240], // Slate 200
-      lineWidth: { bottom: 0.5 },
-    },
-    alternateRowStyles: {
-      fillColor: [248, 250, 252], // Slate 50
-    },
-    margin: { top: 48, left: 14, right: 14, bottom: 30 }, // Leave room for footer
-    // Footer callback for Page Numbers
-    didDrawPage: () => {
-      // Draw Footer
-      const footerY = pageHeight - 15;
-      
-      // Footer Line
-      doc.setDrawColor(203, 213, 225); // Slate 300
-      doc.setLineWidth(0.5);
-      doc.line(14, footerY - 5, pageWidth - 14, footerY - 5);
-      
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(100, 116, 139); // Slate 500
-      
-      // Left side: Timestamp
-      const printDate = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-      doc.text(`Dicetak pada: ${printDate} oleh System Kusuma`, 14, footerY);
-      
-      // Right side: Page number
-      const pageStr = `Halaman ${(doc.internal as any).getNumberOfPages()}`;
-      const pageNumWidth = doc.getTextWidth(pageStr);
-      doc.text(pageStr, pageWidth - 14 - pageNumWidth, footerY);
+  const drawHeaderAndFooter = () => {
+    // --- Header ---
+    if (logoImg) {
+      doc.addImage(logoImg, 'PNG', 14, 10, 24, 24);
     }
-  });
 
-  // 4. Summary Section (if provided)
-  let currentY = (doc as any).lastAutoTable.finalY + 12;
-  
+    doc.setTextColor(30, 41, 59); // Slate 800
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(15);
+    doc.text('PT. Kusuma Samudera Berkah', 42, 16);
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(100, 116, 139); // Slate 500
+    doc.text('Pertambangan & Konstruksi', 42, 22);
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Jl. Pendidikan Tlogosadang, Kec. Paciran,', 42, 27);
+    doc.text('Kab. Lamongan Jawa Timur 62264', 42, 31);
+
+    doc.setTextColor(30, 58, 138); // Blue 900
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    const titleWidth = doc.getTextWidth(title);
+    doc.text(title, pageWidth - 14 - titleWidth, 20);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(100, 116, 139); // Slate 500
+    let rightY = 26;
+    if (dateRange) {
+      const dateText = `Periode: ${dateRange}`;
+      const dateWidth = doc.getTextWidth(dateText);
+      doc.text(dateText, pageWidth - 14 - dateWidth, rightY);
+      rightY += 6;
+    }
+    if (subtitle) {
+      const subWidth = doc.getTextWidth(subtitle);
+      doc.text(subtitle, pageWidth - 14 - subWidth, rightY);
+    }
+
+    doc.setDrawColor(30, 64, 175); // Blue 800
+    doc.setLineWidth(0.8);
+    doc.line(14, 38, pageWidth - 14, 38);
+
+    // --- Footer ---
+    const footerY = pageHeight - 15;
+    doc.setDrawColor(203, 213, 225); // Slate 300
+    doc.setLineWidth(0.5);
+    doc.line(14, footerY - 5, pageWidth - 14, footerY - 5);
+    
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 116, 139); // Slate 500
+    
+    const printDate = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    doc.text(`Dicetak pada: ${printDate} oleh System Kusuma`, 14, footerY);
+    
+    const pageStr = `Halaman ${(doc.internal as any).getNumberOfPages()}`;
+    const pageNumWidth = doc.getTextWidth(pageStr);
+    doc.text(pageStr, pageWidth - 14 - pageNumWidth, footerY);
+  };
+
+  // 1. Draw Summary Section (Page 1) if provided
   if (summary || summaryItems) {
-    // Check if we need a new page for summary
-    if (currentY > pageHeight - 40) {
-      doc.addPage();
-      currentY = 48; // reset Y after adding page (after top margin)
-    }
+    drawHeaderAndFooter(); // Draw for page 1
+    
+    let currentY = 48;
     
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
@@ -164,9 +131,9 @@ export const generatePremiumPDF = async ({
     }
 
     if (summaryItems) {
+      currentY += 4;
       doc.setFont("helvetica", "normal");
       summaryItems.forEach(item => {
-        // Simple heuristic for indenting items starting with spaces or bullets
         const indent = item.startsWith(' ') || item.startsWith('•') || item.startsWith('-') ? 20 : 14;
         if (!item.startsWith(' ') && !item.startsWith('•') && !item.startsWith('-')) {
           doc.setFont("helvetica", "bold");
@@ -177,7 +144,39 @@ export const generatePremiumPDF = async ({
         currentY += 6;
       });
     }
+
+    // Force a new page for the details table
+    doc.addPage();
   }
+
+  // 2. Main Data Table
+  // If there was no summary, we are still on Page 1. If there was a summary, we are on Page 2.
+  autoTable(doc, {
+    startY: 48,
+    head: tableHead,
+    body: tableBody,
+    theme: 'plain',
+    headStyles: { 
+      fillColor: [13, 148, 136], // Teal 600
+      textColor: 255, 
+      fontStyle: 'bold',
+      halign: 'left',
+    },
+    bodyStyles: {
+      textColor: [30, 41, 59], // Slate 800
+      fontSize: 9,
+      lineColor: [226, 232, 240], // Slate 200
+      lineWidth: { bottom: 0.5 },
+    },
+    alternateRowStyles: {
+      fillColor: [248, 250, 252], // Slate 50
+    },
+    margin: { top: 48, left: 14, right: 14, bottom: 30 },
+    didDrawPage: () => {
+      // Draw Header and Footer on every page the table is printed on
+      drawHeaderAndFooter();
+    }
+  });
 
   doc.save(filename);
 };

@@ -378,10 +378,12 @@ export default function ProjectInvoiceTab() {
                 onChange={(val) => setProjectId(val as string)}
                 options={[
                   { value: "", label: "-- Pilih Proyek --" },
-                  ...projects.map((p: any) => ({
-                    value: String(p.id),
-                    label: `${p.name} ${p.client_name ? `(${p.client_name})` : ''}`,
-                  })),
+                  ...projects
+                    .filter((p: any) => p.uninvoiced_count > 0 || (editId && String(p.id) === projectId))
+                    .map((p: any) => ({
+                      value: String(p.id),
+                      label: `${p.name} ${p.client_name ? `(${p.client_name})` : ''} ${p.uninvoiced_count > 0 ? `(${p.uninvoiced_count} belum tagih)` : ''}`,
+                    })),
                 ]}
               />
             </div>

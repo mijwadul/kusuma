@@ -1,6 +1,7 @@
 from datetime import date
 from typing import List, Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from ..models.income_record import IncomeRecord
 from ..models.invoice import Invoice

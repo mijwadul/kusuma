@@ -81,6 +81,7 @@ class ProjectResponse(BaseModel):
     realized_amount: float = 0.0
     budget_used: float = 0.0
     remaining_budget: float = 0.0
+    uninvoiced_count: int = 0
 
     class Config:
         from_attributes = True

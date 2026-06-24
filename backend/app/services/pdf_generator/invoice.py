@@ -60,47 +60,56 @@ def generate_invoice_pdf(invoice) -> bytes:
     story.append(info_table)
     story.append(Spacer(1, 8 * mm))
 
-    # Items Table
+    # Items Summary Table
     table_data = [[
         Paragraph("<font size='9' color='white'><b>No</b></font>", style(alignment=TA_CENTER)),
         Paragraph("<font size='9' color='white'><b>Tanggal</b></font>", style(alignment=TA_CENTER)),
         Paragraph("<font size='9' color='white'><b>Material</b></font>", style(alignment=TA_CENTER)),
-        Paragraph("<font size='9' color='white'><b>Nopol</b></font>", style(alignment=TA_CENTER)),
-        Paragraph("<font size='9' color='white'><b>Supir</b></font>", style(alignment=TA_CENTER)),
-        Paragraph("<font size='9' color='white'><b>Qty</b></font>", style(alignment=TA_CENTER)),
-        Paragraph("<font size='9' color='white'><b>Harga</b></font>", style(alignment=TA_CENTER)),
-        Paragraph("<font size='9' color='white'><b>Jumlah</b></font>", style(alignment=TA_CENTER)),
+        Paragraph("<font size='9' color='white'><b>Jumlah Ritase</b></font>", style(alignment=TA_CENTER)),
+        Paragraph("<font size='9' color='white'><b>Jumlah Qty</b></font>", style(alignment=TA_CENTER)),
+        Paragraph("<font size='9' color='white'><b>Harga Satuan</b></font>", style(alignment=TA_CENTER)),
+        Paragraph("<font size='9' color='white'><b>Subtotal</b></font>", style(alignment=TA_CENTER)),
     ]]
 
     items = getattr(invoice, "items", [])
-    subtotal = 0.0
-
-    for i, item in enumerate(items):
-        inc_date = fmt_date(getattr(item, "income_date", None))
-        material = getattr(item, "material_type", "-")
-        nopol = getattr(item, "license_plate", "-") or "-"
-        supir = getattr(item, "driver_name", "-") or "-"
+    
+    from collections import defaultdict
+    summary_raw = defaultdict(lambda: {'date_str': '', 'material': '', 'ritase': 0, 'qty': 0.0, 'unit': '', 'unit_price': 0.0, 'amount': 0.0})
+    for item in items:
+        raw_date = getattr(item, "income_date", None)
+        if not raw_date: continue
+        mat = getattr(item, "material_type", "-")
         qty = getattr(item, "quantity", 0) or 0
         unit = getattr(item, "unit", "") or ""
-        qty_str = f"{qty:g} {unit}"
         price = getattr(item, "unit_price", 0) or 0
         amount = getattr(item, "amount", 0) or 0
         
-        subtotal += amount
+        key = (raw_date, mat, price)
+        summary_raw[key]['date_str'] = fmt_date(raw_date)
+        summary_raw[key]['material'] = mat
+        summary_raw[key]['ritase'] += 1
+        summary_raw[key]['qty'] += qty
+        summary_raw[key]['unit'] = unit
+        summary_raw[key]['unit_price'] = price
+        summary_raw[key]['amount'] += amount
 
+    sorted_keys = sorted(list(summary_raw.keys()), key=lambda k: (k[0], k[1]))
+
+    subtotal = 0.0
+    for i, k in enumerate(sorted_keys):
+        d = summary_raw[k]
+        subtotal += d['amount']
         table_data.append([
             Paragraph(f"<font size='8'>{i+1}</font>", style(alignment=TA_CENTER)),
-            Paragraph(f"<font size='8'>{inc_date}</font>", style(alignment=TA_CENTER)),
-            Paragraph(f"<font size='8'>{material}</font>", style(alignment=TA_LEFT)),
-            Paragraph(f"<font size='8'>{nopol}</font>", style(alignment=TA_CENTER)),
-            Paragraph(f"<font size='8'>{supir}</font>", style(alignment=TA_LEFT)),
-            Paragraph(f"<font size='8'>{qty_str}</font>", style(alignment=TA_RIGHT)),
-            Paragraph(f"<font size='8'>{fmt_idr(price)}</font>", style(alignment=TA_RIGHT)),
-            Paragraph(f"<font size='8'><b>{fmt_idr(amount)}</b></font>", style(alignment=TA_RIGHT)),
+            Paragraph(f"<font size='8'>{d['date_str']}</font>", style(alignment=TA_CENTER)),
+            Paragraph(f"<font size='8'>{d['material']}</font>", style(alignment=TA_LEFT)),
+            Paragraph(f"<font size='8'>{d['ritase']} Rit</font>", style(alignment=TA_CENTER)),
+            Paragraph(f"<font size='8'>{d['qty']:g} {d['unit']}</font>", style(alignment=TA_CENTER)),
+            Paragraph(f"<font size='8'>{fmt_idr(d['unit_price'])}</font>", style(alignment=TA_RIGHT)),
+            Paragraph(f"<font size='8'><b>{fmt_idr(d['amount'])}</b></font>", style(alignment=TA_RIGHT)),
         ])
 
     # Footer rows for Subtotal, Discount, Total
-    # Make sure we have the same number of columns (8)
     discount_type = getattr(invoice, "discount_type", None)
     discount_val = getattr(invoice, "discount_value", 0) or 0
     total_amount = getattr(invoice, "total_amount", 0) or 0
@@ -108,7 +117,7 @@ def generate_invoice_pdf(invoice) -> bytes:
     # Subtotal
     table_data.append([
         Paragraph("<font size='9'><b>Subtotal</b></font>", style(alignment=TA_RIGHT)),
-        "", "", "", "", "", "",
+        "", "", "", "", "",
         Paragraph(f"<font size='9'><b>{fmt_idr(subtotal)}</b></font>", style(alignment=TA_RIGHT))
     ])
 
@@ -125,7 +134,7 @@ def generate_invoice_pdf(invoice) -> bytes:
             
         table_data.append([
             Paragraph(f"<font size='9' color='#ef4444'><b>{disc_label}</b></font>", style(alignment=TA_RIGHT)),
-            "", "", "", "", "", "",
+            "", "", "", "", "",
             Paragraph(f"<font size='9' color='#ef4444'><b>- {fmt_idr(discount_amount)}</b></font>", style(alignment=TA_RIGHT))
         ])
         extra_rows += 1
@@ -133,18 +142,17 @@ def generate_invoice_pdf(invoice) -> bytes:
     # Total
     table_data.append([
         Paragraph("<font size='10' color='#10b981'><b>TOTAL TAGIHAN</b></font>", style(alignment=TA_RIGHT)),
-        "", "", "", "", "", "",
+        "", "", "", "", "",
         Paragraph(f"<font size='10' color='#10b981'><b>{fmt_idr(total_amount)}</b></font>", style(alignment=TA_RIGHT))
     ])
     extra_rows += 1
 
     col_widths = [
         content_w * 0.05, # No
-        content_w * 0.13, # Tanggal
-        content_w * 0.15, # Material
-        content_w * 0.12, # Nopol
-        content_w * 0.15, # Supir
-        content_w * 0.10, # Qty
+        content_w * 0.15, # Tanggal
+        content_w * 0.20, # Material
+        content_w * 0.15, # Ritase
+        content_w * 0.15, # Qty
         content_w * 0.15, # Harga
         content_w * 0.15, # Jumlah
     ]
@@ -162,7 +170,7 @@ def generate_invoice_pdf(invoice) -> bytes:
         ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
     ]
     
-    for i in range(len(items)):
+    for i in range(len(sorted_keys)):
         bg_color = WHITE if i % 2 == 0 else GRAY_LIGHT
         t_styles.append(("BACKGROUND", (0, i + 1), (-1, i + 1), bg_color))
         
@@ -170,7 +178,7 @@ def generate_invoice_pdf(invoice) -> bytes:
     for j in range(1, extra_rows + 1):
         row_idx = -j
         t_styles.extend([
-            ("SPAN", (0, row_idx), (6, row_idx)),
+            ("SPAN", (0, row_idx), (5, row_idx)),
             ("ALIGN", (0, row_idx), (0, row_idx), "RIGHT"),
             ("BACKGROUND", (0, row_idx), (-1, row_idx), BRAND_LIGHT if j == 1 else (colors.HexColor("#fee2e2") if extra_rows > 2 and j == 2 else WHITE)),
             ("BOX", (0, row_idx), (-1, row_idx), 0.5, colors.HexColor("#9ca3af")),
@@ -191,6 +199,14 @@ def generate_invoice_pdf(invoice) -> bytes:
         story.append(Spacer(1, 8 * mm))
 
     # Signature
+    payment_info = [
+        Paragraph("<font size='9'><b>Informasi Pembayaran:</b></font>", style()),
+        Spacer(1, 2 * mm),
+        Paragraph("<font size='9' color='#4b5563'>Bank Mandiri</font>", style()),
+        Paragraph("<font size='9' color='#4b5563'>No. Rekening: <b>1780001847504</b></font>", style()),
+        Paragraph("<font size='9' color='#4b5563'>Atas Nama: <b>DEWI KUSUMA</b></font>", style()),
+    ]
+
     sig_data = [
         [Paragraph("<font size='9'>Hormat Kami,</font>", style(alignment=TA_CENTER))],
         [Paragraph("<br/><br/><br/>", style())],
@@ -201,8 +217,11 @@ def generate_invoice_pdf(invoice) -> bytes:
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
     ]))
     
-    # Push signature to the right
-    sig_wrapper = Table([["", sig_table]], colWidths=[content_w - 5*cm, 5*cm])
+    # Push signature to the right and add payment info to the left
+    sig_wrapper = Table([[payment_info, sig_table]], colWidths=[content_w - 5*cm, 5*cm])
+    sig_wrapper.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+    ]))
     story.append(sig_wrapper)
     story.append(Spacer(1, 4 * mm))
 
@@ -216,6 +235,78 @@ def generate_invoice_pdf(invoice) -> bytes:
             style(alignment=TA_CENTER),
         )
     )
+
+    if len(items) > 0:
+        story.append(PageBreak())
+        
+        story.append(Paragraph("<font size='14'><b>LAMPIRAN DETAIL PENJUALAN MATERIAL</b></font>", style(alignment=TA_CENTER)))
+        story.append(Spacer(1, 5 * mm))
+        
+        detail_data = [[
+            Paragraph("<font size='9' color='white'><b>No</b></font>", style(alignment=TA_CENTER)),
+            Paragraph("<font size='9' color='white'><b>Tanggal</b></font>", style(alignment=TA_CENTER)),
+            Paragraph("<font size='9' color='white'><b>Material</b></font>", style(alignment=TA_CENTER)),
+            Paragraph("<font size='9' color='white'><b>Nopol</b></font>", style(alignment=TA_CENTER)),
+            Paragraph("<font size='9' color='white'><b>Supir</b></font>", style(alignment=TA_CENTER)),
+            Paragraph("<font size='9' color='white'><b>Qty</b></font>", style(alignment=TA_CENTER)),
+            Paragraph("<font size='9' color='white'><b>Harga</b></font>", style(alignment=TA_CENTER)),
+            Paragraph("<font size='9' color='white'><b>Jumlah</b></font>", style(alignment=TA_CENTER)),
+        ]]
+        
+        from datetime import date
+        sorted_items = sorted(items, key=lambda x: (getattr(x, "income_date", None) or date.min, getattr(x, "material_type", ""), getattr(x, "license_plate", "") or ""))
+        
+        for i, item in enumerate(sorted_items):
+            inc_date = fmt_date(getattr(item, "income_date", None))
+            material = getattr(item, "material_type", "-")
+            nopol = getattr(item, "license_plate", "-") or "-"
+            supir = getattr(item, "driver_name", "-") or "-"
+            qty = getattr(item, "quantity", 0) or 0
+            unit = getattr(item, "unit", "") or ""
+            qty_str = f"{qty:g} {unit}"
+            price = getattr(item, "unit_price", 0) or 0
+            amount = getattr(item, "amount", 0) or 0
+            
+            detail_data.append([
+                Paragraph(f"<font size='8'>{i+1}</font>", style(alignment=TA_CENTER)),
+                Paragraph(f"<font size='8'>{inc_date}</font>", style(alignment=TA_CENTER)),
+                Paragraph(f"<font size='8'>{material}</font>", style(alignment=TA_LEFT)),
+                Paragraph(f"<font size='8'>{nopol}</font>", style(alignment=TA_CENTER)),
+                Paragraph(f"<font size='8'>{supir}</font>", style(alignment=TA_LEFT)),
+                Paragraph(f"<font size='8'>{qty_str}</font>", style(alignment=TA_RIGHT)),
+                Paragraph(f"<font size='8'>{fmt_idr(price)}</font>", style(alignment=TA_RIGHT)),
+                Paragraph(f"<font size='8'><b>{fmt_idr(amount)}</b></font>", style(alignment=TA_RIGHT)),
+            ])
+            
+        detail_col_w = [
+            content_w * 0.05,
+            content_w * 0.13,
+            content_w * 0.15,
+            content_w * 0.12,
+            content_w * 0.15,
+            content_w * 0.10,
+            content_w * 0.15,
+            content_w * 0.15,
+        ]
+        
+        dt = Table(detail_data, colWidths=detail_col_w, repeatRows=1)
+        dt_styles = [
+            ("BACKGROUND", (0, 0), (-1, 0), BRAND_BLUE),
+            ("TEXTCOLOR", (0, 0), (-1, 0), WHITE),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#e5e7eb")),
+            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#9ca3af")),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ]
+        for i in range(len(sorted_items)):
+            bg = WHITE if i % 2 == 0 else GRAY_LIGHT
+            dt_styles.append(("BACKGROUND", (0, i + 1), (-1, i + 1), bg))
+            
+        dt.setStyle(TableStyle(dt_styles))
+        story.append(dt)
+        story.append(Spacer(1, 8 * mm))
 
     doc.build(story)
     return buf.getvalue()
@@ -396,6 +487,14 @@ def generate_project_invoice_pdf(invoice) -> bytes:
         story.append(Paragraph(f"<font size='9' color='#4b5563'>{notes}</font>", style()))
         story.append(Spacer(1, 8 * mm))
 
+    payment_info = [
+        Paragraph("<font size='9'><b>Informasi Pembayaran:</b></font>", style()),
+        Spacer(1, 2 * mm),
+        Paragraph("<font size='9' color='#4b5563'>Bank Mandiri</font>", style()),
+        Paragraph("<font size='9' color='#4b5563'>No. Rekening: <b>1780001847504</b></font>", style()),
+        Paragraph("<font size='9' color='#4b5563'>Atas Nama: <b>DEWI KUSUMA</b></font>", style()),
+    ]
+
     sig_data = [
         [Paragraph("<font size='9'>Hormat Kami,</font>", style(alignment=TA_CENTER))],
         [Paragraph("<br/><br/><br/>", style())],
@@ -405,7 +504,11 @@ def generate_project_invoice_pdf(invoice) -> bytes:
     sig_table.setStyle(TableStyle([
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
     ]))
-    sig_wrapper = Table([["", sig_table]], colWidths=[content_w - 5*cm, 5*cm])
+    
+    sig_wrapper = Table([[payment_info, sig_table]], colWidths=[content_w - 5*cm, 5*cm])
+    sig_wrapper.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+    ]))
     story.append(sig_wrapper)
     story.append(Spacer(1, 4 * mm))
 

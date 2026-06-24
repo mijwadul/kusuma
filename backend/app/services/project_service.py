@@ -30,6 +30,8 @@ def _parse_dt(s: Optional[str]) -> Optional[datetime]:
     except Exception:
         return None
 
+from ..models.surat_jalan import SuratJalan
+
 def _build_project_response(proj: Project, db: Session) -> ProjectResponse:
     items = [MaterialItemResponse.model_validate(i) for i in proj.material_items]
     total_val = sum(
@@ -68,6 +70,11 @@ def _build_project_response(proj: Project, db: Session) -> ProjectResponse:
     assigned_users = [UserBasicResponse.model_validate(u) for u in proj.assigned_users] if proj.assigned_users else []
     assigned_employees = [EmployeeBasicResponse.model_validate(e) for e in proj.assigned_employees] if proj.assigned_employees else []
 
+    uninvoiced_count = db.query(func.count(SuratJalan.id)).filter(
+        SuratJalan.project_id == proj.id,
+        (SuratJalan.is_invoiced == False) | (SuratJalan.is_invoiced == None)
+    ).scalar() or 0
+
     return ProjectResponse(
         id=proj.id,
         name=proj.name,
@@ -89,6 +96,7 @@ def _build_project_response(proj: Project, db: Session) -> ProjectResponse:
         realized_amount=round(float(realized or 0), 2),
         budget_used=round(budget_used, 2),
         remaining_budget=round(remaining_budget, 2),
+        uninvoiced_count=uninvoiced_count,
     )
 
 class ProjectService:
