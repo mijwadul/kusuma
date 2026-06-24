@@ -142,21 +142,29 @@ export default function AttendancePage() {
 
     const finalDate = isHelper ? toLocalDateInput(new Date()) : formData.date;
 
-    const payload: Partial<Attendance> = {
-      employee_id: Number(formData.employee_id),
-      date: finalDate,
-      status: formData.status,
-      check_in: formData.check_in ? (formData.check_in.length === 16 ? `${formData.check_in}:00` : formData.check_in) : null,
-      check_out: formData.check_out ? (formData.check_out.length === 16 ? `${formData.check_out}:00` : formData.check_out) : null,
-      notes: formData.notes || undefined
-    };
-
     try {
       if (editingId) {
-        await updateMutation.mutateAsync({ id: editingId, data: payload });
+        // Saat update: hanya kirim field yang diizinkan AttendanceUpdate (tanpa employee_id)
+        const updatePayload: Partial<Attendance> = {
+          date: finalDate,
+          status: formData.status,
+          check_in: formData.check_in ? (formData.check_in.length === 16 ? `${formData.check_in}:00` : formData.check_in) : null,
+          check_out: formData.check_out ? (formData.check_out.length === 16 ? `${formData.check_out}:00` : formData.check_out) : null,
+          notes: formData.notes || undefined
+        };
+        await updateMutation.mutateAsync({ id: editingId, data: updatePayload });
         toast.success('Absensi berhasil diperbarui');
       } else {
-        await createMutation.mutateAsync(payload);
+        // Saat create: kirim semua field termasuk employee_id
+        const createPayload: Partial<Attendance> = {
+          employee_id: Number(formData.employee_id),
+          date: finalDate,
+          status: formData.status,
+          check_in: formData.check_in ? (formData.check_in.length === 16 ? `${formData.check_in}:00` : formData.check_in) : null,
+          check_out: formData.check_out ? (formData.check_out.length === 16 ? `${formData.check_out}:00` : formData.check_out) : null,
+          notes: formData.notes || undefined
+        };
+        await createMutation.mutateAsync(createPayload);
         toast.success('Absensi berhasil disimpan');
       }
       handleCancelEdit();
@@ -299,12 +307,12 @@ export default function AttendancePage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Karyawan</label>
                   <CustomSelect
                     value={formData.employee_id}
-                    onChange={(val) => setFormData((prev) => ({ ...prev, employee_id: val as string }))}
+                    onChange={(val) => setFormData((prev) => ({ ...prev, employee_id: String(val) }))}
                     required
                     options={[
                       { value: "", label: "-- Pilih Karyawan --" },
                       ...employees.map((emp) => ({
-                        value: emp.id,
+                        value: String(emp.id),
                         label: `${emp.name} (${emp.employee_code || '-'})`
                       }))
                     ]}
@@ -449,11 +457,11 @@ export default function AttendancePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <CustomSelect
             value={filters.employee_id}
-            onChange={(val) => setFilters((prev) => ({ ...prev, employee_id: val as string }))}
+            onChange={(val) => setFilters((prev) => ({ ...prev, employee_id: String(val) }))}
             options={[
               { value: "", label: "Semua karyawan" },
               ...employees.map((emp) => ({
-                value: emp.id,
+                value: String(emp.id),
                 label: emp.name
               }))
             ]}

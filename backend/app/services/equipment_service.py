@@ -324,8 +324,10 @@ class EquipmentService:
             EquipmentRateHistory.equipment_id == equipment_id,
             EquipmentRateHistory.status == "applied"
         ).order_by(
-            EquipmentRateHistory.effective_date.desc().nulls_last(),
-            EquipmentRateHistory.applied_at.desc().nulls_last(),
+            EquipmentRateHistory.effective_date.is_(None),
+            EquipmentRateHistory.effective_date.desc(),
+            EquipmentRateHistory.applied_at.is_(None),
+            EquipmentRateHistory.applied_at.desc(),
             EquipmentRateHistory.created_at.desc()
         ).first()
         
@@ -350,19 +352,32 @@ class EquipmentService:
             EquipmentRateHistory.equipment_id == equipment_id,
             EquipmentRateHistory.status == "applied"
         ).order_by(
-            EquipmentRateHistory.effective_date.asc().nulls_last(),
-            EquipmentRateHistory.applied_at.asc().nulls_last(),
+            EquipmentRateHistory.effective_date.is_(None),
+            EquipmentRateHistory.effective_date.asc(),
+            EquipmentRateHistory.applied_at.is_(None),
+            EquipmentRateHistory.applied_at.asc(),
             EquipmentRateHistory.created_at.asc()
         ).all()
 
         def get_rate_for_date(w_date) -> Decimal:
+            if isinstance(w_date, datetime.datetime):
+                w_date_cmp = w_date.date()
+            else:
+                w_date_cmp = w_date
+                
             applicable_history = None
             for h in histories:
                 h_date = h.effective_date
                 if not h_date:
                     if h.applied_at: h_date = h.applied_at.date()
                     else: h_date = h.created_at.date()
-                if h_date <= w_date:
+                
+                if isinstance(h_date, datetime.datetime):
+                    h_date_cmp = h_date.date()
+                else:
+                    h_date_cmp = h_date
+                    
+                if h_date_cmp <= w_date_cmp:
                     applicable_history = h
             
             if applicable_history:

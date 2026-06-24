@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import date, datetime
+import datetime as dt
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -381,7 +384,7 @@ class AttendanceCreate(AttendanceBase):
 class AttendanceUpdate(BaseModel):
     """Update attendance"""
 
-    date: Optional[date] = None
+    date: Optional[dt.date] = None
     check_in: Optional[datetime] = None
     check_out: Optional[datetime] = None
     status: Optional[str] = None

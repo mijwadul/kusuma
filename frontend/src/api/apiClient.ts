@@ -87,6 +87,27 @@ apiClient.interceptors.response.use(
         window.location.href = '/login';
     }
 
+    // Format pesan error global agar lebih ramah pengguna (user-friendly)
+    if (error.response) {
+      const status = error.response.status;
+      if (!error.response.data) error.response.data = {};
+
+      if (status >= 500) {
+        error.response.data.detail = "Mohon maaf, fungsi ini sedang mengalami kendala sistem. Silakan coba beberapa saat lagi.";
+      } else if (status === 422) {
+        error.response.data.detail = "Data yang dimasukkan tidak valid atau kurang lengkap. Mohon periksa kembali form Anda.";
+      } else if (typeof error.response.data.detail !== 'string') {
+        error.response.data.detail = "Mohon maaf, fungsi ini sedang mengalami kendala. Silakan coba kembali.";
+      }
+      
+      // Override error.message agar fallback berjalan dengan baik
+      error.message = error.response.data.detail || "Mohon maaf, fungsi ini sedang mengalami kendala.";
+    } else if (error.request) {
+      error.message = "Koneksi ke server terputus. Mohon pastikan jaringan internet Anda stabil.";
+    } else {
+      error.message = "Mohon maaf, fungsi ini sedang mengalami kendala.";
+    }
+
     return Promise.reject(error);
   }
 );
