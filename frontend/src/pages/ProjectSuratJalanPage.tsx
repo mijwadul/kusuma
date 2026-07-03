@@ -201,12 +201,13 @@ const SuratJalanFormModal = ({
         payload.bruto = parseFloat(finalFormData.gross_weight);
         payload.tarra = parseFloat(finalFormData.tare_weight);
         payload.minus_berat = parseFloat(finalFormData.minus_weight) || 0;
-      } else {
+      } else if (measurementType === 'kubikasi') {
         payload.panjang = parseFloat(finalFormData.length);
         payload.lebar = parseFloat(finalFormData.width);
         payload.tinggi = parseFloat(finalFormData.height);
         payload.minus_tinggi = parseFloat(finalFormData.minus_height) || 0;
       }
+      // if 'ritase', no extra weight/volume fields needed
 
       if (sjToEdit) {
         await updateSuratJalan.mutateAsync({ id: sjToEdit.id, data: payload });
@@ -252,7 +253,7 @@ const SuratJalanFormModal = ({
                   { value: "", label: "-- Pilih Proyek --" },
                   ...projects.map(p => ({
                     value: String(p.id),
-                    label: `${p.name} (${p.measurement_type === 'kubikasi' ? 'Kubikasi' : 'Tonase'})`
+                    label: `${p.name} (${p.measurement_type === 'kubikasi' ? 'Kubikasi' : p.measurement_type === 'ritase' ? 'Ritase' : 'Tonase'})`
                   }))
                 ]}
               />
