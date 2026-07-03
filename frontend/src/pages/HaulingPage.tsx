@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { Truck, Plus, Edit, Trash2, ChevronDown, ChevronRight, Building2, Save, X } from 'lucide-react';
-import { useVendors, useCreateVendor, useUpdateVendor, useDeleteVendor, useCreateVendorTopup, useVendorTopups, useUpdateVendorTopup, useDeleteVendorTopup, Vendor } from '../hooks/useVendors';
+import { useVendors, useCreateVendor, useUpdateVendor, useDeleteVendor, useCreateVendorTopup, useVendorTopups, useUpdateVendorTopup, useDeleteVendorTopup, useVendorTruckBalances, Vendor } from '../hooks/useVendors';
 import { useVendorTrucks, useCreateVendorTruck, useUpdateVendorTruck, useDeleteVendorTruck, useAllHaulingObligations } from '../hooks/useHauling';
 import CustomSelect from '../components/CustomSelect';
 import { formatNopol, formatTitleCase } from '../utils/formatters';
@@ -12,13 +12,13 @@ export default function HaulingPage() {
   // Vendor State
   const [showVendorForm, setShowVendorForm] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
-  const [vendorData, setVendorData] = useState({ name: "", contact_person: "", phone: "", address: "", vendor_type: "hauling" });
+  const [vendorData, setVendorData] = useState({ name: "", contact_person: "", phone: "", address: "", vendor_type: "hauling", allow_deposit_cascade: false });
   const [showVendorDetail, setShowVendorDetail] = useState<Vendor | null>(null);
 
   // Top Up State
   const [showTopupForm, setShowTopupForm] = useState<number | null>(null);
   const [editingTopup, setEditingTopup] = useState<number | null>(null);
-  const [topupData, setTopupData] = useState({ amount: '', notes: '', topup_date: new Date().toISOString().split('T')[0] });
+  const [topupData, setTopupData] = useState({ amount: '', notes: '', topup_date: new Date().toISOString().split('T')[0], truck_id: '' as string | number });
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/\D/g, '');
@@ -44,7 +44,7 @@ export default function HaulingPage() {
     tinggi: null
   });
 
-  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: () => {} });
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", confirmText: "Ya, Hapus", confirmColor: "bg-red-600 hover:bg-red-700", onConfirm: () => {} });
 
   const { data: vendors = [], isLoading: loadingVendors } = useVendors('hauling');
   
@@ -56,6 +56,8 @@ export default function HaulingPage() {
   const deleteTopupMut = useDeleteVendorTopup();
   
   const { data: allTopups = [] } = useVendorTopups();
+  const { data: trucksForTopup = [] } = useVendorTrucks(showTopupForm || undefined);
+  const { data: truckBalances = [] } = useVendorTruckBalances(showVendorDetail?.id);
   
   const createTruckMut = useCreateVendorTruck();
   const updateTruckMut = useUpdateVendorTruck();
@@ -103,7 +105,7 @@ export default function HaulingPage() {
         deleteVendorMut.mutate(id, {
           onSuccess: () => toast.success("Vendor dihapus"),
           onError: () => toast.error("Gagal menghapus vendor"),
-          onSettled: () => setConfirmModal({ isOpen: false, title: "", message: "", onConfirm: () => {} })
+          onSettled: () => setConfirmModal({ isOpen: false, title: "", message: "", confirmText: "Ya, Hapus", confirmColor: "bg-red-600 hover:bg-red-700", onConfirm: () => {} })
         });
       }
     });
@@ -146,7 +148,7 @@ export default function HaulingPage() {
         deleteTruckMut.mutate(id, {
           onSuccess: () => toast.success("Armada dihapus"),
           onError: () => toast.error("Gagal menghapus armada"),
-          onSettled: () => setConfirmModal({ isOpen: false, title: "", message: "", onConfirm: () => {} })
+          onSettled: () => setConfirmModal({ isOpen: false, title: "", message: "", confirmText: "Ya, Hapus", confirmColor: "bg-red-600 hover:bg-red-700", onConfirm: () => {} })
         });
       }
     });
@@ -161,7 +163,7 @@ export default function HaulingPage() {
         deleteTopupMut.mutate(id, {
           onSuccess: () => toast.success("Deposit dihapus"),
           onError: () => toast.error("Gagal menghapus deposit"),
-          onSettled: () => setConfirmModal({ isOpen: false, title: "", message: "", onConfirm: () => {} })
+          onSettled: () => setConfirmModal({ isOpen: false, title: "", message: "", confirmText: "Ya, Hapus", confirmColor: "bg-red-600 hover:bg-red-700", onConfirm: () => {} })
         });
       }
     });
@@ -270,12 +272,13 @@ export default function HaulingPage() {
         vendor_id: showTopupForm,
         amount: parseFloat(topupData.amount || '0'),
         notes: topupData.notes,
-        topup_date: topupData.topup_date
+        topup_date: topupData.topup_date,
+        truck_id: topupData.truck_id ? parseInt(topupData.truck_id as string) : undefined
       }, {
         onSuccess: () => {
           toast.success("Deposit berhasil ditambahkan!");
           setShowTopupForm(null);
-          setTopupData({ amount: '', notes: '', topup_date: new Date().toISOString().split('T')[0] });
+          setTopupData({ amount: '', notes: '', topup_date: new Date().toISOString().split('T')[0], truck_id: '' });
         },
         onError: () => toast.error("Gagal menambahkan deposit")
       });
@@ -291,7 +294,7 @@ export default function HaulingPage() {
         <button
           onClick={() => {
             setEditingVendor(null);
-            setVendorData({ name: "", contact_person: "", phone: "", address: "", vendor_type: "hauling" });
+            setVendorData({ name: "", contact_person: "", phone: "", address: "", vendor_type: "hauling", allow_deposit_cascade: false });
             setShowVendorForm(true);
           }}
           className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm"
@@ -376,6 +379,33 @@ export default function HaulingPage() {
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
                 <textarea value={vendorData.address} onChange={e=>setVendorData({...vendorData, address: e.target.value})} className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-300 outline-none" rows={3} />
               </div>
+              
+              <div className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100 mt-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Potong Saldo Global?</label>
+                  <span className="text-xs text-gray-500">Jika deposit unit habis, talangi dengan global.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newValue = !vendorData.allow_deposit_cascade;
+                    setConfirmModal({
+                      isOpen: true,
+                      title: "Konfirmasi Pengaturan",
+                      message: `Apakah Anda yakin ingin ${newValue ? 'MENGAKTIFKAN' : 'MEMATIKAN'} fitur potong saldo global otomatis?`,
+                      confirmText: newValue ? "Ya, Aktifkan" : "Ya, Matikan",
+                      confirmColor: newValue ? "bg-emerald-600 hover:bg-emerald-700" : "bg-gray-600 hover:bg-gray-700",
+                      onConfirm: () => {
+                        setVendorData({...vendorData, allow_deposit_cascade: newValue});
+                        setConfirmModal({ isOpen: false, title: "", message: "", confirmText: "Ya, Hapus", confirmColor: "bg-red-600 hover:bg-red-700", onConfirm: () => {} });
+                      }
+                    });
+                  }}
+                  className={`w-12 h-6 rounded-full relative transition-colors ${vendorData.allow_deposit_cascade ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                >
+                  <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${vendorData.allow_deposit_cascade ? 'translate-x-6' : ''}`} />
+                </button>
+              </div>
               <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-100">
                 <button type="button" onClick={() => setShowVendorForm(false)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 font-medium transition-colors">Batal</button>
                 <button type="submit" disabled={createVendorMut.isPending || updateVendorMut.isPending} className="px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium flex items-center gap-2 shadow-sm transition-colors">
@@ -451,16 +481,16 @@ export default function HaulingPage() {
             <p className="text-sm text-gray-600 mb-6">{confirmModal.message}</p>
             <div className="flex justify-center gap-3">
               <button
-                onClick={() => setConfirmModal({ isOpen: false, title: "", message: "", onConfirm: () => {} })}
+                onClick={() => setConfirmModal({ isOpen: false, title: "", message: "", confirmText: "Ya, Hapus", confirmColor: "bg-red-600 hover:bg-red-700", onConfirm: () => {} })}
                 className="px-5 py-2.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg font-medium transition-colors"
               >
                 Batal
               </button>
               <button
                 onClick={confirmModal.onConfirm}
-                className="px-5 py-2.5 bg-red-600 text-white hover:bg-red-700 rounded-lg font-bold transition-colors"
+                className={`px-5 py-2.5 text-white rounded-lg font-bold transition-colors ${confirmModal.confirmColor}`}
               >
-                Ya, Hapus
+                {confirmModal.confirmText}
               </button>
             </div>
           </div>
@@ -476,6 +506,20 @@ export default function HaulingPage() {
               <button onClick={() => { setShowTopupForm(null); setEditingTopup(null); }} className="text-gray-500 hover:text-gray-800"><X size={20}/></button>
             </div>
             <form onSubmit={handleTopupSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Armada (Opsional)</label>
+                <CustomSelect
+                  value={String(topupData.truck_id || '')}
+                  onChange={(val) => setTopupData({...topupData, truck_id: val as string})}
+                  options={[
+                    { value: "", label: "-- Deposit Global (Semua Armada) --" },
+                    ...trucksForTopup.map((t: any) => ({
+                      value: String(t.id),
+                      label: t.nopol
+                    }))
+                  ]}
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Jumlah Deposit (Rp) <span className="text-red-500">*</span></label>
                 <input required type="text" value={topupData.amount ? Number(topupData.amount).toLocaleString('id-ID') : ''} onChange={handleAmountChange} className="w-full border rounded p-2 focus:ring-2 focus:ring-emerald-300 outline-none" />
@@ -555,6 +599,27 @@ export default function HaulingPage() {
                 })()}
               </div>
             )}
+            
+            {truckBalances.length > 0 && (
+              <div className="mb-6 bg-indigo-50 border border-indigo-100 rounded-xl p-4 shadow-sm">
+                <h4 className="text-sm font-bold text-indigo-900 border-b border-indigo-200 pb-2 mb-3">Saldo Deposit per Unit (Nopol)</h4>
+                <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                  {truckBalances.map((tb: any) => (
+                    <div key={tb.truck_id} className="flex justify-between items-center bg-white p-2 rounded border border-indigo-100">
+                      <div>
+                        <span className="font-bold text-gray-800">{tb.nopol}</span>
+                        <div className="text-[10px] text-gray-500">
+                          Topup: {Number(tb.total_topup).toLocaleString('id-ID')} | Cost: {Number(tb.total_hauling_cost).toLocaleString('id-ID')}
+                        </div>
+                      </div>
+                      <span className={`font-bold text-sm ${tb.balance < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                        {tb.balance < 0 ? '-' : ''}Rp {Math.abs(tb.balance).toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="mb-6">
               <h4 className="text-sm font-bold text-gray-800 border-b pb-2 mb-3">Riwayat Deposit</h4>
@@ -612,7 +677,8 @@ export default function HaulingPage() {
                     contact_person: showVendorDetail.contact_person || "",
                     phone: showVendorDetail.phone || "",
                     address: showVendorDetail.address || "",
-                    vendor_type: "hauling"
+                    vendor_type: "hauling",
+                    allow_deposit_cascade: showVendorDetail.allow_deposit_cascade || false
                   });
                   setShowVendorForm(true);
                   setShowVendorDetail(null);

@@ -65,14 +65,18 @@ class InvoiceService:
                 if measurement_type == 'tonase':
                     qty_val = float(r.netto or 0)
                     unit_val = "ton"
-                    sj_info = f"[B1:{r.bruto} B2:{r.tarra} M:{r.minus_berat}]"
-                else:
+                    sj_info = f" [B1:{r.bruto} B2:{r.tarra} M:{r.minus_berat}]"
+                elif measurement_type == 'kubikasi':
                     qty_val = float(r.volume or 0)
                     unit_val = "m3"
-                    sj_info = f"[P:{r.panjang} L:{r.lebar} T:{r.tinggi} M:{r.minus_tinggi}]"
+                    sj_info = f" [P:{r.panjang} L:{r.lebar} T:{r.tinggi} M:{r.minus_tinggi}]"
+                else:
+                    qty_val = 1.0
+                    unit_val = "ritase"
+                    sj_info = ""
                 
                 amt = qty_val * unit_price
-                desc = f"Surat Jalan {r.nopol or '-'} {sj_info}"
+                desc = f"Surat Jalan {r.nopol or '-'}{sj_info}"
 
                 items.append(
                     InvoicePreviewItem(

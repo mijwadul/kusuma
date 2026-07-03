@@ -93,6 +93,8 @@ class SuratJalanService:
                         hauling_cost = float(hauling_price) * float(netto)
                     elif project.measurement_type == "kubikasi" and volume is not None:
                         hauling_cost = float(hauling_price) * float(volume)
+                    elif project.measurement_type == "ritase":
+                        hauling_cost = float(hauling_price) * 1.0
 
         sj = SuratJalan(
             project_id=data.project_id,
@@ -171,10 +173,11 @@ class SuratJalanService:
                         if data.lebar is not None: existing_truck.lebar = data.lebar
                         if data.tinggi is not None: existing_truck.tinggi = data.tinggi
         
-        # Deduct from vendor balance
-        if vendor and hauling_cost:
-            vendor.balance_deposit = float(vendor.balance_deposit or 0) - hauling_cost
-            
+        # Update vendor balance
+        if vendor:
+            from ..services.vendor_service import VendorService
+            VendorService._sync_vendor_balance(db, vendor)
+
         db.commit()
         db.refresh(sj)
         return sj
@@ -272,6 +275,8 @@ class SuratJalanService:
                     hauling_cost = float(hauling_price) * float(sj.netto)
                 elif project.measurement_type == "kubikasi" and sj.volume is not None:
                     hauling_cost = float(hauling_price) * float(sj.volume)
+                elif project.measurement_type == "ritase":
+                    hauling_cost = float(hauling_price) * 1.0
                     
         sj.hauling_price = hauling_price
         sj.hauling_cost = hauling_cost
@@ -327,15 +332,16 @@ class SuratJalanService:
                         if sj.tinggi is not None: existing_truck.tinggi = sj.tinggi
 
         # Handle Deposit Refund and Deduction
-        if old_vendor_id:
-            old_vendor = db.query(Vendor).filter(Vendor.id == old_vendor_id).first()
-            if old_vendor:
-                old_vendor.balance_deposit = float(old_vendor.balance_deposit or 0) + old_hauling_cost
-
-        if sj.vendor_id and hauling_cost:
-            new_vendor = db.query(Vendor).filter(Vendor.id == sj.vendor_id).first()
-            if new_vendor:
-                new_vendor.balance_deposit = float(new_vendor.balance_deposit or 0) - hauling_cost
+        if project.hauling_type == "vendor_hauling":
+            from ..services.vendor_service import VendorService
+            if old_vendor_id:
+                old_vendor = db.query(Vendor).filter(Vendor.id == old_vendor_id).first()
+                if old_vendor:
+                    VendorService._sync_vendor_balance(db, old_vendor)
+            if sj.vendor_id:
+                new_vendor = db.query(Vendor).filter(Vendor.id == sj.vendor_id).first()
+                if new_vendor:
+                    VendorService._sync_vendor_balance(db, new_vendor)
 
         db.commit()
         db.refresh(sj)
@@ -350,12 +356,17 @@ class SuratJalanService:
         project = db.query(Project).filter(Project.id == sj.project_id).first()
         SuratJalanService._check_project_access(project, current_user)
 
-        if sj.vendor_id and sj.hauling_cost:
+        vendor = None
+        if sj.vendor_id:
             vendor = db.query(Vendor).filter(Vendor.id == sj.vendor_id).first()
-            if vendor:
-                vendor.balance_deposit = float(vendor.balance_deposit or 0) + float(sj.hauling_cost)
 
         db.delete(sj)
+        db.flush()
+
+        if project.hauling_type == "vendor_hauling" and vendor:
+            from ..services.vendor_service import VendorService
+            VendorService._sync_vendor_balance(db, vendor)
+
         db.commit()
 
     @staticmethod

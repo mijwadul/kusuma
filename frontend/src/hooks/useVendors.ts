@@ -40,6 +40,18 @@ export const useVendors = (vendorType?: string, options?: any) => {
   });
 };
 
+export const useVendorTruckBalances = (vendorId?: number) => {
+  return useQuery({
+    queryKey: ['vendor-truck-balances', vendorId],
+    queryFn: async () => {
+      if (!vendorId) return [];
+      const response = await apiClient.get(`/vendors/${vendorId}/truck-balances`);
+      return response.data;
+    },
+    enabled: !!vendorId
+  });
+};
+
 export const useCreateVendor = () => {
   const queryClient = useQueryClient();
   return useMutation({

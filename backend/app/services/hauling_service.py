@@ -174,23 +174,27 @@ class HaulingService:
                     new_cost = float(new_price) * float(sj.netto)
                 elif project.measurement_type == "kubikasi" and sj.volume is not None:
                     new_cost = float(new_price) * float(sj.volume)
+                elif project.measurement_type == "ritase":
+                    new_cost = float(new_price) * 1.0
                     
                 cost_diff = new_cost - old_cost
                 
                 sj.hauling_price = new_price
                 sj.hauling_cost = new_cost
                 
-                # Adjust vendor deposit (if cost increases, deposit decreases)
-                if sj.vendor_id not in vendor_dict:
+                # We will sync vendor balance after all updates
+                if sj.vendor_id and sj.vendor_id not in vendor_dict:
                     v = db.query(Vendor).filter(Vendor.id == sj.vendor_id).first()
                     if v:
                         vendor_dict[sj.vendor_id] = v
-                
-                v = vendor_dict.get(sj.vendor_id)
-                if v:
-                    v.balance_deposit = float(v.balance_deposit or 0) - cost_diff
-                
+                        
         db.commit()
+        
+        # Sync balances
+        if vendor_dict:
+            from ..services.vendor_service import VendorService
+            for v in vendor_dict.values():
+                VendorService._sync_vendor_balance(db, v)
 
     @staticmethod
     def get_project_hauling_obligations(db: Session, project_id: int) -> List[dict]:

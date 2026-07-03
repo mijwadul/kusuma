@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useProjectsList } from '../hooks/useProjects';
-import { useCreateSuratJalan, useProjectSuratJalans, useUpdateSuratJalan, useDeleteSuratJalan, useSuratJalanTrucks } from '../hooks/useSuratJalan';
+import { useCreateSuratJalan, useProjectSuratJalans, useUpdateSuratJalan, useDeleteSuratJalan, useSuratJalanTrucks, useLatestSuratJalanProject } from '../hooks/useSuratJalan';
 import { toast } from 'sonner';
 import { Plus, X, Loader2, Truck, FileText, ChevronDown, ChevronRight, Trash2, Pencil } from 'lucide-react';
 import AlertModal from '../components/AlertModal';
@@ -261,7 +261,7 @@ const SuratJalanFormModal = ({
 
           {proj && (
             <div className="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100 mb-4 text-emerald-800 text-sm">
-              Sistem mengunci mode input menjadi <strong>{measurementType === 'kubikasi' ? 'Kubikasi' : 'Tonase'}</strong> sesuai pengaturan proyek.
+              Sistem mengunci mode input menjadi <strong>{measurementType === 'kubikasi' ? 'Kubikasi' : measurementType === 'ritase' ? 'Ritase' : 'Tonase'}</strong> sesuai pengaturan proyek.
             </div>
           )}
 
@@ -360,144 +360,164 @@ const SuratJalanFormModal = ({
 
           {proj && (
             <div className="pt-2">
-              <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                <Truck size={16} className="text-emerald-600" />
-                Data Ukuran
-              </h3>
-              {measurementType === 'tonase' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Bruto (Kg)</label>
-                    <input
-                      type="text"
-                      name="gross_weight"
-                      value={formatKg(formData.gross_weight)}
-                      onChange={handleKgChange}
-                      className={inputCls}
-                      required
-                      placeholder="0"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Tarra (Kg)</label>
-                    <input
-                      type="text"
-                      name="tare_weight"
-                      value={formatKg(formData.tare_weight)}
-                      onChange={handleKgChange}
-                      className={inputCls}
-                      required
-                      placeholder="0"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Minus / Potongan (Kg)</label>
-                    <input
-                      type="text"
-                      name="minus_weight"
-                      value={formatKg(formData.minus_weight)}
-                      onChange={handleKgChange}
-                      className={inputCls}
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Panjang (P)</label>
-                    <input
-                      type="number"
-                      step="any"
-                      name="length"
-                      value={formData.length}
-                      onChange={handleChange}
-                      className={inputCls}
-                      required
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Lebar (L)</label>
-                    <input
-                      type="number"
-                      step="any"
-                      name="width"
-                      value={formData.width}
-                      onChange={handleChange}
-                      className={inputCls}
-                      required
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Tinggi (T)</label>
-                    <input
-                      type="number"
-                      step="any"
-                      name="height"
-                      value={formData.height}
-                      onChange={handleChange}
-                      className={inputCls}
-                      required
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Minus Tinggi (m)</label>
-                    <input
-                      type="number"
-                      step="any"
-                      name="minus_height"
-                      value={formData.minus_height}
-                      onChange={handleChange}
-                      className={inputCls}
-                      placeholder="0.00"
-                    />
+              {measurementType !== 'ritase' && (
+                <>
+                  <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    <Truck size={16} className="text-emerald-600" />
+                    Data Ukuran
+                  </h3>
+                  {measurementType === 'tonase' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Bruto (Kg)</label>
+                        <input
+                          type="text"
+                          name="gross_weight"
+                          value={formatKg(formData.gross_weight)}
+                          onChange={handleKgChange}
+                          className={inputCls}
+                          required
+                          placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Tarra (Kg)</label>
+                        <input
+                          type="text"
+                          name="tare_weight"
+                          value={formatKg(formData.tare_weight)}
+                          onChange={handleKgChange}
+                          className={inputCls}
+                          required
+                          placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Minus / Potongan (Kg)</label>
+                        <input
+                          type="text"
+                          name="minus_weight"
+                          value={formatKg(formData.minus_weight)}
+                          onChange={handleKgChange}
+                          className={inputCls}
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Panjang (P)</label>
+                        <input
+                          type="number"
+                          step="any"
+                          name="length"
+                          value={formData.length}
+                          onChange={handleChange}
+                          className={inputCls}
+                          required
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Lebar (L)</label>
+                        <input
+                          type="number"
+                          step="any"
+                          name="width"
+                          value={formData.width}
+                          onChange={handleChange}
+                          className={inputCls}
+                          required
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Tinggi (T)</label>
+                        <input
+                          type="number"
+                          step="any"
+                          name="height"
+                          value={formData.height}
+                          onChange={handleChange}
+                          className={inputCls}
+                          required
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Minus Tinggi (m)</label>
+                        <input
+                          type="number"
+                          step="any"
+                          name="minus_height"
+                          value={formData.minus_height}
+                          onChange={handleChange}
+                          className={inputCls}
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Hasil Kalkulasi Otomatis */}
+                  {(() => {
+                    let calcValue = 0;
+                    if (measurementType === 'tonase') {
+                      calcValue = Math.max(0, ((parseFloat(formData.gross_weight) || 0) - (parseFloat(formData.tare_weight) || 0) - (parseFloat(formData.minus_weight) || 0)) / 1000);
+                    } else {
+                      const p = parseFloat(formData.length) || 0;
+                      const l = parseFloat(formData.width) || 0;
+                      const t = parseFloat(formData.height) || 0;
+                      const mt = parseFloat(formData.minus_height) || 0;
+                      calcValue = Math.floor((p * l * Math.max(0, t - mt)) / 1000000 * 100) / 100;
+                    }
+                    const isLarge = calcValue > 20;
+                    return (
+                      <div className="mt-4 p-4 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-between">
+                        <span className="text-sm font-medium text-emerald-800">
+                          {measurementType === 'tonase' ? 'Netto Akhir:' : 'Volume Akhir:'}
+                        </span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl font-bold text-emerald-600">
+                            {calcValue.toFixed(2)}
+                          </span>
+                          <span className="text-sm font-normal text-emerald-700">
+                            {measurementType === 'tonase' ? 'Ton' : 'm³'}
+                          </span>
+                          {isLarge && (
+                            <span className="text-xs bg-orange-100 text-orange-700 font-semibold px-2 py-0.5 rounded-full">
+                              ≥ 20 → Tronton
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </>
+              )}
+
+              {measurementType === 'ritase' && (
+                <div className="mt-2 p-4 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-between">
+                  <span className="text-sm font-medium text-emerald-800">
+                    Total Ritase:
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl font-bold text-emerald-600">
+                      1
+                    </span>
+                    <span className="text-sm font-normal text-emerald-700">
+                      Rit / Trip
+                    </span>
                   </div>
                 </div>
               )}
-              
-              {/* Hasil Kalkulasi Otomatis */}
-              {(() => {
-                let calcValue = 0;
-                if (measurementType === 'tonase') {
-                  calcValue = Math.max(0, ((parseFloat(formData.gross_weight) || 0) - (parseFloat(formData.tare_weight) || 0) - (parseFloat(formData.minus_weight) || 0)) / 1000);
-                } else {
-                  const p = parseFloat(formData.length) || 0;
-                  const l = parseFloat(formData.width) || 0;
-                  const t = parseFloat(formData.height) || 0;
-                  const mt = parseFloat(formData.minus_height) || 0;
-                  calcValue = Math.floor((p * l * Math.max(0, t - mt)) / 1000000 * 100) / 100;
-                }
-                const isLarge = calcValue > 20;
-                return (
-                  <div className="mt-4 p-4 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-between">
-                    <span className="text-sm font-medium text-emerald-800">
-                      {measurementType === 'tonase' ? 'Netto Akhir:' : 'Volume Akhir:'}
-                    </span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl font-bold text-emerald-600">
-                        {calcValue.toFixed(2)}
-                      </span>
-                      <span className="text-sm font-normal text-emerald-700">
-                        {measurementType === 'tonase' ? 'Ton' : 'm³'}
-                      </span>
-                      {isLarge && (
-                        <span className="text-xs bg-orange-100 text-orange-700 font-semibold px-2 py-0.5 rounded-full">
-                          ≥ 20 → Tronton
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
 
               {/* Tipe Kendaraan */}
               <div className="mt-3">
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Tipe Kendaraan
-                  {formData.truck_type && (
+                  {formData.truck_type && measurementType !== 'ritase' && (
                     <span className="ml-2 text-xs text-emerald-600 font-normal">✓ terdeteksi otomatis</span>
                   )}
                 </label>
@@ -639,41 +659,50 @@ const SuratJalanDetailModal = ({
           </div>
           
           <div className="border-t border-gray-100 pt-4 mt-4">
-            <h3 className="text-sm font-semibold mb-3">Data Ukuran ({measurementType === 'tonase' ? 'Tonase' : 'Kubikasi'})</h3>
-            {measurementType === 'tonase' ? (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Bruto (Kg)</p>
-                  <p className="text-sm font-medium">{sj.bruto ? Math.round(sj.bruto).toLocaleString('id-ID') : '-'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Tarra (Kg)</p>
-                  <p className="text-sm font-medium">{sj.tarra ? Math.round(sj.tarra).toLocaleString('id-ID') : '-'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Potongan (Kg)</p>
-                  <p className="text-sm font-medium text-red-500">{sj.minus_berat ? Math.round(sj.minus_berat).toLocaleString('id-ID') : '-'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Netto Akhir</p>
-                  <p className="text-sm font-bold text-emerald-600">{sj.netto?.toFixed(2)} Ton</p>
-                </div>
+            {measurementType === 'ritase' ? (
+              <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                <span className="text-sm font-medium text-emerald-800">Total Ritase</span>
+                <span className="text-lg font-bold text-emerald-600">1 Rit / Trip</span>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">P x L x T</p>
-                  <p className="text-sm font-medium">{sj.panjang} x {sj.lebar} x {sj.tinggi}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Minus Tinggi</p>
-                  <p className="text-sm font-medium text-red-500">{sj.minus_tinggi}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Volume Akhir</p>
-                  <p className="text-sm font-bold text-emerald-600">{sj.volume?.toFixed(2)} m³</p>
-                </div>
-              </div>
+              <>
+                <h3 className="text-sm font-semibold mb-3">Data Ukuran ({measurementType === 'tonase' ? 'Tonase' : 'Kubikasi'})</h3>
+                {measurementType === 'tonase' ? (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Bruto (Kg)</p>
+                      <p className="text-sm font-medium">{sj.bruto ? Math.round(sj.bruto).toLocaleString('id-ID') : '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Tarra (Kg)</p>
+                      <p className="text-sm font-medium">{sj.tarra ? Math.round(sj.tarra).toLocaleString('id-ID') : '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Potongan (Kg)</p>
+                      <p className="text-sm font-medium text-red-500">{sj.minus_berat ? Math.round(sj.minus_berat).toLocaleString('id-ID') : '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Netto Akhir</p>
+                      <p className="text-sm font-bold text-emerald-600">{sj.netto?.toFixed(2)} Ton</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">P x L x T</p>
+                      <p className="text-sm font-medium">{sj.panjang} x {sj.lebar} x {sj.tinggi}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Minus Tinggi</p>
+                      <p className="text-sm font-medium text-red-500">{sj.minus_tinggi}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Volume Akhir</p>
+                      <p className="text-sm font-bold text-emerald-600">{sj.volume?.toFixed(2)} m³</p>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -693,6 +722,17 @@ const SuratJalanDetailModal = ({
 export default function ProjectSuratJalanPage() {
   const { data: projects = [], isLoading: isLoadingProjects } = useProjectsList('ongoing');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const { data: latestProject } = useLatestSuratJalanProject();
+  
+  React.useEffect(() => {
+    if (!selectedProjectId && latestProject?.project_id) {
+      setSelectedProjectId(latestProject.project_id);
+    } else if (!selectedProjectId && !latestProject?.project_id && projects.length > 0) {
+      // Fallback if no surat jalan exists anywhere
+      setSelectedProjectId(projects[0].id.toString());
+    }
+  }, [latestProject, selectedProjectId, projects]);
+  
   const [showModal, setShowModal] = useState(false);
   const [selectedSj, setSelectedSj] = useState<any>(null);
   const [sjToEdit, setSjToEdit] = useState<any>(null);
@@ -729,7 +769,7 @@ export default function ProjectSuratJalanPage() {
     return byDate;
   }, [sjs]);
 
-  const exportToPdf = async (params: { projectId: string; startDate: string; endDate: string; vendorId: string }) => {
+  const exportToPdf = async (params: { projectId: string; startDate: string; endDate: string; vendorId: string; nopol?: string }) => {
     const project = projects.find(p => p.id.toString() === params.projectId);
     if (!project) return;
     const mt = project.measurement_type || 'tonase';
@@ -737,8 +777,9 @@ export default function ProjectSuratJalanPage() {
     let filtered = sjs.filter((sj: any) => {
       const sjDate = new Date(sj.created_at).toISOString().slice(0, 10);
       const inRange = sjDate >= params.startDate && sjDate <= params.endDate;
-      const vendorMatch = !params.vendorId || sj.vendor_id?.toString() === params.vendorId || (!sj.vendor_id && params.vendorId === 'manual');
-      return inRange && vendorMatch;
+      const nopolMatch = params.nopol ? (sj.nopol || '').toLowerCase() === params.nopol.toLowerCase() : true;
+      const vendorMatch = params.vendorId ? (sj.vendor_id?.toString() === params.vendorId || (!sj.vendor_id && params.vendorId === 'manual')) : true;
+      return inRange && nopolMatch && vendorMatch;
     });
 
     if (filtered.length === 0) {
@@ -747,9 +788,13 @@ export default function ProjectSuratJalanPage() {
     }
 
     try {
-      const vendorLabel = params.vendorId
-        ? (allVendors.find((v: any) => v.id.toString() === params.vendorId)?.name || 'Manual')
-        : 'Semua Vendor';
+      const vendorLabel = params.nopol && params.vendorId
+        ? `Vendor: ${allVendors.find((v: any) => v.id.toString() === params.vendorId)?.name || 'Manual'} | Nopol: ${params.nopol}`
+        : params.nopol 
+          ? `Nopol: ${params.nopol}` 
+          : params.vendorId
+            ? (allVendors.find((v: any) => v.id.toString() === params.vendorId)?.name || 'Manual')
+            : 'Semua Vendor & Armada';
 
       let totalTonase = 0;
       let totalKubikasi = 0;
@@ -779,7 +824,7 @@ export default function ProjectSuratJalanPage() {
         else coltCount++;
       });
 
-      const tableHead = [['No', 'Waktu', 'Nopol', 'Supir', 'Vendor', 'Tipe', mt === 'tonase' ? 'Bruto / Tarra (Kg)' : 'P x L x T', mt === 'tonase' ? 'Netto' : 'Volume']];
+      const tableHead = [['No', 'Waktu', 'Nopol', 'Supir', 'Vendor', 'Tipe', mt === 'tonase' ? 'Bruto / Tarra (Kg)' : mt === 'kubikasi' ? 'P x L x T' : 'Keterangan', mt === 'tonase' ? 'Netto' : mt === 'kubikasi' ? 'Volume' : 'Jumlah']];
       
       const grouped: Record<string, Record<string, any[]>> = {};
       filtered.forEach((sj: any) => {
@@ -824,7 +869,7 @@ export default function ProjectSuratJalanPage() {
             } else {
               isTronton = (sj.volume || 0) > 20;
             }
-            const val = mt === 'tonase' ? (sj.netto || 0) : (sj.volume || 0);
+            const val = mt === 'tonase' ? (sj.netto || 0) : mt === 'kubikasi' ? (sj.volume || 0) : 1;
             subTotal += val;
 
             tableBody.push([
@@ -836,14 +881,14 @@ export default function ProjectSuratJalanPage() {
               isTronton ? 'Tronton' : 'Colt Diesel',
               mt === 'tonase'
                 ? `${sj.bruto ? Math.round(sj.bruto).toLocaleString('id-ID') : '-'} / ${sj.tarra ? Math.round(sj.tarra).toLocaleString('id-ID') : '-'}`
-                : `${sj.panjang || '-'}x${sj.lebar || '-'}x${sj.tinggi || '-'}`,
-              mt === 'tonase' ? `${val.toFixed(2)} T` : `${val.toFixed(2)} m³`
+                : mt === 'kubikasi' ? `${sj.panjang || '-'}x${sj.lebar || '-'}x${sj.tinggi || '-'}` : '-',
+              mt === 'tonase' ? `${val.toFixed(2)} T` : mt === 'kubikasi' ? `${val.toFixed(2)} m³` : '1 Rit'
             ]);
           });
 
           tableBody.push([
             { content: 'Subtotal:', colSpan: 7, styles: { fontStyle: 'bold', halign: 'right' } },
-            { content: mt === 'tonase' ? `${subTotal.toFixed(2)} T` : `${subTotal.toFixed(2)} m³`, styles: { fontStyle: 'bold', textColor: [13, 148, 136] } }
+            { content: mt === 'tonase' ? `${subTotal.toFixed(2)} T` : mt === 'kubikasi' ? `${subTotal.toFixed(2)} m³` : `${subTotal} Rit`, styles: { fontStyle: 'bold', textColor: [13, 148, 136] } }
           ]);
         });
       });
@@ -861,7 +906,7 @@ export default function ProjectSuratJalanPage() {
 
       await generatePremiumPDF({
         title: "Laporan Surat Jalan Proyek",
-        subtitle: `Proyek: ${project.name} | Vendor: ${vendorLabel}`,
+        subtitle: `Proyek: ${project.name} | ${vendorLabel}`,
         dateRange: `${params.startDate} s/d ${params.endDate}`,
         filename: `Surat_Jalan_${project.name.replace(/\s+/g, '_')}_${params.startDate}_${params.endDate}.pdf`,
         tableHead,
@@ -1102,18 +1147,20 @@ export default function ProjectSuratJalanPage() {
           vendors={allVendors}
           onClose={() => setShowPdfModal(false)}
           onExport={exportToPdf}
+          sjs={sjs}
         />
       )}
     </div>
   );
 }
 
-function PdfExportModal({ projects, defaultProjectId, vendors, onClose, onExport }: {
+function PdfExportModal({ projects, defaultProjectId, vendors, onClose, onExport, sjs }: {
   projects: any[];
   defaultProjectId: string;
   vendors: any[];
   onClose: () => void;
-  onExport: (params: { projectId: string; startDate: string; endDate: string; vendorId: string }) => void;
+  onExport: (params: { projectId: string; startDate: string; endDate: string; vendorId: string; nopol: string }) => void;
+  sjs: any[];
 }) {
   const today = new Date().toISOString().slice(0, 10);
   const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
@@ -1121,6 +1168,12 @@ function PdfExportModal({ projects, defaultProjectId, vendors, onClose, onExport
   const [startDate, setStartDate] = React.useState(firstOfMonth);
   const [endDate, setEndDate] = React.useState(today);
   const [vendorId, setVendorId] = React.useState('');
+  const [nopol, setNopol] = React.useState('');
+
+  const availableNopols = React.useMemo(() => {
+    if (!projectId) return [];
+    return Array.from(new Set(sjs.filter(s => s.project_id.toString() === projectId).map(s => s.nopol).filter(Boolean))).sort();
+  }, [sjs, projectId]);
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -1168,7 +1221,18 @@ function PdfExportModal({ projects, defaultProjectId, vendors, onClose, onExport
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Vendor (kosongkan untuk semua)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Nomor Polisi (Opsional)</label>
+            <CustomSelect
+              value={nopol}
+              onChange={(val) => setNopol(val as string)}
+              options={[
+                { value: "", label: "Semua Nopol" },
+                ...availableNopols.map(n => ({ value: n as string, label: n as string }))
+              ]}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Vendor (Opsional)</label>
             <CustomSelect
               value={vendorId}
               onChange={(val) => setVendorId(val as string)}
@@ -1187,7 +1251,7 @@ function PdfExportModal({ projects, defaultProjectId, vendors, onClose, onExport
             <button
               type="button"
               disabled={!projectId}
-              onClick={() => onExport({ projectId, startDate, endDate, vendorId })}
+              onClick={() => onExport({ projectId, startDate, endDate, vendorId, nopol })}
               className="px-5 py-2 bg-rose-600 text-white rounded-xl text-sm font-semibold hover:bg-rose-700 disabled:opacity-50 flex items-center gap-2"
             >
               <FileText size={15} /> Generate PDF

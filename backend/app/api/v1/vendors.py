@@ -42,6 +42,10 @@ def delete_vendor(vendor_id: int, db: Session = Depends(get_db), current_user: U
 def get_equipment_balances(vendor_id: int, db: Session = Depends(get_db)):
     return VendorService.get_equipment_balances(db, vendor_id)
 
+@router.get("/{vendor_id}/truck-balances")
+def get_truck_balances(vendor_id: int, db: Session = Depends(get_db)):
+    return VendorService.get_truck_balances(db, vendor_id)
+
 @router.get("/equipment-balances/all")
 def get_all_equipment_balances(db: Session = Depends(get_db)):
     return VendorService.get_all_equipment_balances(db)

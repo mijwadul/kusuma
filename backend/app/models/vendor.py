@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DECIMAL, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, DECIMAL, DateTime, ForeignKey, Text, Boolean
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from .base import Base
@@ -20,6 +20,8 @@ class Vendor(Base):
     
     status = Column(String(30), default="active")
     vendor_type = Column(String(50), default="equipment") # "equipment" atau "hauling"
+    allow_deposit_cascade = Column(Boolean, default=False)
+
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -39,6 +41,9 @@ class VendorTopUp(Base):
     # Deposit dikaitkan ke alat berat spesifik
     equipment_id = Column(Integer, ForeignKey("equipment.id"), nullable=True)
     
+    # Deposit dikaitkan ke truk spesifik (hauling)
+    truck_id = Column(Integer, ForeignKey("vendor_trucks.id"), nullable=True)
+    
     amount = Column(DECIMAL(15, 2), nullable=False)
     topup_date = Column(DateTime(timezone=True), default=func.now())
     notes = Column(Text, nullable=True)
@@ -53,3 +58,6 @@ class VendorTopUp(Base):
     
     # Relationship ke Equipment untuk mengambil nama alat
     equipment = relationship("Equipment", foreign_keys=[equipment_id])
+    
+    # Relationship ke Truck
+    truck = relationship("VendorTruck", foreign_keys=[truck_id])

@@ -10,6 +10,7 @@ class VendorBase(BaseModel):
     phone: Optional[str] = None
     address: Optional[str] = None
     vendor_type: Optional[str] = "equipment"
+    allow_deposit_cascade: Optional[bool] = False
 
 class VendorCreate(VendorBase):
     balance_deposit: Optional[Decimal] = Decimal("0")
@@ -21,6 +22,7 @@ class VendorUpdate(BaseModel):
     address: Optional[str] = None
     status: Optional[str] = None
     vendor_type: Optional[str] = None
+    allow_deposit_cascade: Optional[bool] = None
 
 class VendorResponse(VendorBase):
     id: int
@@ -28,6 +30,7 @@ class VendorResponse(VendorBase):
     status: str
     created_at: datetime
     updated_at: Optional[datetime] = None
+    allow_deposit_cascade: Optional[bool] = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -35,6 +38,7 @@ class VendorResponse(VendorBase):
 class VendorTopUpCreate(BaseModel):
     vendor_id: int
     equipment_id: Optional[int] = None  # Wajib untuk equipment, opsional untuk hauling
+    truck_id: Optional[int] = None      # Spesifik nopol
     amount: Decimal
     topup_date: Optional[datetime] = None
     notes: Optional[str] = None
@@ -45,6 +49,8 @@ class VendorTopUpResponse(BaseModel):
     vendor_id: int
     equipment_id: Optional[int] = None
     equipment_name: Optional[str] = None  # Nama alat berat (dari join)
+    truck_id: Optional[int] = None
+    truck_nopol: Optional[str] = None
     amount: Decimal
     topup_date: datetime
     notes: Optional[str] = None

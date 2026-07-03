@@ -52,6 +52,16 @@ export const useSuratJalanTrucks = () => {
   });
 };
 
+export const useLatestSuratJalanProject = () => {
+  return useQuery({
+    queryKey: ['latest-surat-jalan-project'],
+    queryFn: async () => {
+      const response = await apiClient.get('/surat-jalan/latest-project');
+      return response.data; // { project_id: string | null }
+    }
+  });
+};
+
 export const useUpdateSuratJalan = () => {
   const queryClient = useQueryClient();
   return useMutation({

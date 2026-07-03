@@ -132,6 +132,17 @@ def get_truck_history(
 ):
     return SuratJalanService.get_truck_history(db, current_user)
 
+@router.get("/surat-jalan/latest-project")
+def get_latest_project(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # Get the project_id of the most recent SuratJalan
+    latest_sj = db.query(SuratJalan).order_by(SuratJalan.created_at.desc()).first()
+    if latest_sj:
+        return {"project_id": str(latest_sj.project_id)}
+    return {"project_id": None}
+
 @router.get("/surat-jalan/export/excel")
 def export_surat_jalan_excel(
     project_id: int,

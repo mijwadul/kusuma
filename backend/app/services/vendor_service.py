@@ -29,12 +29,67 @@ class VendorService:
                     costs = WorkLogService._calculate_rental_costs(wl, eq)
                     total_rental_cost += costs["rental_cost_total"]
                     
-        total_hauling_cost = Decimal("0")
         sjs = db.query(SuratJalan).filter(SuratJalan.vendor_id == vendor.id).all()
-        total_hauling_cost = sum((Decimal(str(sj.hauling_cost)) for sj in sjs if sj.hauling_cost is not None), Decimal("0"))
-                    
-        vendor.balance_deposit = total_topup - total_rental_cost - total_hauling_cost
+        
+        from ..models import VendorTruck
+        trucks = db.query(VendorTruck).filter(VendorTruck.vendor_id == vendor.id).all()
+        truck_map = {t.nopol: t.id for t in trucks}
+        
+        if getattr(vendor, 'allow_deposit_cascade', False):
+            total_topup = sum((t.amount for t in topups), Decimal("0"))
+            total_hauling_cost = sum((Decimal(str(sj.hauling_cost)) for sj in sjs if sj.hauling_cost is not None), Decimal("0"))
+            vendor.balance_deposit = total_topup - total_rental_cost - total_hauling_cost
+        else:
+            global_topup = sum((t.amount for t in topups if t.truck_id is None), Decimal("0"))
+            
+            truck_balances = {}
+            for t in topups:
+                if t.truck_id:
+                    if t.truck_id not in truck_balances:
+                        truck_balances[t.truck_id] = {"topup": Decimal("0"), "cost": Decimal("0")}
+                    truck_balances[t.truck_id]["topup"] += t.amount
+            
+            global_hauling_cost = Decimal("0")
+            for sj in sjs:
+                cost = Decimal(str(sj.hauling_cost)) if sj.hauling_cost is not None else Decimal("0")
+                tid = truck_map.get(sj.nopol)
+                if tid:
+                    if tid not in truck_balances:
+                        truck_balances[tid] = {"topup": Decimal("0"), "cost": Decimal("0")}
+                    truck_balances[tid]["cost"] += cost
+                else:
+                    global_hauling_cost += cost
+            
+            vendor.balance_deposit = global_topup - total_rental_cost - global_hauling_cost
+
         db.commit()
+
+    @staticmethod
+    def _get_truck_balances(db: Session, vendor: Vendor) -> list:
+        from ..models import VendorTruck
+        topups = db.query(VendorTopUp).filter(
+            VendorTopUp.vendor_id == vendor.id,
+            VendorTopUp.truck_id.isnot(None),
+            VendorTopUp.status == "approved"
+        ).all()
+        
+        sjs = db.query(SuratJalan).filter(SuratJalan.vendor_id == vendor.id).all()
+        trucks = db.query(VendorTruck).filter(VendorTruck.vendor_id == vendor.id).all()
+        
+        result = []
+        for truck in trucks:
+            t_topup = sum((t.amount for t in topups if t.truck_id == truck.id), Decimal("0"))
+            t_cost = sum((Decimal(str(sj.hauling_cost)) for sj in sjs if sj.nopol == truck.nopol and sj.hauling_cost is not None), Decimal("0"))
+            balance = t_topup - t_cost
+            
+            result.append({
+                "truck_id": truck.id,
+                "nopol": truck.nopol,
+                "total_topup": float(t_topup),
+                "total_hauling_cost": float(t_cost),
+                "balance": float(balance)
+            })
+        return result
 
     @staticmethod
     def _get_equipment_balance(db: Session, equipment: Equipment) -> dict:
@@ -69,6 +124,8 @@ class VendorService:
             "vendor_id": topup.vendor_id,
             "equipment_id": topup.equipment_id,
             "equipment_name": None,
+            "truck_id": getattr(topup, 'truck_id', None),
+            "truck_nopol": None,
             "amount": topup.amount,
             "topup_date": topup.topup_date,
             "notes": topup.notes,
@@ -82,6 +139,11 @@ class VendorService:
             eq = db.query(Equipment).filter(Equipment.id == topup.equipment_id).first()
             if eq:
                 data["equipment_name"] = eq.name
+        if getattr(topup, 'truck_id', None):
+            from ..models import VendorTruck
+            trk = db.query(VendorTruck).filter(VendorTruck.id == topup.truck_id).first()
+            if trk:
+                data["truck_nopol"] = trk.nopol
         return data
 
     @staticmethod
@@ -89,9 +151,15 @@ class VendorService:
         expense_dt = topup.topup_date.date() if topup.topup_date else datetime.now().date()
         
         eq_label = f" - {equipment.name}" if equipment else ""
+        if getattr(topup, 'truck_id', None):
+            from ..models import VendorTruck
+            trk = db.query(VendorTruck).filter(VendorTruck.id == topup.truck_id).first()
+            if trk:
+                eq_label = f" - {trk.nopol}"
+                
         expense = Expense(
             category="deposit",
-            description=f"[TopUp #{topup.id}] Deposit Alat - {vendor.name}{eq_label}: {topup.notes or ''}",
+            description=f"[TopUp #{topup.id}] Deposit - {vendor.name}{eq_label}: {topup.notes or ''}",
             amount=float(topup.amount),
             expense_date=expense_dt,
             created_by=user_id,

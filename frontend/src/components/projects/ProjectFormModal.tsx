@@ -81,7 +81,8 @@ export default function ProjectFormModal({
                 onChange={(val) => setProjForm(p => ({...p, measurement_type: val as string}))}
                 options={[
                   { value: "tonase", label: "Tonase (Ton)" },
-                  { value: "kubikasi", label: "Kubikasi (m3)" }
+                  { value: "kubikasi", label: "Kubikasi (m3)" },
+                  { value: "ritase", label: "Ritase (Trip)" }
                 ]}
               />
             </div>
