@@ -944,7 +944,7 @@ export default function ProjectSuratJalanPage() {
                   { value: "", label: "-- Pilih Proyek --" },
                   ...projects.map(p => ({
                     value: String(p.id),
-                    label: `${p.name} (${p.measurement_type === 'kubikasi' ? 'Kubikasi' : 'Tonase'})`
+                    label: `${p.name} (${p.measurement_type === 'kubikasi' ? 'Kubikasi' : p.measurement_type === 'ritase' ? 'Ritase' : 'Tonase'})`
                   }))
                 ]}
               />
