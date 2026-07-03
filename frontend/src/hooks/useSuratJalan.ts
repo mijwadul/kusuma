@@ -26,6 +26,9 @@ export const useCreateSuratJalan = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['surat-jalans'] });
+      queryClient.invalidateQueries({ queryKey: ['vendor-trucks'] });
+      queryClient.invalidateQueries({ queryKey: ['surat-jalan-trucks'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });
 };
@@ -71,6 +74,9 @@ export const useUpdateSuratJalan = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['surat-jalans'] });
+      queryClient.invalidateQueries({ queryKey: ['vendor-trucks'] });
+      queryClient.invalidateQueries({ queryKey: ['surat-jalan-trucks'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });
 };
@@ -83,6 +89,9 @@ export const useDeleteSuratJalan = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['surat-jalans'] });
+      queryClient.invalidateQueries({ queryKey: ['vendor-trucks'] });
+      queryClient.invalidateQueries({ queryKey: ['surat-jalan-trucks'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });
 };
