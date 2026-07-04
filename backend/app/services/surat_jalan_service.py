@@ -130,8 +130,8 @@ class SuratJalanService:
                 # Update dimensi truk yang sudah ada jika ada perubahan ukuran, dan migrasikan jika vendor berbeda
                 truck = db.query(VendorTruck).filter(VendorTruck.id == data.truck_id).first()
                 if truck:
-                    # Migrate truck to new vendor if requested
-                    if data.vendor_id and getattr(data, 'migrate_truck', False) and truck.vendor_id != data.vendor_id:
+                    # Migrate truck to new vendor if requested (now always migrate to latest vendor)
+                    if data.vendor_id and truck.vendor_id != data.vendor_id:
                         truck.vendor_id = data.vendor_id
                         
                     if project.measurement_type == "kubikasi":
@@ -162,10 +162,9 @@ class SuratJalanService:
                     # Truk sudah ada, link ke SJ dan update supir default jika kosong
                     sj.truck_id = existing_truck.id
                     
-                    # Migrate truck to new vendor if requested or if it had no vendor
+                    # Migrate truck to new vendor if requested or if it had no vendor (now always migrate to latest vendor)
                     if data.vendor_id and existing_truck.vendor_id != data.vendor_id:
-                        if existing_truck.vendor_id is None or getattr(data, 'migrate_truck', False):
-                            existing_truck.vendor_id = data.vendor_id
+                        existing_truck.vendor_id = data.vendor_id
 
                     if not existing_truck.supir_default and data.nama_supir:
                         existing_truck.supir_default = data.nama_supir
@@ -289,10 +288,9 @@ class SuratJalanService:
                 # Update dimensi truk yang sudah ada
                 truck = db.query(VendorTruck).filter(VendorTruck.id == sj.truck_id).first()
                 if truck:
-                    # Migrate truck to new vendor if requested or if it had no vendor
+                    # Migrate truck to new vendor if requested or if it had no vendor (now always migrate to latest vendor)
                     if sj.vendor_id and truck.vendor_id != sj.vendor_id:
-                        if truck.vendor_id is None or getattr(data, 'migrate_truck', False):
-                            truck.vendor_id = sj.vendor_id
+                        truck.vendor_id = sj.vendor_id
                         
                     if not truck.supir_default and sj.nama_supir:
                         truck.supir_default = sj.nama_supir
@@ -322,10 +320,9 @@ class SuratJalanService:
                 else:
                     sj.truck_id = existing_truck.id
                     
-                    # Migrate truck to new vendor if requested or if it had no vendor
+                    # Migrate truck to new vendor if requested or if it had no vendor (now always migrate to latest vendor)
                     if sj.vendor_id and existing_truck.vendor_id != sj.vendor_id:
-                        if existing_truck.vendor_id is None or getattr(data, 'migrate_truck', False):
-                            existing_truck.vendor_id = sj.vendor_id
+                        existing_truck.vendor_id = sj.vendor_id
 
                     if not existing_truck.supir_default and sj.nama_supir:
                         existing_truck.supir_default = sj.nama_supir
