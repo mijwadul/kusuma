@@ -2,7 +2,7 @@ from typing import List, Optional
 from datetime import datetime
 from decimal import Decimal
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, func
 
 from ..models import Vendor, VendorTopUp, Expense, User, Equipment, WorkLog, SuratJalan
 from ..core.exceptions import AuthorizationError, NotFoundError, ValidationError
@@ -416,3 +416,97 @@ class VendorService:
 
         db.delete(topup)
         db.commit()
+
+    @staticmethod
+    def get_vendor_report(db: Session, vendor_id: int, start_date: str, end_date: str, project_id: Optional[int] = None) -> dict:
+        vendor = db.query(Vendor).filter(Vendor.id == vendor_id).first()
+        if not vendor:
+            raise NotFoundError("Vendor not found")
+
+        # Parse dates
+        start = datetime.strptime(start_date, "%Y-%m-%d").date()
+        # end date inclusive
+        end = datetime.strptime(end_date, "%Y-%m-%d").date()
+
+        # Get Topups
+        topups_query = db.query(VendorTopUp).filter(
+            VendorTopUp.vendor_id == vendor_id,
+            VendorTopUp.status == "approved",
+            func.date(VendorTopUp.topup_date) >= start,
+            func.date(VendorTopUp.topup_date) <= end
+        )
+        if project_id:
+            topups_query = topups_query.filter(VendorTopUp.project_id == project_id)
+        topups = topups_query.all()
+
+        total_topup = sum(t.amount for t in topups)
+
+        # Get SuratJalan for this vendor
+        sj_query = db.query(SuratJalan).filter(
+            SuratJalan.vendor_id == vendor_id,
+            func.date(SuratJalan.created_at) >= start,
+            func.date(SuratJalan.created_at) <= end
+        )
+        if project_id:
+            sj_query = sj_query.filter(SuratJalan.project_id == project_id)
+        
+        surat_jalans = sj_query.all()
+
+        total_trips = len(surat_jalans)
+        total_tonnage = sum((sj.netto for sj in surat_jalans if sj.netto is not None), 0)
+        total_volume = sum((sj.volume for sj in surat_jalans if sj.volume is not None), 0)
+        total_hauling_cost = sum((sj.hauling_cost for sj in surat_jalans if sj.hauling_cost is not None), Decimal(0))
+
+        # Group by truck
+        truck_stats = {}
+        for sj in surat_jalans:
+            nopol = sj.nopol or "Unknown"
+            if nopol not in truck_stats:
+                truck_stats[nopol] = {
+                    "nopol": nopol,
+                    "trips": 0,
+                    "tonnage": 0,
+                    "volume": 0,
+                    "hauling_cost": Decimal(0)
+                }
+            truck_stats[nopol]["trips"] += 1
+            truck_stats[nopol]["tonnage"] += sj.netto or 0
+            truck_stats[nopol]["volume"] += sj.volume or 0
+            truck_stats[nopol]["hauling_cost"] += sj.hauling_cost or Decimal(0)
+
+        # Project name
+        project_name = "Semua Project"
+        if project_id:
+            from ..models import Project
+            proj = db.query(Project).filter(Project.id == project_id).first()
+            if proj:
+                project_name = proj.name
+
+        return {
+            "vendor_name": vendor.name,
+            "period": f"{start_date} s/d {end_date}",
+            "project_name": project_name,
+            "total_topup": float(total_topup),
+            "hauling_summary": {
+                "total_trips": total_trips,
+                "total_tonnage": float(total_tonnage),
+                "total_volume": float(total_volume),
+                "total_hauling_cost": float(total_hauling_cost)
+            },
+            "truck_details": [
+                {
+                    "nopol": k,
+                    "trips": v["trips"],
+                    "tonnage": float(v["tonnage"]),
+                    "volume": float(v["volume"]),
+                    "hauling_cost": float(v["hauling_cost"])
+                } for k, v in truck_stats.items()
+            ],
+            "topup_details": [
+                {
+                    "date": t.topup_date.strftime("%Y-%m-%d"),
+                    "amount": float(t.amount),
+                    "notes": t.notes
+                } for t in topups
+            ]
+        }

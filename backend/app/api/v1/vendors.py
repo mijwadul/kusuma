@@ -1,5 +1,5 @@
-from typing import List
-from fastapi import APIRouter, Depends
+from typing import List, Optional
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from ...core.database import get_db
@@ -74,3 +74,13 @@ def edit_topup(topup_id: int, data: VendorTopUpCreate, db: Session = Depends(get
 def delete_topup(topup_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     VendorService.delete_topup(db, current_user, topup_id)
     return {"message": "Top-Up deposit berhasil dihapus"}
+
+@router.get("/{vendor_id}/report")
+def get_vendor_report(
+    vendor_id: int,
+    start_date: str = Query(..., description="Start date in YYYY-MM-DD format"),
+    end_date: str = Query(..., description="End date in YYYY-MM-DD format"),
+    project_id: Optional[int] = Query(None, description="Optional Project ID filter"),
+    db: Session = Depends(get_db)
+):
+    return VendorService.get_vendor_report(db, vendor_id, start_date, end_date, project_id)

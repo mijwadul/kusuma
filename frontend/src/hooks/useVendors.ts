@@ -167,3 +167,21 @@ export const useEquipmentBalances = (options?: any) => {
     ...options
   });
 };
+
+export const useVendorReport = (vendorId: number, startDate: string, endDate: string, projectId?: string) => {
+  return useQuery({
+    queryKey: ['vendor-report', vendorId, startDate, endDate, projectId],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        start_date: startDate,
+        end_date: endDate,
+      });
+      if (projectId) {
+        params.append('project_id', projectId);
+      }
+      const { data } = await apiClient.get(`/vendors/${vendorId}/report?${params.toString()}`);
+      return data;
+    },
+    enabled: !!vendorId && !!startDate && !!endDate,
+  });
+};
