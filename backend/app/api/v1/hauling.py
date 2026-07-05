@@ -5,7 +5,7 @@ from ...core.database import get_db
 from ...core.auth import get_current_user, require_role, require_admin
 from ...models.user import User
 from ...schemas.vendor_truck import VendorTruckCreate, VendorTruckUpdate, VendorTruckResponse
-from ...schemas.project_hauling_price import ProjectHaulingPriceCreate, ProjectHaulingPriceUpdate, ProjectHaulingPriceResponse, HaulingObligationResponse
+from ...schemas.project_hauling_price import ProjectHaulingPriceCreate, ProjectHaulingPriceUpdate, ProjectHaulingPriceResponse, HaulingObligationResponse, HaulingDetailProject
 from ...services.hauling_service import HaulingService
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
@@ -55,3 +55,8 @@ def get_project_hauling_obligations(project_id: int, db: Session = Depends(get_d
 @router.get("/obligations", response_model=List[HaulingObligationResponse])
 def get_all_hauling_obligations(db: Session = Depends(get_db)):
     return HaulingService.get_all_hauling_obligations(db)
+
+@router.get("/vendors/{vendor_id}/hauling-obligations/details", response_model=List[HaulingDetailProject])
+def get_vendor_hauling_details(vendor_id: int, db: Session = Depends(get_db)):
+    return HaulingService.get_vendor_hauling_details(db, vendor_id)
+

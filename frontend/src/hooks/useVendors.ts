@@ -10,6 +10,7 @@ export interface Vendor {
   address?: string;
   is_active: boolean;
   total_balance?: number;
+  allow_deposit_cascade?: boolean;
 }
 
 export interface VendorTopup {

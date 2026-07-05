@@ -32,3 +32,24 @@ class HaulingObligationResponse(BaseModel):
     total_measurement: float # total tonase or kubikasi
     total_obligation: float
     balance_deposit: float
+
+class HaulingDetailDate(BaseModel):
+    date: date
+    ritase: int
+    measurement: float
+    obligation: float
+
+class HaulingDetailNopol(BaseModel):
+    nopol: str
+    total_ritase: int
+    total_measurement: float
+    total_obligation: float
+    dates: List[HaulingDetailDate]
+
+class HaulingDetailProject(BaseModel):
+    project_id: int
+    project_name: str
+    total_ritase: int
+    total_measurement: float
+    total_obligation: float
+    nopols: List[HaulingDetailNopol]

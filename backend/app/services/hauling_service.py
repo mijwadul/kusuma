@@ -265,3 +265,85 @@ class HaulingService:
                 vendors_data[vid]["total_obligation"] += float(sj.hauling_cost)
                 
         return list(vendors_data.values())
+
+    @staticmethod
+    def get_vendor_hauling_details(db: Session, vendor_id: int) -> List[dict]:
+        sjs = db.query(SuratJalan).filter(SuratJalan.vendor_id == vendor_id).all()
+        
+        projects_data = {}
+        for sj in sjs:
+            if not sj.project_id:
+                continue
+            
+            pid = sj.project_id
+            if pid not in projects_data:
+                project = db.query(Project).filter(Project.id == pid).first()
+                if not project:
+                    continue
+                projects_data[pid] = {
+                    "project_id": pid,
+                    "project_name": project.name,
+                    "total_ritase": 0,
+                    "total_measurement": 0.0,
+                    "total_obligation": 0.0,
+                    "nopols": {}
+                }
+            
+            nopol = sj.nopol or "Tanpa Nopol"
+            if nopol not in projects_data[pid]["nopols"]:
+                projects_data[pid]["nopols"][nopol] = {
+                    "nopol": nopol,
+                    "total_ritase": 0,
+                    "total_measurement": 0.0,
+                    "total_obligation": 0.0,
+                    "dates": {}
+                }
+            
+            date_str = sj.created_at.date() if sj.created_at else date.today()
+            if date_str not in projects_data[pid]["nopols"][nopol]["dates"]:
+                projects_data[pid]["nopols"][nopol]["dates"][date_str] = {
+                    "date": date_str,
+                    "ritase": 0,
+                    "measurement": 0.0,
+                    "obligation": 0.0
+                }
+            
+            measurement = 0.0
+            if sj.netto is not None:
+                measurement = float(sj.netto)
+            elif sj.volume is not None:
+                measurement = float(sj.volume)
+                
+            cost = float(sj.hauling_cost) if sj.hauling_cost is not None else 0.0
+            
+            # Update date
+            projects_data[pid]["nopols"][nopol]["dates"][date_str]["ritase"] += 1
+            projects_data[pid]["nopols"][nopol]["dates"][date_str]["measurement"] += measurement
+            projects_data[pid]["nopols"][nopol]["dates"][date_str]["obligation"] += cost
+            
+            # Update nopol
+            projects_data[pid]["nopols"][nopol]["total_ritase"] += 1
+            projects_data[pid]["nopols"][nopol]["total_measurement"] += measurement
+            projects_data[pid]["nopols"][nopol]["total_obligation"] += cost
+            
+            # Update project
+            projects_data[pid]["total_ritase"] += 1
+            projects_data[pid]["total_measurement"] += measurement
+            projects_data[pid]["total_obligation"] += cost
+            
+        # Convert nested dicts to lists
+        result = []
+        for pid, pdata in projects_data.items():
+            nopols_list = []
+            for nopol, ndata in pdata["nopols"].items():
+                dates_list = list(ndata["dates"].values())
+                dates_list.sort(key=lambda x: x["date"], reverse=True)
+                ndata["dates"] = dates_list
+                nopols_list.append(ndata)
+            
+            nopols_list.sort(key=lambda x: x["nopol"])
+            pdata["nopols"] = nopols_list
+            result.append(pdata)
+            
+        result.sort(key=lambda x: x["project_name"])
+        return result

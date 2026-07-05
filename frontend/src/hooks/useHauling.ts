@@ -127,3 +127,16 @@ export const useAllHaulingObligations = () => {
     },
   });
 };
+
+export const useVendorHaulingDetails = (vendorId: number | string | null | undefined) => {
+  return useQuery({
+    queryKey: ['vendor-hauling-details', vendorId],
+    queryFn: async () => {
+      if (!vendorId) return [];
+      const response = await apiClient.get(`/hauling/vendors/${vendorId}/hauling-obligations/details`);
+      return response.data;
+    },
+    enabled: !!vendorId,
+  });
+};
+
