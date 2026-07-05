@@ -2,12 +2,11 @@ import React, { useState } from "react";
 import { toast } from "sonner";
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/apiClient';
-import { Building2, Plus, Edit, Trash2, CheckCircle, XCircle, Pencil, Truck, ChevronDown, ChevronRight, AlertTriangle, Zap, FileText } from "lucide-react";
+import { Building2, Plus, Edit, Trash2, CheckCircle, XCircle, Pencil, Truck, ChevronDown, ChevronRight, AlertTriangle, Zap } from "lucide-react";
 import { useVendors, useCreateVendor, useUpdateVendor, useDeleteVendor, useVendorTopups, useCreateVendorTopup, useUpdateVendorTopup, useDeleteVendorTopup, useApproveVendorTopup, useEquipmentBalances, Vendor } from "../hooks/useVendors";
 import { useEquipment } from "../hooks/useEquipment";
 import { toLocalDateInput } from "../utils/formatters";
 import CustomSelect from "./CustomSelect";
-import VendorReportModal from "./VendorReportModal";
 
 const formatIDR = (v: any) =>
   Number(v ?? 0).toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 });
@@ -31,8 +30,6 @@ export default function VendorManagement({ userRole }: Props) {
   const [editingTopup, setEditingTopup] = useState<any>(null);
   const [editTopupData, setEditTopupData] = useState({ amount: "", notes: "", topup_date: "", equipment_id: "", project_id: "" });
   const [editVendorEquipments, setEditVendorEquipments] = useState<any[]>([]);
-
-  const [reportVendor, setReportVendor] = useState<Vendor | null>(null);
 
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", onConfirm: () => {} });
 
@@ -284,12 +281,6 @@ export default function VendorManagement({ userRole }: Props) {
                         className="text-white bg-amber-500 hover:bg-amber-600 px-3 py-1.5 rounded font-medium"
                       >
                         Top Up
-                      </button>
-                      <button
-                        onClick={() => setReportVendor(v)}
-                        className="text-white bg-teal-600 hover:bg-teal-700 px-3 py-1.5 rounded font-medium flex items-center gap-1 inline-flex"
-                      >
-                        <FileText size={16} /> Laporan
                       </button>
                       <button onClick={() => { setEditingVendor(v); setVendorData({name: v.name, contact_person: v.contact_person||"", phone: v.phone||"", address: v.address||""}); setShowVendorForm(true); }} className="text-indigo-600 hover:text-indigo-900 px-2"><Edit size={16}/></button>
                       {isGM && <button onClick={() => handleDeleteVendor(v.id)} className="text-red-600 hover:text-red-900 px-2"><Trash2 size={16}/></button>}
@@ -589,12 +580,6 @@ export default function VendorManagement({ userRole }: Props) {
           </div>
         </div>
       )}
-
-      <VendorReportModal 
-        isOpen={!!reportVendor} 
-        onClose={() => setReportVendor(null)} 
-        vendor={reportVendor} 
-      />
     </div>
   );
 }

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { Truck, Plus, Edit, Trash2, ChevronDown, ChevronRight, Building2, Save, X } from 'lucide-react';
+import { Truck, Plus, Edit, Trash2, ChevronDown, ChevronRight, Building2, Save, X, FileText } from 'lucide-react';
 import { useVendors, useCreateVendor, useUpdateVendor, useDeleteVendor, useCreateVendorTopup, useVendorTopups, useUpdateVendorTopup, useDeleteVendorTopup, useVendorTruckBalances, Vendor } from '../hooks/useVendors';
 import { useVendorTrucks, useCreateVendorTruck, useUpdateVendorTruck, useDeleteVendorTruck, useAllHaulingObligations, useVendorHaulingDetails } from '../hooks/useHauling';
 import CustomSelect from '../components/CustomSelect';
 import { formatNopol, formatTitleCase } from '../utils/formatters';
+import VendorReportModal from '../components/VendorReportModal';
 
 export default function HaulingPage() {
   const [expandedVendors, setExpandedVendors] = useState<Record<number, boolean>>({});
@@ -14,6 +15,7 @@ export default function HaulingPage() {
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [vendorData, setVendorData] = useState({ name: "", contact_person: "", phone: "", address: "", vendor_type: "hauling", allow_deposit_cascade: false });
   const [showVendorDetail, setShowVendorDetail] = useState<Vendor | null>(null);
+  const [reportVendor, setReportVendor] = useState<Vendor | null>(null);
 
   // Top Up State
   const [showTopupForm, setShowTopupForm] = useState<number | null>(null);
@@ -568,7 +570,15 @@ export default function HaulingPage() {
               <h3 className="text-xl font-bold flex items-center gap-2">
                 <Building2 className="text-blue-600" /> Detail Vendor
               </h3>
-              <button onClick={() => setShowVendorDetail(null)} className="text-gray-500 hover:text-gray-800"><X size={20}/></button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setReportVendor(showVendorDetail)}
+                  className="text-white bg-teal-600 hover:bg-teal-700 px-3 py-1.5 rounded font-medium flex items-center gap-1 inline-flex text-sm"
+                >
+                  <FileText size={16} /> Laporan
+                </button>
+                <button onClick={() => setShowVendorDetail(null)} className="text-gray-500 hover:text-gray-800"><X size={20}/></button>
+              </div>
             </div>
             
             <div className="space-y-4 mb-6">
@@ -799,6 +809,13 @@ export default function HaulingPage() {
           </div>
         </div>
       )}
+
+      {/* MODAL LAPORAN VENDOR */}
+      <VendorReportModal 
+        isOpen={!!reportVendor} 
+        onClose={() => setReportVendor(null)} 
+        vendor={reportVendor} 
+      />
     </div>
   );
 }

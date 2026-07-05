@@ -5,6 +5,7 @@ import apiClient from '../api/apiClient';
 import { Vendor } from '../hooks/useVendors';
 import CustomSelect from './CustomSelect';
 import { useQuery } from '@tanstack/react-query';
+import { useVendorHaulingDetails } from '../hooks/useHauling';
 import { generatePremiumPDF } from '../utils/pdfGenerator';
 import { toLocalDateInput } from '../utils/formatters';
 
@@ -23,14 +24,19 @@ export default function VendorReportModal({ isOpen, onClose, vendor }: VendorRep
   const [projectId, setProjectId] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const { data: projects = [] } = useQuery({
-    queryKey: ['projects'],
-    queryFn: async () => {
-      const { data } = await apiClient.get('/projects-data/projects');
-      return data;
-    },
-    enabled: isOpen
+  const { data: vendorDetails = [] } = useVendorHaulingDetails(isOpen ? vendor?.id : null);
+  
+  // Ambil data unik dari project yang ada di rincian kewajiban hauling vendor
+  const uniqueProjectsMap = new Map();
+  vendorDetails.forEach((detail: any) => {
+    if (!uniqueProjectsMap.has(detail.project_id)) {
+      uniqueProjectsMap.set(detail.project_id, {
+        id: detail.project_id,
+        name: detail.project_name
+      });
+    }
   });
+  const projects = Array.from(uniqueProjectsMap.values());
 
   if (!isOpen || !vendor) return null;
 
