@@ -190,14 +190,6 @@ def generate_jasa_loading_pdf(invoice, project) -> bytes:
     story.append(Spacer(1, 8 * mm))
 
     # Signature
-    payment_info = [
-        Paragraph("<font size='9'><b>Informasi Pembayaran:</b></font>", style()),
-        Spacer(1, 2 * mm),
-        Paragraph("<font size='9' color='#4b5563'>Bank Mandiri</font>", style()),
-        Paragraph("<font size='9' color='#4b5563'>No. Rekening: <b>1780001847504</b></font>", style()),
-        Paragraph("<font size='9' color='#4b5563'>Atas Nama: <b>DEWI KUSUMA</b></font>", style()),
-    ]
-
     sig_data = [
         [Paragraph("<font size='9'>Hormat Kami,</font>", style(alignment=TA_CENTER))],
         [Paragraph("<br/><br/><br/>", style())],
@@ -208,7 +200,8 @@ def generate_jasa_loading_pdf(invoice, project) -> bytes:
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
     ]))
     
-    sig_wrapper = Table([[payment_info, sig_table]], colWidths=[content_w - 5*cm, 5*cm])
+    # Push signature to the right
+    sig_wrapper = Table([["", sig_table]], colWidths=[content_w - 5*cm, 5*cm])
     sig_wrapper.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
     ]))
