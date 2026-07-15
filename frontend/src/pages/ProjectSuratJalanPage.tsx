@@ -36,6 +36,8 @@ const SuratJalanFormModal = ({
     license_plate: sjToEdit?.nopol || '',
     vendor_id: sjToEdit?.vendor_id?.toString() || '',
     vendor_name: sjToEdit?.vendor_name || '',
+    loading_vendor_id: sjToEdit?.loading_vendor_id?.toString() || '',
+    loading_vendor_name: sjToEdit?.loading_vendor_name || '',
     truck_id: sjToEdit?.truck_id?.toString() || '',
     origin: sjToEdit?.asal_tambang || '',
     gross_weight: sjToEdit?.bruto?.toString() || '',
@@ -67,6 +69,7 @@ const SuratJalanFormModal = ({
   } | null>(null);
   
   const { data: vendors = [] } = useVendors('hauling');
+  const { data: loadingVendors = [] } = useVendors('jasa_loading');
 
   const { data: vendorTrucks } = useVendorTrucks(formData.vendor_id ? Number(formData.vendor_id) : undefined);
 
@@ -188,6 +191,8 @@ const SuratJalanFormModal = ({
         project_id: parseInt(projectId),
         vendor_id: finalFormData.vendor_id ? parseInt(finalFormData.vendor_id) : null,
         vendor_name: finalFormData.vendor_name || undefined,
+        loading_vendor_id: finalFormData.loading_vendor_id ? parseInt(finalFormData.loading_vendor_id) : null,
+        loading_vendor_name: finalFormData.loading_vendor_name || undefined,
         truck_id: finalFormData.truck_id ? parseInt(finalFormData.truck_id) : null,
         truck_type: finalFormData.truck_type || undefined,
         nama_supir: finalFormData.driver_name,
@@ -267,6 +272,23 @@ const SuratJalanFormModal = ({
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Vendor Jasa Loading</label>
+              <CustomCombobox
+                value={formData.loading_vendor_name || ''}
+                onChange={(val) => {
+                  const foundVendor = loadingVendors?.find((x: any) => x.name.toLowerCase() === val.trim().toLowerCase());
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    loading_vendor_name: val,
+                    loading_vendor_id: foundVendor ? foundVendor.id.toString() : ''
+                  }));
+                }}
+                placeholder="Pilih atau ketik vendor jasa loading (opsional)"
+                options={loadingVendors ? loadingVendors.map((v: any) => ({ value: v.name, label: v.name })) : []}
+              />
+            </div>
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Vendor Hauling</label>
               <CustomCombobox

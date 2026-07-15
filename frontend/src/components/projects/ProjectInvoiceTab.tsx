@@ -50,6 +50,7 @@ export default function ProjectInvoiceTab() {
   const projectInvoices = allInvoices.filter((i) => i.invoice_type === "project");
   
   const [view, setView] = useState<"list" | "form">("list");
+  const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -275,6 +276,37 @@ export default function ProjectInvoiceTab() {
     }
   };
 
+  const handleDownloadLoadingPDF = async (inv: Invoice, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const loadingToast = toast.loading("Membuat PDF Jasa Loading...");
+    try {
+      const token = localStorage.getItem("token");
+      const pdfRes = await fetch(`${API_URL}/invoices/${inv.id}/export-loading/pdf`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (!pdfRes.ok) {
+        let msg = "Gagal export";
+        try { const errData = await pdfRes.json(); msg = errData.detail || msg; } catch {}
+        throw new Error(msg);
+      }
+      
+      const blob = await pdfRes.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Jasa_Loading_${inv.invoice_number}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success("PDF Jasa Loading berhasil didownload", { id: loadingToast });
+    } catch (err: any) {
+      toast.error(err.message || "Gagal mendownload PDF Jasa Loading", { id: loadingToast });
+    }
+  };
+
   if (loadingProjects || loadingInvoices) {
     return <div className="p-10 flex justify-center text-gray-400"><Loader2 className="animate-spin w-8 h-8" /></div>;
   }
@@ -324,40 +356,16 @@ export default function ProjectInvoiceTab() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Proyek/Customer</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Total</th>
                     <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Status</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Aksi Status</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Opsi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {projectInvoices.map((inv) => (
-                    <tr key={inv.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={inv.id} onClick={() => setViewInvoice(inv)} className="hover:bg-blue-50/60 cursor-pointer transition-colors">
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatDate(inv.invoice_date)}</td>
                       <td className="px-4 py-3 text-gray-800 font-medium whitespace-nowrap">{inv.invoice_number}</td>
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{inv.customer_name}</td>
                       <td className="px-4 py-3 text-right font-semibold text-blue-700 whitespace-nowrap">{formatIDR(inv.final_amount ?? inv.total_amount)}</td>
                       <td className="px-4 py-3 text-center whitespace-nowrap">{statusBadge(inv.status)}</td>
-                      <td className="px-4 py-3 text-center whitespace-nowrap">
-                        <CustomSelect
-                          value={inv.status}
-                          onChange={(val) => handleStatusChange(inv.id, val as string)}
-                          options={[
-                            { value: "unpaid", label: "Unpaid" },
-                            { value: "paid", label: "Paid" },
-                            { value: "cancelled", label: "Cancelled" }
-                          ]}
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-center flex items-center justify-center gap-1 whitespace-nowrap">
-                        <button onClick={(e) => handleDownloadPDF(inv, e)} className="p-1.5 text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg" title="Download PDF">
-                          <Download className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleOpenEdit(inv)} className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg" title="Edit/Detail">
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => setDeleteModal({ isOpen: true, id: inv.id })} className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg" title="Hapus">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -630,6 +638,120 @@ export default function ProjectInvoiceTab() {
                 className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition-colors"
               >
                 Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invoice Detail Modal */}
+      {viewInvoice && view === "list" && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setViewInvoice(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10 rounded-t-2xl">
+              <div className="flex items-center gap-2">
+                <FileText size={18} className="text-blue-600" />
+                <h2 className="text-base font-semibold text-gray-800">Detail Invoice Proyek</h2>
+              </div>
+              <button onClick={() => setViewInvoice(null)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 overflow-y-auto">
+              <div className="mb-6 flex justify-between items-start">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800">{viewInvoice.invoice_number}</h3>
+                  <p className="text-gray-500 text-sm">Proyek/Klien: {viewInvoice.customer_name}</p>
+                </div>
+                {statusBadge(viewInvoice.status)}
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 text-sm mb-6">
+                <div>
+                  <span className="text-gray-400 block text-xs">Tanggal Diterbitkan</span>
+                  <span className="font-medium text-gray-800">{formatDate(viewInvoice.invoice_date)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400 block text-xs">Periode Tagihan</span>
+                  <span className="font-medium text-gray-800">{formatDate(viewInvoice.start_date)} - {formatDate(viewInvoice.end_date)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400 block text-xs">Subtotal</span>
+                  <span className="font-medium text-gray-800">{formatIDR(viewInvoice.total_amount)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400 block text-xs">Diskon</span>
+                  <span className="font-medium text-red-600">
+                    {viewInvoice.discount_type 
+                      ? `${viewInvoice.discount_type === 'percentage' ? `${viewInvoice.discount_value}%` : ''} (-${formatIDR(viewInvoice.discount_amount)})`
+                      : "-"}
+                  </span>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-gray-400 block text-xs">Total Akhir</span>
+                  <span className="font-medium text-2xl text-blue-700">{formatIDR(viewInvoice.final_amount ?? viewInvoice.total_amount)}</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-gray-400 block text-xs">Catatan</span>
+                  <span className="font-medium text-gray-800 whitespace-pre-wrap">{viewInvoice.notes || "-"}</span>
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-gray-800 mb-2">Ubah Status</label>
+                <div className="w-1/2">
+                  <CustomSelect
+                    value={viewInvoice.status}
+                    onChange={(val) => {
+                      handleStatusChange(viewInvoice.id, val as string);
+                      setViewInvoice(prev => prev ? {...prev, status: val as string} : prev);
+                    }}
+                    options={[
+                      { value: "unpaid", label: "Unpaid" },
+                      { value: "paid", label: "Paid" },
+                      { value: "cancelled", label: "Cancelled" }
+                    ]}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 mt-6">
+                <button
+                  onClick={(e) => handleDownloadPDF(viewInvoice, e)}
+                  className="flex items-center justify-center gap-2 w-full py-2.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl font-medium transition-colors border border-blue-200"
+                >
+                  <Download size={16} /> Download Invoice Material
+                </button>
+                
+                <button
+                  onClick={(e) => handleDownloadLoadingPDF(viewInvoice, e)}
+                  className="flex items-center justify-center gap-2 w-full py-2.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl font-medium transition-colors border border-emerald-200"
+                >
+                  <Download size={16} /> Download Jasa Loading
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 sm:px-6 sm:py-4 border-t border-gray-100 flex items-center justify-between gap-3 rounded-b-2xl bg-gray-50 mt-auto">
+              <button
+                onClick={() => {
+                  setDeleteModal({ isOpen: true, id: viewInvoice.id });
+                  setViewInvoice(null);
+                }}
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl text-sm font-semibold transition-colors"
+                title="Hapus Invoice"
+              >
+                <Trash2 size={16} /> Hapus
+              </button>
+              <button
+                onClick={() => {
+                  handleOpenEdit(viewInvoice);
+                  setViewInvoice(null);
+                }}
+                className="flex items-center justify-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors"
+              >
+                <Pencil size={15} /> Kriteria Ulang
               </button>
             </div>
           </div>

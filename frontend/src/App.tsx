@@ -35,6 +35,7 @@ const ReportsPage = lazy(() => import('./pages/ReportsPage'));
 const ProjectSuratJalanPage = lazy(() => import('./pages/ProjectSuratJalanPage'));
 const ProjectEmployeesPage = lazy(() => import('./pages/ProjectEmployeesPage'));
 const HaulingPage = lazy(() => import('./pages/HaulingPage'));
+const LoadingVendorPage = lazy(() => import('./pages/LoadingVendorPage'));
 
 import { motion } from 'framer-motion';
 
@@ -92,6 +93,7 @@ const App: React.FC = () => {
               <Route path="/reports" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><ReportsPage /></RoleProtectedRoute>} />
 
               <Route path="/hauling" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><HaulingPage /></RoleProtectedRoute>} />
+              <Route path="/loading-vendors" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><LoadingVendorPage /></RoleProtectedRoute>} />
               <Route path="/employees" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]}><EmployeesPage /></RoleProtectedRoute>} />
               <Route path="/users" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]}><UsersPage /></RoleProtectedRoute>} />
               <Route path="/attendance" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]}><AttendancePage /></RoleProtectedRoute>} />

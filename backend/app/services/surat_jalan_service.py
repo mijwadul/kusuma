@@ -7,6 +7,7 @@ from ..models.project import Project
 from ..models.user import User
 from ..models.vendor import Vendor
 from ..models.project_hauling_price import ProjectHaulingPrice
+from ..models.project_loading_price import ProjectLoadingPrice
 from ..models.vendor_truck import VendorTruck
 from ..schemas.surat_jalan import SuratJalanCreate, SuratJalanUpdate
 from fastapi import HTTPException
@@ -96,6 +97,27 @@ class SuratJalanService:
                     elif project.measurement_type == "ritase":
                         hauling_cost = float(hauling_price) * 1.0
 
+        loading_price = None
+        loading_cost = None
+        
+        if data.loading_vendor_id:
+            today_date = date.today()
+            if data.created_at:
+                today_date = datetime.fromisoformat(data.created_at).date()
+                
+            l_price_record = db.query(ProjectLoadingPrice).filter(
+                ProjectLoadingPrice.project_id == project.id,
+                or_(ProjectLoadingPrice.vendor_id == data.loading_vendor_id, ProjectLoadingPrice.vendor_id.is_(None)),
+                func.date(ProjectLoadingPrice.effective_date) <= today_date
+            ).order_by(
+                ProjectLoadingPrice.vendor_id.isnot(None).desc(),
+                ProjectLoadingPrice.effective_date.desc()
+            ).first()
+            if l_price_record:
+                loading_price = l_price_record.price_per_unit
+                # Jasa loading selalu per ritase (1 trip)
+                loading_cost = float(loading_price) * 1.0
+
         sj = SuratJalan(
             project_id=data.project_id,
             field_staff_id=current_user.id,
@@ -107,6 +129,9 @@ class SuratJalanService:
             truck_type=getattr(data, 'truck_type', None),
             hauling_price=hauling_price,
             hauling_cost=hauling_cost,
+            loading_vendor_id=data.loading_vendor_id,
+            loading_price=loading_price,
+            loading_cost=loading_cost,
             bruto=data.bruto if project.measurement_type == "tonase" else None,
             tarra=data.tarra if project.measurement_type == "tonase" else None,
             minus_berat=data.minus_berat if project.measurement_type == "tonase" else 0.0,
@@ -330,6 +355,38 @@ class SuratJalanService:
                         if sj.panjang is not None: existing_truck.panjang = sj.panjang
                         if sj.lebar is not None: existing_truck.lebar = sj.lebar
                         if sj.tinggi is not None: existing_truck.tinggi = sj.tinggi
+
+        # -- START CALC LOADING COST --
+        loading_price = sj.loading_price
+        loading_cost = sj.loading_cost
+        
+        # Recalculate loading cost if vendor or date changed
+        if data.loading_vendor_id is not None or (data.created_at and sj.loading_vendor_id):
+            l_vendor_id_to_check = data.loading_vendor_id if data.loading_vendor_id is not None else sj.loading_vendor_id
+            if l_vendor_id_to_check:
+                l_price_record = db.query(ProjectLoadingPrice).filter(
+                    ProjectLoadingPrice.project_id == project.id,
+                    or_(ProjectLoadingPrice.vendor_id == l_vendor_id_to_check, ProjectLoadingPrice.vendor_id.is_(None)),
+                    func.date(ProjectLoadingPrice.effective_date) <= sj_date
+                ).order_by(
+                    ProjectLoadingPrice.vendor_id.isnot(None).desc(),
+                    ProjectLoadingPrice.effective_date.desc()
+                ).first()
+                if l_price_record:
+                    loading_price = l_price_record.price_per_unit
+                    loading_cost = float(loading_price) * 1.0
+                else:
+                    loading_price = None
+                    loading_cost = None
+            else:
+                loading_price = None
+                loading_cost = None
+                
+        if data.loading_vendor_id is not None:
+            sj.loading_vendor_id = data.loading_vendor_id
+        sj.loading_price = loading_price
+        sj.loading_cost = loading_cost
+        # -- END CALC LOADING COST --
 
         # Handle Deposit Refund and Deduction
         from ..services.vendor_service import VendorService

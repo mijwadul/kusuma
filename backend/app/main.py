@@ -142,6 +142,8 @@ from .api.v1.invoices import router as invoices_router
 from .api.v1.vendors import router as vendors_router
 from .api.v1.surat_jalans import router as surat_jalans_router
 from .api.v1.hauling import router as hauling_router
+from .api.v1.vision import router as vision_router
+from .api.v1.loading_prices import router as loading_prices_router
 
 # ... inside router inclusion block ...
 app.include_router(material_prices_router, prefix="/api/v1/material-prices", tags=["material-prices"])
@@ -150,6 +152,8 @@ app.include_router(invoices_router, prefix="/api/v1/invoices", tags=["invoices"]
 app.include_router(vendors_router, prefix="/api/v1/vendors", tags=["vendors"])
 app.include_router(hauling_router, prefix="/api/v1/hauling", tags=["hauling"])
 app.include_router(surat_jalans_router, prefix="/api/v1", tags=["surat-jalan"])
+app.include_router(loading_prices_router, prefix="/api/v1", tags=["loading-prices"])
+app.include_router(vision_router, prefix="/api/v1/vision", tags=["vision"])
 
 @app.get("/")
 def read_root():

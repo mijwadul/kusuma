@@ -12,6 +12,8 @@ class SuratJalanCreate(BaseModel):
     truck_id: Optional[int] = None
     truck_type: Optional[str] = None
     
+    loading_vendor_id: Optional[int] = None
+    
     # Tonase
     bruto: Optional[float] = None
     tarra: Optional[float] = None
@@ -35,6 +37,8 @@ class SuratJalanUpdate(BaseModel):
     vendor_name: Optional[str] = None
     truck_id: Optional[int] = None
     truck_type: Optional[str] = None
+    
+    loading_vendor_id: Optional[int] = None
     
     # Tonase
     bruto: Optional[float] = None
@@ -61,6 +65,9 @@ class SuratJalanResponse(BaseModel):
     asal_tambang: Optional[str]
     hauling_price: Optional[float] = None
     hauling_cost: Optional[float] = None
+    loading_vendor_id: Optional[int] = None
+    loading_price: Optional[float] = None
+    loading_cost: Optional[float] = None
     bruto: Optional[float]
     tarra: Optional[float]
     minus_berat: Optional[float]

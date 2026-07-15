@@ -24,6 +24,7 @@ class ProjectCreate(BaseModel):
     budget: Optional[float] = None
     status: Optional[str] = "ongoing"
     measurement_type: Optional[str] = "tonase"
+    loading_rate: Optional[float] = 0.0
     notes: Optional[str] = None
     material_items: List[MaterialItemSchema] = []
     assigned_user_ids: List[int] = []
@@ -40,6 +41,7 @@ class ProjectUpdate(BaseModel):
     progress: Optional[float] = None
     status: Optional[str] = None
     measurement_type: Optional[str] = None
+    loading_rate: Optional[float] = None
     notes: Optional[str] = None
     material_items: Optional[List[MaterialItemSchema]] = None
     assigned_user_ids: Optional[List[int]] = None
@@ -72,6 +74,7 @@ class ProjectResponse(BaseModel):
     progress: float
     status: str
     measurement_type: str
+    loading_rate: float = 0.0
     notes: Optional[str]
     created_at: Optional[str]
     material_items: List[MaterialItemResponse] = []

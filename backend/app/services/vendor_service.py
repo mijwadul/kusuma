@@ -65,7 +65,11 @@ class VendorService:
         db.commit()
 
     @staticmethod
-    def _get_truck_balances(db: Session, vendor: Vendor) -> list:
+    def get_truck_balances(db: Session, vendor_id: int) -> list:
+        vendor = db.query(Vendor).filter(Vendor.id == vendor_id).first()
+        if not vendor:
+            raise NotFoundError("Vendor not found")
+        
         from ..models import VendorTruck
         topups = db.query(VendorTopUp).filter(
             VendorTopUp.vendor_id == vendor.id,

@@ -36,6 +36,7 @@ from .income_record import IncomeRecordCreate, IncomeRecordResponse, IncomeRecor
 from .vendor import VendorBase, VendorCreate, VendorUpdate, VendorResponse, VendorTopUpCreate, VendorTopUpResponse
 from .vendor_truck import VendorTruckBase, VendorTruckCreate, VendorTruckUpdate, VendorTruckResponse
 from .project_hauling_price import ProjectHaulingPriceBase, ProjectHaulingPriceCreate, ProjectHaulingPriceUpdate, ProjectHaulingPriceResponse
+from .project_loading_price import ProjectLoadingPriceBase, ProjectLoadingPriceCreate, ProjectLoadingPriceUpdate, ProjectLoadingPriceResponse
 from .loan import EmployeeLoanCreate, EmployeeLoanResponse, EmployeeLoanUpdate
 from .project import ProjectResponse, ProjectCreate, ProjectUpdate
 from .user import Token, TokenData, User, UserCreate, UserLogin, UserUpdate

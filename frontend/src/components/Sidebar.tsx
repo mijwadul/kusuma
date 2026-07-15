@@ -176,6 +176,12 @@ interface MenuItem {
         show: isFinance || isAdmin,
       },
       {
+        path: "/loading-vendors",
+        icon: Factory,
+        label: "Vendor Jasa Loading",
+        show: isFinance || isAdmin,
+      },
+      {
         path: "/work-logs",
         icon: Clock,
         label: "Log Jam Kerja Alat",

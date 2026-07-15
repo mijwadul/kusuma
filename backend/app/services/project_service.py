@@ -87,6 +87,7 @@ def _build_project_response(proj: Project, db: Session) -> ProjectResponse:
         progress=float(proj.progress or 0),
         status=proj.status or "ongoing",
         measurement_type=proj.measurement_type or "tonase",
+        loading_rate=proj.loading_rate or 0.0,
         notes=proj.notes,
         created_at=_fmt(proj.created_at),
         material_items=items,
@@ -143,6 +144,7 @@ class ProjectService:
             budget=data.budget,
             status=data.status or "ongoing",
             measurement_type=data.measurement_type or "tonase",
+            loading_rate=data.loading_rate or 0.0,
             notes=data.notes,
             created_by=current_user.id,
         )

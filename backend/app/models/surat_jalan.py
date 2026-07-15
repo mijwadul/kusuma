@@ -22,6 +22,11 @@ class SuratJalan(Base):
     hauling_price = Column(DECIMAL(15, 2), nullable=True)
     hauling_cost = Column(DECIMAL(15, 2), nullable=True)
     
+    # Loading fields
+    loading_vendor_id = Column(Integer, ForeignKey("vendors.id", ondelete="SET NULL"), nullable=True)
+    loading_price = Column(DECIMAL(15, 2), nullable=True)
+    loading_cost = Column(DECIMAL(15, 2), nullable=True)
+    
     # Tonase
     bruto = Column(Float, nullable=True)
     tarra = Column(Float, nullable=True)
@@ -45,4 +50,5 @@ class SuratJalan(Base):
     project = relationship("Project", backref="surat_jalans")
     field_staff = relationship("User", backref="surat_jalans_created")
     vendor = relationship("Vendor", foreign_keys=[vendor_id])
+    loading_vendor = relationship("Vendor", foreign_keys=[loading_vendor_id])
     truck = relationship("VendorTruck", foreign_keys=[truck_id])

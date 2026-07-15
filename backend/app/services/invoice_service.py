@@ -99,6 +99,10 @@ class InvoiceService:
                         sj_height=r.tinggi,
                         sj_volume_minus=r.minus_tinggi,
                         sj_volume=r.volume,
+                        loading_vendor_id=r.loading_vendor_id,
+                        loading_vendor_name=r.loading_vendor.name if r.loading_vendor else None,
+                        loading_price=r.loading_price,
+                        loading_cost=r.loading_cost,
                     )
                 )
                 total += amt

@@ -31,6 +31,12 @@ class InvoicePreviewItem(BaseModel):
     sj_height: Optional[float] = None
     sj_volume_minus: Optional[float] = None
     sj_volume: Optional[float] = None
+    
+    # Tambahan untuk Jasa Loading PDF
+    loading_vendor_id: Optional[int] = None
+    loading_vendor_name: Optional[str] = None
+    loading_price: Optional[float] = None
+    loading_cost: Optional[float] = None
 
 class InvoicePreviewResponse(BaseModel):
     customer_name: str
@@ -224,3 +230,53 @@ def export_invoice_pdf_endpoint(
             "Content-Disposition": f'attachment; filename="{filename}"'
         }
     )
+
+from ...services.pdf_generator.loading import generate_jasa_loading_pdf
+
+@router.get("/{invoice_id}/export-loading/pdf")
+def export_loading_pdf_endpoint(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    from ...models.invoice import Invoice
+    from ...models.project import Project
+    from ...core.exceptions import NotFoundError, ValidationError
+    
+    inv = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+    if not inv:
+        raise NotFoundError("Invoice not found")
+        
+    if inv.invoice_type != "project":
+        raise ValidationError("Hanya invoice proyek yang memiliki Jasa Loading")
+        
+    project = db.query(Project).filter(Project.id == inv.project_id).first()
+    if not project:
+        raise NotFoundError("Proyek tidak ditemukan")
+        
+    # Get items for the invoice
+    preview_data = InvoiceService.preview_invoice(
+        db=db,
+        invoice_type=inv.invoice_type,
+        project_id=inv.project_id,
+        customer_name=inv.customer_name,
+        customer_id=inv.customer_id,
+        start_date=inv.start_date,
+        end_date=inv.end_date,
+        invoice_id=inv.id
+    )
+    
+    inv.items = preview_data.items
+    
+    pdf_bytes = generate_jasa_loading_pdf(inv, project)
+    
+    filename = f"Jasa_Loading_{inv.invoice_number}.pdf"
+    
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )
+

@@ -31,6 +31,7 @@ import {
 import ProjectFormModal from "../components/projects/ProjectFormModal";
 import CustomerFormModal from "../components/projects/CustomerFormModal";
 import HaulingPricesModal from "../components/HaulingPricesModal";
+import LoadingPricesModal from "../components/projects/LoadingPricesModal";
 import ProjectInvoiceTab from "../components/projects/ProjectInvoiceTab";
 
 const formatIDR = (v?: number | string | null) =>
@@ -71,6 +72,7 @@ export default function ProjectsPage() {
   const [showProjModal, setShowProjModal] = useState(false);
   const [showCustModal, setShowCustModal] = useState(false);
   const [showHaulingModal, setShowHaulingModal] = useState<Project | null>(null);
+  const [showLoadingModal, setShowLoadingModal] = useState<Project | null>(null);
   const [editDataProj, setEditDataProj] = useState<Project | null>(null);
   const [editDataCust, setEditDataCust] = useState<Customer | null>(null);
   const [viewCust, setViewCust] = useState<Customer | null>(null);
@@ -126,6 +128,7 @@ export default function ProjectsPage() {
         start_date: p.start_date || "",
         end_date: p.end_date || "",
         budget: p.budget || 0,
+        loading_rate: p.loading_rate || 0,
         notes: p.notes || "",
         material_items: p.material_items.map(m => {
           const validUnits = meta?.material_units?.[m.material_type] || meta?.all_units || [];
@@ -139,7 +142,7 @@ export default function ProjectsPage() {
     } else {
       setProjForm({
         name: "", client_name: "", description: "", location: "",
-        start_date: "", end_date: "", budget: 0, status: "ongoing", notes: "",
+        start_date: "", end_date: "", budget: 0, loading_rate: 0, status: "ongoing", notes: "",
         material_items: []
       });
     }
@@ -639,6 +642,10 @@ export default function ProjectsPage() {
                   <span className="font-medium text-emerald-700">{formatIDR(viewProj.budget)}</span>
                 </div>
                 <div>
+                  <span className="text-gray-400 block text-xs">Tarif Jasa Loading</span>
+                  <span className="font-medium text-emerald-700">{viewProj.loading_rate ? `${formatIDR(viewProj.loading_rate)} / Rit` : "-"}</span>
+                </div>
+                <div>
                   <span className="text-gray-400 block text-xs">Pengeluaran</span>
                   <span className="font-medium text-rose-600">{formatIDR(viewProj.budget_used)}</span>
                 </div>
@@ -742,6 +749,15 @@ export default function ProjectsPage() {
                   </button>
                   <button
                     onClick={() => {
+                      setShowLoadingModal(viewProj);
+                    }}
+                    className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-xl text-sm font-semibold transition-colors flex-1 sm:flex-none text-center"
+                  >
+                    <Truck size={15} className="flex-shrink-0" /> 
+                    <span className="leading-tight">Harga<br className="sm:hidden" /> Loading</span>
+                  </button>
+                  <button
+                    onClick={() => {
                       openProjModal(viewProj);
                       setViewProj(null);
                     }}
@@ -762,6 +778,14 @@ export default function ProjectsPage() {
           projectId={showHaulingModal.id!}
           projectName={showHaulingModal.name}
           onClose={() => setShowHaulingModal(null)}
+        />
+      )}
+
+      {showLoadingModal && (
+        <LoadingPricesModal
+          projectId={showLoadingModal.id!}
+          projectName={showLoadingModal.name}
+          onClose={() => setShowLoadingModal(null)}
         />
       )}
 

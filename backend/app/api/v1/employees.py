@@ -144,12 +144,12 @@ def calculate_payroll(
 
     # Calculate automatic operator bonus
     auto_operator_bonus = 0
-    if employee.position and employee.position.lower() == "operator" and db:
+    if employee.position and "operator" in employee.position.lower() and db:
         work_logs_with_eq = (
             db.query(WorkLog, Equipment)
             .join(Equipment, WorkLog.equipment_id == Equipment.id)
             .filter(
-                func.lower(WorkLog.operator_name) == func.lower(employee.name),
+                func.trim(func.lower(WorkLog.operator_name)) == func.trim(func.lower(employee.name)),
                 func.date(WorkLog.work_date) >= period_start,
                 func.date(WorkLog.work_date) <= period_end,
             )

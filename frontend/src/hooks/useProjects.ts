@@ -19,6 +19,7 @@ export interface Project {
   start_date?: string;
   end_date?: string;
   budget?: number;
+  loading_rate?: number;
   progress: number;
   status: string;
   notes?: string;

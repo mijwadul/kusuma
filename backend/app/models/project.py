@@ -32,6 +32,7 @@ class Project(Base):
     status = Column(String(30), default="ongoing")
     is_active = Column(Boolean, default=True)
     measurement_type = Column(String(30), default="tonase") # 'tonase' or 'kubikasi'
+    loading_rate = Column(Float, nullable=True, default=0.0)
     notes = Column(Text, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

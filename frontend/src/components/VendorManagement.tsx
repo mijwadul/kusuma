@@ -540,15 +540,15 @@ export default function VendorManagement({ userRole }: Props) {
                   ]}
                 />
               </div>
-              <div><label className="block text-sm text-gray-700">Nominal Rp</label><input type="number" required min="1" value={topupData.amount} onChange={e=>setTopupData({...topupData, amount: e.target.value})} className="mt-1 w-full border rounded p-2" /></div>
+              <div><label className="block text-sm text-gray-700">Nominal Rp</label><input type="number" required min="1" value={topupData.amount} onChange={e=>setTopupData({...topupData, amount: e.target.value})} className="mt-1 w-full border rounded p-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" /></div>
               <div><label className="block text-sm text-gray-700">Tanggal Top-Up</label><input type="date" value={topupData.topup_date} onChange={e=>setTopupData({...topupData, topup_date: e.target.value})} className="mt-1 w-full border rounded p-2" /></div>
-              <div><label className="block text-sm text-gray-700">Catatan/Keterangan</label><input value={topupData.notes} onChange={e=>setTopupData({...topupData, notes: e.target.value})} className="mt-1 w-full border rounded p-2" placeholder="Cth: Transfer BCA 20 Mei" /></div>
+              <div><label className="block text-sm text-gray-700">Catatan/Keterangan</label><input value={topupData.notes} onChange={e=>setTopupData({...topupData, notes: e.target.value})} className="mt-1 w-full border rounded p-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" placeholder="Cth: Transfer BCA 20 Mei" /></div>
               <div className="flex justify-end gap-2 mt-6">
                 <button type="button" onClick={() => setShowTopupForm(false)} className="px-4 py-2 bg-gray-200 rounded">Batal</button>
                 <button
                   type="submit"
                   disabled={vendorEquipments.length === 0 || createTopupMut.isPending}
-                  className="px-4 py-2 bg-amber-500 text-white font-bold rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-amber-500 text-white font-bold rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-amber-600 transition-colors"
                 >
                   Kirim {isGM ? "Top-Up" : "Pengajuan"}
                 </button>

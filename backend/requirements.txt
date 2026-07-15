@@ -32,3 +32,5 @@ apscheduler                # background task scheduling
 pytest                     # test runner
 pytest-asyncio             # async test support
 httpx                      # HTTP client untuk TestClient FastAPI
+google-generativeai        # Vision LLM untuk ekstrak struk/resi
+python-multipart           # (Sudah ada di utilities, memastikan saja)
