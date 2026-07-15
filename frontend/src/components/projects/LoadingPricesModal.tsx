@@ -17,14 +17,14 @@ export default function LoadingPricesModal({ projectId, projectName, onClose }: 
   const { data: prices, isLoading } = useQuery({
     queryKey: ['projectLoadingPrices', projectId],
     queryFn: async () => {
-      const res = await apiClient.get(`/loading-prices/projects/${projectId}/loading-prices`);
+      const res = await apiClient.get(`/projects/${projectId}/loading-prices`);
       return res.data;
     }
   });
 
   const setPriceMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiClient.post(`/loading-prices/projects/${projectId}/loading-prices`, data);
+      const res = await apiClient.post(`/projects/${projectId}/loading-prices`, data);
       return res.data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projectLoadingPrices', projectId] })
@@ -32,7 +32,7 @@ export default function LoadingPricesModal({ projectId, projectName, onClose }: 
 
   const updatePriceMutation = useMutation({
     mutationFn: async ({ priceId, data }: { priceId: number, data: any }) => {
-      const res = await apiClient.put(`/loading-prices/projects/${projectId}/loading-prices/${priceId}`, data);
+      const res = await apiClient.put(`/projects/${projectId}/loading-prices/${priceId}`, data);
       return res.data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projectLoadingPrices', projectId] })
@@ -40,7 +40,7 @@ export default function LoadingPricesModal({ projectId, projectName, onClose }: 
 
   const deletePriceMutation = useMutation({
     mutationFn: async (priceId: number) => {
-      const res = await apiClient.delete(`/loading-prices/projects/${projectId}/loading-prices/${priceId}`);
+      const res = await apiClient.delete(`/projects/${projectId}/loading-prices/${priceId}`);
       return res.data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projectLoadingPrices', projectId] })
