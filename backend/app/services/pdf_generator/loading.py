@@ -28,15 +28,15 @@ def generate_jasa_loading_pdf(invoice, project) -> bytes:
     from .base import create_header
 
     invoice_number = getattr(invoice, "invoice_number", "-")
-    # For Jasa Loading, we can prefix with JL-
-    jl_number = f"JL-{invoice_number.replace('INV-', '')}" if invoice_number.startswith("INV-") else f"JL-{invoice_number}"
+    # Prefix RV for Rekap Vendor
+    jl_number = f"RV-{invoice_number.replace('INV-', '')}" if invoice_number.startswith("INV-") else f"RV-{invoice_number}"
     
     invoice_num_label = Paragraph(f"<font size='12' color='#111827'><b>{jl_number}</b></font>", style(alignment=TA_RIGHT))
     
     invoice_date = fmt_date(getattr(invoice, "invoice_date", getattr(invoice, "created_at", None)))
     date_label = Paragraph(f"<font size='9' color='#6b7280'>Tanggal: {invoice_date}</font>", style(alignment=TA_RIGHT))
 
-    story.extend(create_header("JASA LOADING", [invoice_num_label, date_label], content_w, title_size=20))
+    story.extend(create_header("REKAP TAGIHAN VENDOR (JASA LOADING)", [invoice_num_label, date_label], content_w, title_size=16))
 
     customer_name = getattr(invoice, "customer_name", "-")
     start_date = fmt_date(getattr(invoice, "start_date", None))

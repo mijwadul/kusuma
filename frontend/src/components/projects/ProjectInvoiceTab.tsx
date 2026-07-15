@@ -728,7 +728,7 @@ export default function ProjectInvoiceTab() {
                   onClick={(e) => handleDownloadLoadingPDF(viewInvoice, e)}
                   className="flex items-center justify-center gap-2 w-full py-2.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl font-medium transition-colors border border-emerald-200"
                 >
-                  <Download size={16} /> Download Jasa Loading
+                  <Download size={16} /> Download Rekap Tagihan Loading
                 </button>
               </div>
             </div>
