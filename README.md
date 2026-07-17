@@ -18,6 +18,27 @@ Repositori ini adalah sebuah _monorepo_ yang menampung seluruh *source code* sis
    - Dibangun menggunakan **Kotlin** dan **Jetpack Compose**.
    - (Detail lebih lanjut dapat dilihat di `Android/README.md`)
 
+## Arsitektur Berbasis Divisi (Division-Based Architecture)
+
+Sistem ini mengusung arsitektur **multi-divisi** yang memisahkan konteks data, *dashboard*, dan wewenang pengguna berdasarkan unit kerja, meliputi:
+1. **Corporate & Finance**: Pusat administrasi lintas divisi, laporan global, *cash flow*, *payroll*, dan HRD.
+2. **Divisi Alat Berat**: Pusat operasional dan pengelolaan manajemen alat berat, *timesheet*, *loading*, dan logistik BBM.
+3. **Divisi Trucking & Hauling**: Pusat kontrol mobilitas armada, ritase, vendor *hauling*, dan pengiriman material/surat jalan.
+4. **Divisi Material & Lahan**: Pengelolaan manajemen *project*, kepemilikan lahan, dan penjualan material (*material sales*).
+
+Tampilan antarmuka (*dashboard* dan *sidebar*) akan menyesuaikan secara dinamis sesuai dengan divisi yang sedang diakses.
+
+## Hierarki Hak Akses (Roles & Permissions)
+
+Sistem menggunakan kontrol hak akses berikut untuk menjaga batasan fungsionalitas dan persetujuan (approval):
+
+- **`direktur` (Direktur)**: Memiliki hak akses penuh (*read-only*) ke seluruh sistem dan divisi. Bisa melintasi divisi apa saja tanpa batas, tetapi tidak diizinkan untuk menyetujui transaksi (approval) atau memanipulasi data sensitif (tambah/hapus).
+- **`gm` (General Manager)**: Otoritas tertinggi. Memiliki *full access*, sanggup berpindah ke divisi mana saja, dan satu-satunya peran (bersama *manager*) yang berhak melakukan persetujuan akhir (*Approve BBM, Approve Payroll*, dsb).
+- **`manager` (Manager Divisi)**: Memiliki hak wewenang serupa dengan GM (bisa menyetujui *approval*), **namun dibatasi secara ketat hanya pada divisi tempat ia ditugaskan**.
+- **`admin` (Admin/HR)**: Bertanggung jawab atas pengelolaan entitas global (Karyawan, Absensi, Setup *Equipment*).
+- **`finance` (Finance Staff)**: Memegang kontrol input terkait Keuangan, *Payroll*, pembuatan Tagihan/Invoice, dan Kas/Vendor.
+- **`field` (Field Staff)**: Staf operasional lapangan yang bertugas menginput data mentah harian (Absensi Harian, *Work Logs* Alat Berat, Surat Jalan, dsb) sesuai divisi yang ditugaskan.
+
 ## Persyaratan Sistem
 
 - **Node.js** (v18 atau lebih baru) untuk Frontend
