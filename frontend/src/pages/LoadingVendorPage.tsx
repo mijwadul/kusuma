@@ -12,11 +12,15 @@ export default function LoadingVendorPage() {
   // Top Up State
   const [showTopupForm, setShowTopupForm] = useState<number | null>(null);
   const [editingTopup, setEditingTopup] = useState<number | null>(null);
+  
+  // Detail State
+  const [viewVendorId, setViewVendorId] = useState<number | null>(null);
   const [topupData, setTopupData] = useState({ amount: '', notes: '', topup_date: new Date().toISOString().split('T')[0] });
   
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: "", message: "", confirmText: "Ya, Hapus", confirmColor: "bg-red-600 hover:bg-red-700", onConfirm: () => {} });
 
   const { data: vendors = [], isLoading: loadingVendors } = useVendors('jasa_loading');
+  const viewVendor = vendors.find(v => v.id === viewVendorId);
   
   const createVendorMut = useCreateVendor();
   const updateVendorMut = useUpdateVendor();
@@ -128,8 +132,8 @@ export default function LoadingVendorPage() {
   };
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
           <Truck className="text-blue-600" /> Vendor Jasa Loading
         </h2>
@@ -157,17 +161,16 @@ export default function LoadingVendorPage() {
                   <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Kontak Person</th>
                   <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Telepon</th>
                   <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Alamat</th>
-                  <th className="px-4 py-3 text-right whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {vendors.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-gray-500">Belum ada vendor jasa loading terdaftar.</td>
+                    <td colSpan={4} className="px-4 py-8 text-center text-gray-500">Belum ada vendor jasa loading terdaftar.</td>
                   </tr>
                 ) : (
                   vendors.map(v => (
-                    <tr key={v.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={v.id} onClick={() => setViewVendorId(v.id)} className="hover:bg-blue-50/60 cursor-pointer transition-colors">
                       <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-900 flex items-center gap-2">
                         <Building2 size={16} className="text-blue-500" />
                         {v.name}
@@ -175,37 +178,6 @@ export default function LoadingVendorPage() {
                       <td className="px-4 py-3 whitespace-nowrap text-gray-500">{v.contact_person || "-"}</td>
                       <td className="px-4 py-3 whitespace-nowrap text-gray-500">{v.phone || "-"}</td>
                       <td className="px-4 py-3 whitespace-nowrap text-gray-500 truncate max-w-xs">{v.address || "-"}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-right space-x-2">
-                        <button
-                          onClick={() => setShowTopupForm(v.id)}
-                          className="text-emerald-600 hover:text-emerald-900 bg-emerald-100 hover:bg-emerald-200 px-2 py-1 rounded"
-                        >
-                          Topup / Kasbon
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingVendor(v);
-                            setVendorData({
-                              name: v.name,
-                              contact_person: v.contact_person || "",
-                              phone: v.phone || "",
-                              address: v.address || "",
-                              vendor_type: "jasa_loading",
-                              allow_deposit_cascade: v.allow_deposit_cascade || false
-                            });
-                            setShowVendorForm(true);
-                          }}
-                          className="text-blue-600 hover:text-blue-900 bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteVendor(v.id)}
-                          className="text-red-600 hover:text-red-900 bg-red-100 hover:bg-red-200 px-2 py-1 rounded"
-                        >
-                          Hapus
-                        </button>
-                      </td>
                     </tr>
                   ))
                 )}
@@ -215,10 +187,82 @@ export default function LoadingVendorPage() {
         )}
       </div>
 
+      {/* VENDOR DETAIL MODAL */}
+      {viewVendor && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="bg-white p-4 md:p-6 rounded-2xl w-full max-w-xl shadow-2xl">
+            <div className="flex flex-wrap justify-between items-center mb-6 gap-2">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Building2 className="text-blue-600" /> Detail Vendor Jasa Loading
+              </h3>
+              <button onClick={() => setViewVendorId(null)} className="text-gray-400 hover:text-gray-600">×</button>
+            </div>
+            
+            <div className="space-y-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-500">Nama Vendor</p>
+                  <p className="font-semibold text-gray-900">{viewVendor.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Kontak Person</p>
+                  <p className="font-semibold text-gray-900">{viewVendor.contact_person || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">No. Telepon</p>
+                  <p className="font-semibold text-gray-900">{viewVendor.phone || "-"}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-sm text-gray-500">Alamat</p>
+                  <p className="font-semibold text-gray-900">{viewVendor.address || "-"}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap justify-end gap-3 pt-4 border-t">
+               <button
+                  onClick={() => {
+                     setShowTopupForm(viewVendor.id);
+                  }}
+                  className="px-4 py-2 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg font-medium flex items-center gap-2 transition-colors"
+                >
+                  <Wallet size={16} /> Kasbon / Topup
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingVendor(viewVendor);
+                    setVendorData({
+                      name: viewVendor.name,
+                      contact_person: viewVendor.contact_person || "",
+                      phone: viewVendor.phone || "",
+                      address: viewVendor.address || "",
+                      vendor_type: "jasa_loading",
+                      allow_deposit_cascade: viewVendor.allow_deposit_cascade || false
+                    });
+                    setShowVendorForm(true);
+                  }}
+                  className="px-4 py-2 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg font-medium flex items-center gap-2 transition-colors"
+                >
+                  <Edit size={16} /> Edit
+                </button>
+                <button
+                  onClick={() => {
+                    setViewVendorId(null);
+                    handleDeleteVendor(viewVendor.id);
+                  }}
+                  className="px-4 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg font-medium flex items-center gap-2 transition-colors"
+                >
+                  <Trash2 size={16} /> Hapus
+                </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* VENDOR FORM MODAL */}
       {showVendorForm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-          <div className="bg-white p-6 rounded-2xl w-full max-w-md shadow-2xl">
+          <div className="bg-white p-4 md:p-6 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-gray-900">
                 {editingVendor ? "Edit Vendor Jasa Loading" : "Tambah Vendor Jasa Loading"}
@@ -288,7 +332,7 @@ export default function LoadingVendorPage() {
       {/* TOPUP FORM MODAL */}
       {showTopupForm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-          <div className="bg-white p-6 rounded-2xl w-full max-w-md shadow-2xl">
+          <div className="bg-white p-4 md:p-6 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <Wallet className="text-emerald-600" size={20} />
@@ -382,7 +426,7 @@ export default function LoadingVendorPage() {
       {/* CONFIRM MODAL */}
       {confirmModal.isOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-          <div className="bg-white p-6 rounded-2xl w-full max-w-sm shadow-2xl text-center">
+          <div className="bg-white p-4 md:p-6 rounded-2xl w-full max-w-sm shadow-2xl text-center">
             <h3 className="text-lg font-bold mb-2 text-gray-900">{confirmModal.title}</h3>
             <p className="text-sm text-gray-600 mb-6">{confirmModal.message}</p>
             <div className="flex justify-center gap-3">

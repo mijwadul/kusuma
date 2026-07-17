@@ -4,14 +4,22 @@ import { useCreateEmployee, useUpdateEmployee, Employee, useEmployee } from '../
 import CustomSelect from '../CustomSelect';
 
 const POSITION_OPTIONS = [
-  'Operator', 'Mechanic', 'Driver', 'Supervisor', 'Manager',
-  'Admin', 'Finance Staff', 'Helper', 'Security', 'Office Boy', 'Other'
+  'General Manager', 'Manager', 'Supervisor', 'Admin',
+  'Operator Alat Berat', 'Mekanik', 'Driver Truck', 'Checker',
+  'Finance Staff', 'HR Staff', 'Security', 'Office Boy', 'Lainnya'
 ];
 
 const DEPARTMENT_OPTIONS = [
-  'Operations', 'Maintenance', 'Finance', 'HR',
-  'Administration', 'Management', 'Security', 'Logistics', 'Other'
+  'Alat Berat', 'Operasional Hauling', 'Material & Lahan', 'Corporate & Finance'
 ];
+
+const getDynamicOptions = (defaultOptions: string[], currentValue?: string) => {
+  const options = [...defaultOptions];
+  if (currentValue && !options.includes(currentValue)) {
+    options.push(currentValue);
+  }
+  return options;
+};
 
 interface Props {
   isOpen: boolean;
@@ -210,8 +218,8 @@ const EmployeeFormModal: React.FC<Props> = ({ isOpen, onClose, editingEmployee, 
                   value={employeeForm.position}
                   onChange={(val) => setEmployeeForm({...employeeForm, position: val as string})}
                   options={[
-                    { value: "", label: "Pilih Jabatan" },
-                    ...POSITION_OPTIONS.map(pos => ({ value: pos, label: pos }))
+                    { value: '', label: '-- Pilih Jabatan --' },
+                    ...getDynamicOptions(POSITION_OPTIONS, employeeForm.position).map(pos => ({ value: pos, label: pos }))
                   ]}
                 />
               </div>
@@ -222,8 +230,8 @@ const EmployeeFormModal: React.FC<Props> = ({ isOpen, onClose, editingEmployee, 
                   value={employeeForm.department}
                   onChange={(val) => setEmployeeForm({...employeeForm, department: val as string})}
                   options={[
-                    { value: "", label: "Pilih Departemen" },
-                    ...DEPARTMENT_OPTIONS.map(dept => ({ value: dept, label: dept }))
+                    { value: '', label: '-- Pilih Departemen --' },
+                    ...getDynamicOptions(DEPARTMENT_OPTIONS, employeeForm.department).map(dept => ({ value: dept, label: dept }))
                   ]}
                 />
               </div>

@@ -171,8 +171,11 @@ const PayrollPage: React.FC = () => {
 
   // ── role flags ──
   const role = currentUser?.role ?? "";
-  const isGM = role === "gm" || role === "direktur" || currentUser?.is_superuser;
+  const isDirector = role === "direktur";
+  const isManager = role === "manager";
+  const isGM = role === "gm" || isDirector || isManager || currentUser?.is_superuser;
   const isFinance = role === "finance" || isGM;
+  const canApprove = (isGM && !isDirector) || isManager;
 
   // ── handlers ──
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -789,7 +792,7 @@ const PayrollPage: React.FC = () => {
                 </button>
               )}
 
-              {isGM && detailData.payment_status === "pending" && (
+              {canApprove && detailData.payment_status === "pending" && (
                 <button
                   onClick={() => {
                     closeDetail();
@@ -801,7 +804,7 @@ const PayrollPage: React.FC = () => {
                 </button>
               )}
 
-              {detailData.payment_status === "pending" && !isGM && (
+              {detailData.payment_status === "pending" && !canApprove && (
                 <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-center gap-1">
                   <AlertCircle className="w-3.5 h-3.5" /> Menunggu approval GM
                 </span>
@@ -841,7 +844,7 @@ const PayrollPage: React.FC = () => {
                 {detailData.payment_status === "pending" ? "PDF (Belum Approved)" : "Download PDF"}
               </button>
 
-              {isGM && detailData.payment_status !== "paid" && (
+              {canApprove && detailData.payment_status !== "paid" && (
                 <button
                   onClick={() => {
                     closeDetail();

@@ -1,38 +1,24 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import {
-  Truck,
-  Users,
-  FolderOpen,
-  Fuel,
-  Gauge,
-  FileText,
-  Clock,
-  CheckCircle,
-  DollarSign,
-  AlertTriangle,
-  ChevronRight,
   RefreshCw,
-  Wallet,
-  Receipt,
-  XCircle,
   Smile,
-  Zap,
   Bot
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
 import AlertModal from "../components/AlertModal";
-import { toLocalDateInput, formatIDR, formatDate, toLocalDateTimeString } from "../utils/formatters";
-import StatCard from "../components/dashboard/StatCard";
-import SmartActionsPanel from "../components/dashboard/SmartActionsPanel";
+import { toLocalDateInput, toLocalDateTimeString } from "../utils/formatters";
 import AttendancePanel from "../components/dashboard/AttendancePanel";
-import EntityTablesPanel from "../components/dashboard/EntityTablesPanel";
-import YesterdayReportPanel from "../components/dashboard/YesterdayReportPanel";
 import TypewriterText from "../components/ui/TypewriterText";
 import AILiveLogs from "../components/ui/AILiveLogs";
 
+import CorporateDashboard from "../components/dashboard/CorporateDashboard";
+import AlatBeratDashboard from "../components/dashboard/AlatBeratDashboard";
+import HaulingDashboard from "../components/dashboard/HaulingDashboard";
+import MaterialDashboard from "../components/dashboard/MaterialDashboard";
+
+import { useDivision } from "../context/DivisionContext";
 import { usePermissions } from "../hooks/usePermissions";
 import {
   useDashboardStats,
@@ -50,10 +36,10 @@ import {
 } from "../hooks/useDashboard";
 
 export default function DashboardPage() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { currentUser, isGM } = usePermissions();
+  const { activeDivision } = useDivision();
 
   // Derived role flags
   const role = currentUser?.role ?? "";
@@ -71,7 +57,7 @@ export default function DashboardPage() {
 
   // React Query Fetching
   const { data: stats = { equipment_count: 0, employee_count: 0, project_count: 0 }, isLoading: loadingStats } = useDashboardStats();
-  const { data: payrollSummary, isLoading: loadingPayroll } = usePayrollSummary();
+  const { data: payrollSummary } = usePayrollSummary();
   const { data: fuelStats = { total_fuel_consumed: 0, equipment_count: 0 }, isLoading: loadingFuelStats } = useFuelEfficiency(30);
   const { data: equipment = [] } = useDashboardEquipment();
   const { data: employees = [] } = useDashboardEmployees();
@@ -124,8 +110,18 @@ export default function DashboardPage() {
   };
 
   const operationEmployees = useMemo(() => {
-    return employees.filter((e: any) => e.department && e.department.toLowerCase().startsWith("operation"));
-  }, [employees]);
+    let filtered = employees;
+    if (activeDivision === 'alat-berat') {
+      filtered = filtered.filter((e: any) => e.department === 'Alat Berat');
+    } else if (activeDivision === 'hauling') {
+      filtered = filtered.filter((e: any) => e.department === 'Operasional Hauling');
+    } else if (activeDivision === 'material') {
+      filtered = filtered.filter((e: any) => e.department === 'Material & Lahan');
+    } else if (activeDivision === 'corporate') {
+      filtered = filtered.filter((e: any) => e.department === 'Corporate & Finance');
+    }
+    return filtered;
+  }, [employees, activeDivision]);
 
   const aiMessage = useMemo(() => {
     let aiHints = [];
@@ -290,316 +286,68 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-      </div>
-
-      <AttendancePanel
-        role={role}
-        operationEmployees={operationEmployees}
-        selectedFieldEmployee={selectedFieldEmployee}
-        setSelectedFieldEmployee={setSelectedFieldEmployee}
-        todayAttendance={todayAttendance}
-        attendanceLoading={attendanceAction.isPending || attendanceLoading}
-        handleAttendanceAction={(empId: number, action: any, attId?: number) => {
-          const now = new Date();
-          attendanceAction.mutate({
-            employeeId: empId,
-            action,
-            attendanceId: attId,
-            date: toLocalDateInput(now),
-            timeStr: toLocalDateTimeString()
-          });
-        }}
-        setDeleteAttendanceModal={setDeleteAttendanceModal}
-      />
-
-      {(role === 'finance' || isGM) && financeSummary && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-emerald-600" />
-              Finance Summary
-            </h2>
-          </div>
-
-          {financeSummary.uninvoiced_material_sales_count > 0 && (
-            <div
-              onClick={() => navigate('/material-sales')}
-              className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm cursor-pointer hover:bg-amber-100 transition-colors"
-            >
-              <AlertTriangle className="w-6 h-6 text-amber-500 shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-sm font-bold text-amber-800">Menunggu Diterbitkan Invoice</h3>
-                <p className="text-xs text-amber-700 mt-1">
-                  Terdapat {financeSummary.uninvoiced_material_sales_count} penjualan material yang belum dibuatkan invoice. Segera periksa menu Material Sales / Invoices.
-                </p>
-                <p className="text-xs font-semibold text-amber-800 mt-2 underline">Klik untuk membuat invoice →</p>
-              </div>
-            </div>
-          )}
-
-          {financeSummary.unprocessed_attendances_count > 0 && (
-            <div
-              onClick={() => navigate('/payroll')}
-              className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm cursor-pointer hover:bg-blue-100 transition-colors"
-            >
-              <AlertTriangle className="w-6 h-6 text-blue-500 shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-sm font-bold text-blue-800">Absensi Belum Dibuatkan Slip Gaji</h3>
-                <p className="text-xs text-blue-700 mt-1">
-                  Terdapat {financeSummary.unprocessed_attendances_count} karyawan yang absensinya belum diproses menjadi slip gaji.
-                </p>
-                <p className="text-xs font-semibold text-blue-800 mt-2 underline">Klik untuk membuat slip gaji →</p>
-              </div>
-            </div>
-          )}
-
-          {(financeSummary.equipment_balances ?? financeSummary.vendor_deposits ?? []).filter((b: any) => (b.balance ?? b.balance_deposit ?? 0) <= 5000000).length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
-              <AlertTriangle className="w-6 h-6 text-red-500 shrink-0 mt-0.5 animate-pulse" />
-              <div className="flex-1">
-                <h3 className="text-sm font-bold text-red-800">Deposit Alat Berat Menipis / Minus</h3>
-                <p className="text-xs text-red-600 mt-1 mb-2">Alat berat berikut membutuhkan top-up deposit segera:</p>
-                <div className="space-y-1">
-                  {(financeSummary.equipment_balances ?? financeSummary.vendor_deposits ?? [])
-                    .filter((b: any) => (b.balance ?? b.balance_deposit ?? 0) <= 5000000)
-                    .sort((a: any, b: any) => (a.balance ?? a.balance_deposit ?? 0) - (b.balance ?? b.balance_deposit ?? 0))
-                    .map((b: any, idx: number) => {
-                      const balance = b.balance ?? b.balance_deposit ?? 0;
-                      const eqName = b.equipment_name ?? b.name ?? "-";
-                      const vendorName = b.vendor_name;
-                      return (
-                        <div key={idx} className="flex items-center justify-between bg-white/70 rounded-lg px-3 py-1.5 border border-red-100">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-semibold text-gray-700">{eqName}</span>
-                            {vendorName && <span className="text-xs text-gray-400">({vendorName})</span>}
-                          </div>
-                          <span className={`flex items-center gap-1 text-xs font-bold tabular-nums ${balance < 0 ? "text-red-700" : "text-amber-700"}`}>
-                            {balance < 0 ? <AlertTriangle size={14} className="text-red-500" /> : <Zap size={14} className="text-amber-500" />} {formatIDR(balance)}
-                          </span>
-                        </div>
-                      );
-                    })}
-                </div>
-                <button onClick={() => navigate('/equipment')} className="mt-3 text-xs font-bold text-red-700 underline hover:text-red-900">
-                  → Top-Up Sekarang di Menu Equipment
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              icon={Wallet}
-              label="Tagihan Pengeluaran"
-              value={formatIDR(financeSummary.unpaid_bills_amount)}
-              sub={`${financeSummary.unpaid_bills_count} bills menunggu bayar`}
-              color="bg-red-500"
-              badge={financeSummary.unpaid_bills_count > 0 ? financeSummary.unpaid_bills_count : undefined}
-              onClick={() => document.getElementById('unpaid-center')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-            />
-            <StatCard
-              icon={Receipt}
-              label="Invoice Belum Lunas"
-              value={formatIDR(financeSummary.unpaid_invoices_amount)}
-              sub={`${financeSummary.unpaid_invoices_count} invoice dari customer`}
-              color="bg-orange-500"
-              badge={financeSummary.unpaid_invoices_count > 0 ? financeSummary.unpaid_invoices_count : undefined}
-              onClick={() => document.getElementById('unpaid-center')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-            />
-            <StatCard
-              icon={Fuel}
-              label="BBM Pending Approval"
-              value={financeSummary.pending_fuel_purchases}
-              sub="Pembelian belum disetujui GM"
-              color="bg-amber-500"
-              badge={financeSummary.pending_fuel_purchases > 0 ? financeSummary.pending_fuel_purchases : undefined}
-              onClick={() => navigate("/fuel")}
-            />
-            <StatCard
-              icon={AlertTriangle}
-              label="Pengeluaran Pending"
-              value={financeSummary.pending_expenses}
-              sub="Menunggu approval GM"
-              color="bg-purple-500"
-              badge={financeSummary.pending_expenses > 0 ? financeSummary.pending_expenses : undefined}
-              onClick={() => navigate("/expenses")}
-            />
-          </div>
-
-          <YesterdayReportPanel
-            role={role}
-            isGM={isGM}
-            loadingYesterday={loadingYesterday}
-            yesterdayReport={yesterdayReport}
-          />
-
-          {(isGM || role === 'finance') && (
-            <div className="bg-white rounded-3xl border border-amber-200/60 shadow-sm overflow-hidden mt-6 transition-all duration-300 hover:shadow-md">
-              <div className="flex items-center gap-2 px-5 py-3 bg-amber-50 border-b border-amber-200">
-                <AlertTriangle className="w-4 h-4 text-amber-600" />
-                <span className="text-sm font-semibold text-amber-800">
-                  {financeSummary.pending_fuel_purchases} Pembelian BBM Menunggu Approval GM
-                </span>
-              </div>
-              <div className="divide-y divide-gray-100">
-                {financeSummary.recent_pending_fuel?.length > 0 ? (
-                  financeSummary.recent_pending_fuel.map((rec: any) => (
-                    <div key={rec.id} className="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors gap-3">
-                      <div>
-                        <p className="text-sm font-medium text-gray-800">
-                          {rec.liters.toLocaleString('id-ID')} Liter Solar
-                        </p>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          Total: {formatIDR(rec.total_price)} | Harga/L: {formatIDR(rec.total_price / rec.liters)}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          Tgl: {formatDate(rec.effective_date)} {rec.notes ? `• ${rec.notes}` : ''}
-                        </p>
-                      </div>
-                      {isGM && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setFuelActionModal({ isOpen: true, id: rec.id, action: 'approved' })}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors shadow-sm"
-                          >
-                            <CheckCircle className="w-3.5 h-3.5" />
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => setFuelActionModal({ isOpen: true, id: rec.id, action: 'rejected' })}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm"
-                          >
-                            <XCircle className="w-3.5 h-3.5" />
-                            Tolak
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <div className="px-5 py-6 text-center text-gray-500 text-sm">
-                    Tidak ada pembelian BBM yang menunggu persetujuan.
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+      </div>      {/* Attendance Panel rendered for all divisions unless role is GM */}
+      {!isGM && (
+        <AttendancePanel
+          role={role}
+          operationEmployees={operationEmployees}
+          selectedFieldEmployee={selectedFieldEmployee}
+          setSelectedFieldEmployee={setSelectedFieldEmployee}
+          todayAttendance={todayAttendance}
+          attendanceLoading={attendanceAction.isPending || attendanceLoading}
+          handleAttendanceAction={(empId: number, action: any, attId?: number) => {
+            const now = new Date();
+            attendanceAction.mutate({
+              employeeId: empId,
+              action,
+              attendanceId: attId,
+              date: toLocalDateInput(now),
+              timeStr: toLocalDateTimeString()
+            });
+          }}
+          setDeleteAttendanceModal={setDeleteAttendanceModal}
+        />
       )}
 
-      {role !== 'finance' && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in">
-          <StatCard
-            icon={Truck}
-            label="Total Equipment"
-            value={stats.equipment_count}
-            color="bg-blue-500"
-            loading={loadingStats}
-            onClick={() => navigate("/equipment")}
-          />
-          <StatCard
-            icon={Users}
-            label="Karyawan Aktif"
-            value={stats.employee_count}
-            color="bg-emerald-500"
-            loading={loadingStats}
-            onClick={() => navigate("/employees")}
-          />
-          <StatCard
-            icon={FolderOpen}
-            label="Total Proyek"
-            value={stats.project_count}
-            color="bg-purple-500"
-            loading={loadingStats}
-          />
-          <StatCard
-            icon={Gauge}
-            label="BBM 30 Hari"
-            value={`${fuelStats.total_fuel_consumed.toFixed(1)} L`}
-            sub={`${fuelStats.equipment_count} unit`}
-            color="bg-amber-500"
-            loading={loadingFuelStats}
-            onClick={() => navigate("/fuel")}
-          />
-        </div>
+      {/* Render Division Specific Dashboard */}
+      {(!activeDivision || activeDivision === 'corporate') && (
+        <CorporateDashboard
+          role={role}
+          isGM={isGM}
+          financeSummary={financeSummary}
+          payrollSummary={payrollSummary}
+          loadingYesterday={loadingYesterday}
+          yesterdayReport={yesterdayReport}
+          setFuelActionModal={setFuelActionModal}
+          setPayrollApproveModal={setPayrollApproveModal}
+          handleMarkPaid={(type: any, id: number) => markPaid.mutate({ type, id })}
+          approvePayrollPending={approvePayroll.isPending}
+          payrollApproveModalId={payrollApproveModal.id}
+        />
       )}
 
-      {canSeePayroll && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-[#0D9488]" />
-              Payroll Overview
-            </h2>
-            <button
-              onClick={() => navigate("/payroll")}
-              className="text-sm text-[#0D9488] hover:text-[#0F766E] flex items-center gap-1 font-medium"
-            >
-              Lihat Semua <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          {loadingPayroll ? (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fade-in">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-3xl p-6 border border-slate-100 flex items-start gap-4">
-                  <div className="p-3.5 rounded-2xl w-12 h-12 skeleton-box flex-shrink-0"></div>
-                  <div className="flex-1 w-full space-y-2">
-                    <div className="h-4 w-24 skeleton-box"></div>
-                    <div className="h-8 w-1/2 skeleton-box mt-1.5"></div>
-                    <div className="h-3 w-32 skeleton-box mt-1"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="animate-fade-in space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <StatCard
-                  icon={Clock}
-                  label="Menunggu Approval"
-                  value={payrollSummary?.pending_count ?? 0}
-                  sub={`Nilai: ${formatIDR(payrollSummary?.pending_total ?? 0)}`}
-                  color="bg-amber-500"
-                  badge={payrollSummary?.pending_count > 0 ? payrollSummary.pending_count : undefined}
-                  onClick={() => navigate("/payroll")}
-                />
-                <StatCard
-                  icon={CheckCircle}
-                  label={`Approved (${payrollSummary?.month_label ?? "Bulan Ini"})`}
-                  value={payrollSummary?.approved_count ?? 0}
-                  sub={`Total: ${formatIDR(payrollSummary?.approved_total ?? 0)}`}
-                  color="bg-green-500"
-                  onClick={() => navigate("/payroll")}
-                />
-                <StatCard
-                  icon={Wallet}
-                  label={`Dibayar (${payrollSummary?.month_label ?? "Bulan Ini"})`}
-                  value={payrollSummary?.paid_count ?? 0}
-                  sub={`Total: ${formatIDR(payrollSummary?.paid_total ?? 0)}`}
-                  color="bg-blue-600"
-                  onClick={() => navigate("/payroll")}
-                />
-              </div>
-
-
-            </div>
-          )}
-        </div>
+      {activeDivision === 'alat-berat' && (
+        <AlatBeratDashboard
+          stats={stats}
+          loadingStats={loadingStats}
+          fuelStats={fuelStats}
+          loadingFuelStats={loadingFuelStats}
+          equipment={equipment}
+        />
       )}
 
-      <EntityTablesPanel equipment={equipment} employees={employees} />
+      {activeDivision === 'hauling' && (
+        <HaulingDashboard />
+      )}
 
-      <SmartActionsPanel
-        isGM={isGM}
-        role={role}
-        payrollSummary={payrollSummary}
-        financeSummary={financeSummary}
-        approvingId={approvePayroll.isPending ? payrollApproveModal.id : null}
-        setPayrollApproveModal={setPayrollApproveModal}
-        handleMarkPaid={(type: any, id: number) => markPaid.mutate({ type, id })}
-      />
+      {activeDivision === 'material' && (
+        <MaterialDashboard
+          stats={stats}
+          loadingStats={loadingStats}
+        />
+      )}
 
+      {/* Shared Modals */}
       <AlertModal
         isOpen={deleteAttendanceModal.isOpen}
         onClose={() => setDeleteAttendanceModal({ isOpen: false, employeeId: null, attendanceId: null })}

@@ -13,9 +13,11 @@ import Sidebar from "./components/Sidebar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleProtectedRoute from "./components/RoleProtectedRoute";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { DivisionProvider } from "./context/DivisionContext";
 
 // Code Splitting with React.lazy
 const LoginPage = lazy(() => import('./pages/LoginPage'));
+const PortalPage = lazy(() => import('./pages/PortalPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const EquipmentPage = lazy(() => import('./pages/EquipmentPage'));
 const EmployeesPage = lazy(() => import('./pages/EmployeesPage'));
@@ -36,11 +38,19 @@ const ProjectSuratJalanPage = lazy(() => import('./pages/ProjectSuratJalanPage')
 const ProjectEmployeesPage = lazy(() => import('./pages/ProjectEmployeesPage'));
 const HaulingPage = lazy(() => import('./pages/HaulingPage'));
 const LoadingVendorPage = lazy(() => import('./pages/LoadingVendorPage'));
+const LoadingPricesPage = lazy(() => import('./pages/LoadingPricesPage'));
 
 import { motion } from 'framer-motion';
 
+import { useDivision } from './context/DivisionContext';
+
 const MainLayout: React.FC = () => {
   const location = useLocation();
+  const { activeDivision } = useDivision();
+
+  if (!activeDivision && location.pathname !== '/portal') {
+    return <Navigate to="/portal" replace />;
+  }
 
   return (
     <Sidebar>
@@ -66,46 +76,50 @@ const FallbackLoader = () => (
 const App: React.FC = () => {
   return (
     <ErrorBoundary>
-      <Router>
-        <Toaster />
-        <Suspense fallback={<FallbackLoader />}>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route
-              element={
-                <ProtectedRoute>
-                  <MainLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="/dashboard" element={<RoleProtectedRoute allowedRoles={[]}><DashboardPage /></RoleProtectedRoute>} />
-              <Route path="/equipment" element={<RoleProtectedRoute allowedRoles={[]}><EquipmentPage /></RoleProtectedRoute>} />
-              <Route path="/projects" element={<RoleProtectedRoute allowedRoles={["gm", "admin", "finance", "checker"]}><ProjectsPage /></RoleProtectedRoute>} />
+      <DivisionProvider>
+        <Router>
+          <Toaster />
+          <Suspense fallback={<FallbackLoader />}>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/portal" element={<ProtectedRoute><PortalPage /></ProtectedRoute>} />
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <MainLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route path="/dashboard" element={<RoleProtectedRoute allowedRoles={[]}><DashboardPage /></RoleProtectedRoute>} />
+                <Route path="/equipment" element={<RoleProtectedRoute allowedRoles={[]} allowedDivision="alat-berat"><EquipmentPage /></RoleProtectedRoute>} />
+                <Route path="/projects" element={<RoleProtectedRoute allowedRoles={["gm", "admin", "finance", "checker"]} allowedDivision="material"><ProjectsPage /></RoleProtectedRoute>} />
 
-              <Route path="/fuel" element={<RoleProtectedRoute allowedRoles={["field", "helper", "finance", "checker", "gm", "admin"]}><FuelPage /></RoleProtectedRoute>} />
-              <Route path="/work-logs" element={<RoleProtectedRoute allowedRoles={["field", "helper", "finance", "checker", "gm", "admin"]}><WorkLogsPage /></RoleProtectedRoute>} />
-              <Route path="/material-sales" element={<RoleProtectedRoute allowedRoles={["field", "helper", "finance", "checker", "gm", "admin"]}><MaterialSalesPage /></RoleProtectedRoute>} />
+                <Route path="/fuel" element={<RoleProtectedRoute allowedRoles={["field", "helper", "finance", "checker", "gm", "admin"]} allowedDivision="alat-berat"><FuelPage /></RoleProtectedRoute>} />
+                <Route path="/work-logs" element={<RoleProtectedRoute allowedRoles={["field", "helper", "finance", "checker", "gm", "admin"]} allowedDivision="alat-berat"><WorkLogsPage /></RoleProtectedRoute>} />
+                <Route path="/material-sales" element={<RoleProtectedRoute allowedRoles={["field", "helper", "finance", "checker", "gm", "admin"]} allowedDivision="material"><MaterialSalesPage /></RoleProtectedRoute>} />
 
-              <Route path="/income" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><IncomePage /></RoleProtectedRoute>} />
-              <Route path="/finance/fuel-price" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><FuelPricePage /></RoleProtectedRoute>} />
-              <Route path="/payroll" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><PayrollPage /></RoleProtectedRoute>} />
-              <Route path="/expenses" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><ExpensePage /></RoleProtectedRoute>} />
-              <Route path="/reports" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><ReportsPage /></RoleProtectedRoute>} />
+                <Route path="/income" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]} allowedDivision="corporate"><IncomePage /></RoleProtectedRoute>} />
+                <Route path="/finance/fuel-price" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]} allowedDivision="corporate"><FuelPricePage /></RoleProtectedRoute>} />
+                <Route path="/payroll" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]} allowedDivision="corporate"><PayrollPage /></RoleProtectedRoute>} />
+                <Route path="/expenses" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]} allowedDivision="corporate"><ExpensePage /></RoleProtectedRoute>} />
+                <Route path="/reports" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]} allowedDivision="corporate"><ReportsPage /></RoleProtectedRoute>} />
 
-              <Route path="/hauling" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><HaulingPage /></RoleProtectedRoute>} />
-              <Route path="/loading-vendors" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]}><LoadingVendorPage /></RoleProtectedRoute>} />
-              <Route path="/employees" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]}><EmployeesPage /></RoleProtectedRoute>} />
-              <Route path="/users" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]}><UsersPage /></RoleProtectedRoute>} />
-              <Route path="/attendance" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]}><AttendancePage /></RoleProtectedRoute>} />
-              <Route path="/cashflow" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]}><CashFlowPage /></RoleProtectedRoute>} />
+                <Route path="/hauling" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]} allowedDivision="hauling"><HaulingPage /></RoleProtectedRoute>} />
+                <Route path="/loading-vendors" element={<RoleProtectedRoute allowedRoles={["finance", "checker", "gm", "admin"]} allowedDivision="alat-berat"><LoadingVendorPage /></RoleProtectedRoute>} />
+                <Route path="/loading-prices" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]} allowedDivision="alat-berat"><LoadingPricesPage /></RoleProtectedRoute>} />
+                <Route path="/employees" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]} allowedDivision="corporate"><EmployeesPage /></RoleProtectedRoute>} />
+                <Route path="/users" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]} allowedDivision="corporate"><UsersPage /></RoleProtectedRoute>} />
+                <Route path="/attendance" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]} allowedDivision="corporate"><AttendancePage /></RoleProtectedRoute>} />
+                <Route path="/cashflow" element={<RoleProtectedRoute allowedRoles={["gm", "admin"]} allowedDivision="corporate"><CashFlowPage /></RoleProtectedRoute>} />
 
-              <Route path="/projects/surat-jalan" element={<RoleProtectedRoute allowedRoles={["field", "gm", "admin"]}><ProjectSuratJalanPage /></RoleProtectedRoute>} />
-              <Route path="/projects/pekerja" element={<RoleProtectedRoute allowedRoles={["field", "gm", "admin"]}><ProjectEmployeesPage /></RoleProtectedRoute>} />
-            </Route>
-            <Route path="/" element={<Navigate to="/login" replace />} />
-          </Routes>
-        </Suspense>
-      </Router>
+                <Route path="/projects/surat-jalan" element={<RoleProtectedRoute allowedRoles={["field", "gm", "admin"]} allowedDivision="material"><ProjectSuratJalanPage /></RoleProtectedRoute>} />
+                <Route path="/projects/pekerja" element={<RoleProtectedRoute allowedRoles={["field", "gm", "admin"]} allowedDivision="material"><ProjectEmployeesPage /></RoleProtectedRoute>} />
+              </Route>
+              <Route path="/" element={<Navigate to="/login" replace />} />
+            </Routes>
+          </Suspense>
+        </Router>
+      </DivisionProvider>
     </ErrorBoundary>
   );
 }

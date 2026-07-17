@@ -17,6 +17,7 @@ class User(Base):
 
     # Role: gm (General Manager), finance, admin (Admin/HR), field (Field Staff)
     role: Mapped[str] = mapped_column(String(30), default="field")
+    division: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)

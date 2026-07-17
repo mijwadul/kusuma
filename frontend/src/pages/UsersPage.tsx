@@ -43,6 +43,18 @@ const ROLE_CONFIG: Record<string, any> = {
     icon: HardHat,
     description: "Input lapangan: Absen, BBM, Work Logs",
   },
+  direktur: {
+    label: "Direktur",
+    color: "bg-yellow-100 text-yellow-800",
+    icon: Crown,
+    description: "Read-only full access",
+  },
+  manager: {
+    label: "Manager Divisi",
+    color: "bg-indigo-100 text-indigo-800",
+    icon: UserCog,
+    description: "Full access per divisi",
+  },
   // Legacy roles
   helper: {
     label: "Helper (Legacy)",
@@ -59,7 +71,7 @@ const ROLE_CONFIG: Record<string, any> = {
 };
 
 export default function UsersPage() {
-  const { currentUser, isLoading: loadingCurrentUser, isGM } = usePermissions();
+  const { currentUser, isLoading: loadingCurrentUser, isGM, canManageUsers } = usePermissions();
   
   // Verify access before fetching users if possible
   const { data: users = [], isLoading: loadingUsers } = useUsersList({
@@ -87,6 +99,7 @@ export default function UsersPage() {
     phone: "",
     role: "field",
     is_active: true,
+    division: "",
   });
 
   const handleEmployeeSelect = async (employeeId: string) => {
@@ -148,6 +161,7 @@ export default function UsersPage() {
       phone: (user as any).phone || "",
       role: user.role || "field",
       is_active: user.is_active,
+      division: (user as any).division || "",
     });
     setShowForm(true);
   };
@@ -182,6 +196,7 @@ export default function UsersPage() {
       phone: "",
       role: "field",
       is_active: true,
+      division: "",
     });
   };
 
@@ -232,13 +247,15 @@ export default function UsersPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Manajemen User</h1>
           <p className="text-gray-600 mt-1 text-sm">Kelola user dan hak akses sistem</p>
         </div>
-        <button
-          onClick={openAddForm}
-          className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center justify-center space-x-2 transition-colors shadow-sm"
-        >
-          <Plus size={18} />
-          <span>Tambah User</span>
-        </button>
+        {canManageUsers && (
+          <button
+            onClick={openAddForm}
+            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center justify-center space-x-2 transition-colors shadow-sm"
+          >
+            <Plus size={18} />
+            <span>Tambah User</span>
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
@@ -271,11 +288,12 @@ export default function UsersPage() {
                 <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
                 <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
                 <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                {canManageUsers && <th className="px-4 py-3 text-right whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">Aksi</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {users.map((user) => (
-                <tr key={user.id} className={`${user.id === currentUser?.id ? "bg-blue-50/50" : "hover:bg-emerald-50/60"} cursor-pointer transition-colors`} onClick={() => handleEdit(user)}>
+                <tr key={user.id} className={`${user.id === currentUser?.id ? "bg-blue-50/50" : "hover:bg-emerald-50/60"} ${canManageUsers ? "cursor-pointer" : ""} transition-colors`} onClick={() => canManageUsers && handleEdit(user)}>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-semibold text-sm mr-3 uppercase">
@@ -300,6 +318,28 @@ export default function UsersPage() {
                       {user.is_active ? "Aktif" : "Nonaktif"}
                     </span>
                   </td>
+                  {canManageUsers && (
+                    <td className="px-4 py-3 whitespace-nowrap text-right">
+                      <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleEdit(user); }}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Edit User"
+                        >
+                          <UserCog size={18} />
+                        </button>
+                        {user.id !== currentUser?.id && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDelete(user.id); }}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Hapus User"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -418,7 +458,9 @@ export default function UsersPage() {
                   value={formData.role}
                   onChange={(val) => setFormData({ ...formData, role: val as string })}
                   options={[
+                    { value: "direktur", label: "Direktur - Read-only full access" },
                     { value: "gm", label: "General Manager - Full access + Final approval" },
+                    { value: "manager", label: "Manager Divisi - Full access per divisi" },
                     { value: "finance", label: "Finance Staff - Keuangan, Vendor, Payroll" },
                     { value: "admin", label: "Admin/HR - Equipment, Karyawan, Absensi" },
                     { value: "field", label: "Field Staff - Input lapangan: Absen, BBM, Work Logs" },
@@ -427,6 +469,23 @@ export default function UsersPage() {
                   ]}
                 />
               </div>
+
+              {formData.role !== "gm" && formData.role !== "direktur" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Divisi (Akses)</label>
+                  <CustomSelect
+                    value={formData.division || ""}
+                    onChange={(val) => setFormData({ ...formData, division: val as string })}
+                    options={[
+                      { value: "", label: "-- Akses Semua Divisi (Jika kosong) --" },
+                      { value: "alat-berat", label: "Divisi Alat Berat" },
+                      { value: "hauling", label: "Divisi Trucking & Hauling" },
+                      { value: "material", label: "Divisi Material & Lahan" },
+                      { value: "corporate", label: "Corporate & Finance" },
+                    ]}
+                  />
+                </div>
+              )}
 
               <div className="flex items-center">
                 <input

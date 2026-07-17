@@ -9,6 +9,7 @@ from ..models.vendor import Vendor
 from ..models.project_hauling_price import ProjectHaulingPrice
 from ..models.project_loading_price import ProjectLoadingPrice
 from ..models.vendor_truck import VendorTruck
+from .loading_price_service import LoadingPriceService
 from ..schemas.surat_jalan import SuratJalanCreate, SuratJalanUpdate
 from fastapi import HTTPException
 from datetime import datetime, date
@@ -105,18 +106,18 @@ class SuratJalanService:
             if data.created_at:
                 today_date = datetime.fromisoformat(data.created_at).date()
                 
-            l_price_record = db.query(ProjectLoadingPrice).filter(
-                ProjectLoadingPrice.project_id == project.id,
-                or_(ProjectLoadingPrice.vendor_id == data.loading_vendor_id, ProjectLoadingPrice.vendor_id.is_(None)),
-                func.date(ProjectLoadingPrice.effective_date) <= today_date
-            ).order_by(
-                ProjectLoadingPrice.vendor_id.isnot(None).desc(),
-                ProjectLoadingPrice.effective_date.desc()
-            ).first()
-            if l_price_record:
-                loading_price = l_price_record.price_per_unit
-                # Jasa loading selalu per ritase (1 trip)
-                loading_cost = float(loading_price) * 1.0
+            truck_type = getattr(data, 'truck_type', None)
+            
+            loading_price, loading_cost = LoadingPriceService.calculate_loading_cost(
+                db=db,
+                project_id=project.id,
+                vendor_id=data.loading_vendor_id,
+                target_date=today_date,
+                measurement_type=project.measurement_type,
+                truck_type=truck_type,
+                netto=netto,
+                volume=volume
+            )
 
         sj = SuratJalan(
             project_id=data.project_id,
@@ -359,33 +360,34 @@ class SuratJalanService:
         # -- START CALC LOADING COST --
         loading_price = sj.loading_price
         loading_cost = sj.loading_cost
+        from ..services.loading_price_service import LoadingPriceService
+        sj_date = sj.created_at.date()
         
         # Recalculate loading cost if vendor or date changed
         if data.loading_vendor_id is not None or (data.created_at and sj.loading_vendor_id):
             l_vendor_id_to_check = data.loading_vendor_id if data.loading_vendor_id is not None else sj.loading_vendor_id
             if l_vendor_id_to_check:
-                l_price_record = db.query(ProjectLoadingPrice).filter(
-                    ProjectLoadingPrice.project_id == project.id,
-                    or_(ProjectLoadingPrice.vendor_id == l_vendor_id_to_check, ProjectLoadingPrice.vendor_id.is_(None)),
-                    func.date(ProjectLoadingPrice.effective_date) <= sj_date
-                ).order_by(
-                    ProjectLoadingPrice.vendor_id.isnot(None).desc(),
-                    ProjectLoadingPrice.effective_date.desc()
-                ).first()
-                if l_price_record:
-                    loading_price = l_price_record.price_per_unit
-                    loading_cost = float(loading_price) * 1.0
-                else:
-                    loading_price = None
-                    loading_cost = None
+                truck_type_to_check = getattr(data, 'truck_type', None) or sj.truck_type
+                
+                new_l_price, new_l_cost = LoadingPriceService.calculate_loading_cost(
+                    db=db,
+                    project_id=project.id,
+                    vendor_id=l_vendor_id_to_check,
+                    target_date=sj_date,
+                    measurement_type=project.measurement_type,
+                    truck_type=truck_type_to_check,
+                    netto=sj.netto,
+                    volume=sj.volume
+                )
+                
+                sj.loading_price = new_l_price
+                sj.loading_cost = new_l_cost
             else:
-                loading_price = None
-                loading_cost = None
+                sj.loading_price = None
+                sj.loading_cost = None
                 
         if data.loading_vendor_id is not None:
             sj.loading_vendor_id = data.loading_vendor_id
-        sj.loading_price = loading_price
-        sj.loading_cost = loading_cost
         # -- END CALC LOADING COST --
 
         # Handle Deposit Refund and Deduction

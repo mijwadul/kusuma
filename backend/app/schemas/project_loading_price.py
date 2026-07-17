@@ -3,17 +3,20 @@ from pydantic import BaseModel
 from datetime import datetime, date
 
 class ProjectLoadingPriceBase(BaseModel):
-    project_id: int
+    project_id: Optional[int] = None
     vendor_id: Optional[int] = None
-    price_per_unit: float
+    unit_type: str = 'tonase'
+    price: float
     effective_date: Optional[date] = None
 
 class ProjectLoadingPriceCreate(ProjectLoadingPriceBase):
     pass
 
 class ProjectLoadingPriceUpdate(BaseModel):
+    project_id: Optional[int] = None
     vendor_id: Optional[int] = None
-    price_per_unit: Optional[float] = None
+    unit_type: Optional[str] = None
+    price: Optional[float] = None
     effective_date: Optional[date] = None
 
 class ProjectLoadingPriceResponse(ProjectLoadingPriceBase):

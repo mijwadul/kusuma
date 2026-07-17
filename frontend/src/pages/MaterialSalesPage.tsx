@@ -846,7 +846,7 @@ export default function MaterialSalesPage() {
   const [viewPrice, setViewPrice] = useState<MaterialPrice | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<any>(null);
 
-  const isGM = currentUser?.is_admin || currentUser?.is_superuser || ["gm", "admin"].includes(currentUser?.role || "");
+  const isGM = currentUser?.is_admin || currentUser?.is_superuser || ["gm", "admin", "manager"].includes(currentUser?.role || "");
   const isLoading = activeTab === "sales" ? loadingSales : loadingPrices;
 
   const handleDelete = async () => {

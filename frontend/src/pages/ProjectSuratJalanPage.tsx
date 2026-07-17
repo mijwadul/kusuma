@@ -273,7 +273,7 @@ const SuratJalanFormModal = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Vendor Jasa Loading</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Dimuat Oleh (Vendor Loading)</label>
               <CustomCombobox
                 value={formData.loading_vendor_name || ''}
                 onChange={(val) => {
@@ -284,9 +284,10 @@ const SuratJalanFormModal = ({
                     loading_vendor_id: foundVendor ? foundVendor.id.toString() : ''
                   }));
                 }}
-                placeholder="Pilih atau ketik vendor jasa loading (opsional)"
+                placeholder="Pilih atau ketik vendor loading"
                 options={loadingVendors ? loadingVendors.map((v: any) => ({ value: v.name, label: v.name })) : []}
               />
+              <p className="text-xs text-gray-500 mt-1">Kosongkan jika muatan dimuat oleh Alat Berat Internal Perusahaan.</p>
             </div>
             
             <div>

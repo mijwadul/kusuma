@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { logout as apiLogout } from "../api/auth";
+import { useDivision } from "../context/DivisionContext";
 import {
   Home,
   LogOut,
@@ -21,12 +22,14 @@ import {
   Calendar,
   ShoppingCart,
   Wallet,
-  TrendingUp,
   Briefcase,
   FileText,
   Receipt,
   BarChart3,
   FileBarChart2,
+  LayoutGrid,
+  Map,
+  Settings,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -40,6 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ children }) => {
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const { activeDivision, setActiveDivision } = useDivision();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -118,12 +122,15 @@ interface MenuItem {
   submenu?: SubMenuItem[];
 }
 
+  // Extract roles to component scope so it can be used in footer
+  const role = currentUser?.role || "field";
+  const isDirector = role === "direktur";
+  const isManager = role === "manager";
+  const isGM = role === "gm" || isDirector || isManager || role === "admin" || currentUser?.is_admin || currentUser?.is_superuser;
+
   // Role-based menu filtering - System Kusuma Roles: gm, finance, admin, field
   // Legacy roles: helper → field, checker → finance
   const getMenuItems = (): MenuItem[] => {
-    const role = currentUser?.role || "field";
-    // GM level: gm, admin (legacy), is_admin flag
-    const isGM = role === "gm" || role === "admin" || currentUser?.is_admin;
     // Finance level: finance, checker (legacy), GM level
     const isFinance = role === "finance" || role === "checker" || isGM;
     // Admin/HR level: admin, gm, GM level
@@ -137,6 +144,11 @@ interface MenuItem {
     const items: MenuItem[] = [
       { path: "/dashboard", icon: Home, label: "Dashboard", show: true },
     ];
+
+    if (!activeDivision) {
+       // If no division is active (which shouldn't happen normally inside protected routes but just in case)
+       return items;
+    }
 
     if (isAssignedField) {
       items.push({
@@ -161,172 +173,52 @@ interface MenuItem {
       return items;
     }
 
-    // 1. Equipment & Operasional submenu (All roles see equipment, Field sees operational logs)
-    const equipmentSubmenu = [
-      {
-        path: "/equipment",
-        icon: Factory,
-        label: "Manajemen Equipment",
-        show: true,
-      },
-      {
-        path: "/hauling",
-        icon: Truck,
-        label: "Vendor Hauling",
-        show: isFinance || isAdmin,
-      },
-      {
-        path: "/loading-vendors",
-        icon: Factory,
-        label: "Vendor Jasa Loading",
-        show: isFinance || isAdmin,
-      },
-      {
-        path: "/work-logs",
-        icon: Clock,
-        label: "Log Jam Kerja Alat",
-        show: isField,
-      },
-      { path: "/fuel", icon: Fuel, label: "Logistik BBM", show: isField },
-      {
-        path: "/material-sales",
-        icon: ShoppingCart,
-        label: "Penjualan Material",
-        show: isField,
-      },
-    ].filter((sub) => sub.show);
-
-    if (equipmentSubmenu.length > 0) {
-      items.push({
-        id: "equipment",
-        icon: Factory,
-        label: "Operasional & Penjualan",
-        submenu: equipmentSubmenu,
+    // Filter based on division
+    if (activeDivision === 'alat-berat') {
+      const alatBeratItems = [
+        { path: "/equipment", icon: Factory, label: "Manajemen Alat Berat", show: true },
+        { path: "/loading-vendors", icon: Truck, label: "Vendor Loading", show: isFinance || isAdmin },
+        { path: "/loading-prices", icon: Settings, label: "Master Harga Loading", show: isGM || isAdmin },
+        { path: "/work-logs", icon: Clock, label: "Log Jam Kerja (Timesheet)", show: isField },
+        { path: "/fuel", icon: Fuel, label: "Logistik BBM", show: isField },
+      ].filter((item) => item.show);
+      
+      alatBeratItems.forEach(item => {
+        items.push(item);
       });
-    }
-
-    // 2. Karyawan dengan submenu (Admin & Field)
-    if (isAdmin || isField) {
-      const employeeSubmenu = [
-        {
-          path: "/employees",
-          icon: Users,
-          label: "Manajemen Karyawan",
-          show: isAdmin,
-        },
-        {
-          path: "/attendance",
-          icon: Calendar,
-          label: "Absensi Karyawan",
-          show: isAdmin,
-        },
-        {
-          path: "/payroll",
-          icon: FileText,
-          label: "Payroll & Slip Gaji",
-          show: isFinance,
-        },
+    } else if (activeDivision === 'hauling') {
+      const haulingItems = [
+        { path: "/projects/surat-jalan", icon: Receipt, label: "Surat Jalan & Pengiriman", show: isField || isGM },
+        { path: "/hauling", icon: Truck, label: "Manajemen Vendor Hauling", show: isFinance || isAdmin }
       ].filter((sub) => sub.show);
+      items.push({ id: "hauling", icon: Truck, label: "Operasional Hauling", submenu: haulingItems });
+    } else if (activeDivision === 'material') {
+      const materialItems = [
+        { path: "/projects", icon: FolderOpen, label: "Manajemen Proyek & Lahan", show: isFinance || isAdmin },
+        { path: "/material-sales", icon: ShoppingCart, label: "Penjualan Material", show: isField },
+        { path: "/projects/pekerja", icon: Users, label: "Pekerja Proyek/Lahan", show: isField || isGM }
+      ].filter((sub) => sub.show);
+      items.push({ id: "material", icon: Map, label: "Material & Lahan", submenu: materialItems });
+    } else if (activeDivision === 'corporate') {
+      const financeItems = [
+        { path: "/income", icon: Wallet, label: "Pemasukan", show: isFinance },
+        { path: "/expenses", icon: Receipt, label: "Pengeluaran", show: isFinance },
+        { path: "/cashflow", icon: BarChart3, label: "Cash Flow Global", show: isGM },
+        { path: "/finance/fuel-price", icon: Fuel, label: "Pembelian BBM Pusat", show: isFinance },
+        { path: "/payroll", icon: FileText, label: "Payroll & Gaji", show: isFinance },
+        { path: "/reports", icon: FileBarChart2, label: "Laporan Global", show: isFinance }
+      ].filter((sub) => sub.show);
+      if (financeItems.length > 0) items.push({ id: "finance", icon: Briefcase, label: "Keuangan Global", submenu: financeItems });
 
-      if (employeeSubmenu.length > 0) {
-        items.push({
-          id: "employees",
-          icon: UserCog,
-          label: "Karyawan",
-          submenu: employeeSubmenu,
-        });
-      }
+      const hrItems = [
+        { path: "/employees", icon: Users, label: "Master Data Karyawan", show: isAdmin },
+        { path: "/attendance", icon: Calendar, label: "Absensi Global", show: isAdmin },
+        { path: "/users", icon: UserCog, label: "Manajemen User", show: isGM }
+      ].filter((sub) => sub.show);
+      if (hrItems.length > 0) items.push({ id: "hr", icon: Users, label: "HRD & Sistem", submenu: hrItems });
     }
 
-    // 3. Finance Menu (GM & Finance only)
-    if (isFinance) {
-      const financeSubmenu = [
-        {
-          path: "/finance/fuel-price",
-          icon: Fuel,
-          label: "Pembelian BBM",
-          show: true,
-        },
-        {
-          path: "/income",
-          icon: Wallet,
-          label: "Pemasukan & Pendapatan",
-          show: true,
-        },
-
-        {
-          path: "/expenses",
-          icon: Receipt,
-          label: "Pengeluaran Harian",
-          show: true,
-        },
-        {
-          path: "/cashflow",
-          icon: BarChart3,
-          label: "Cash Flow",
-          show: isGM,
-        },
-        {
-          path: "/reports",
-          icon: FileBarChart2,
-          label: "Laporan Operasional",
-          show: isFinance,
-        },
-      ];
-      items.push({
-        id: "finance",
-        icon: Briefcase,
-        label: "Finance",
-        submenu: financeSubmenu,
-      });
-    }
-
-    // 4. Project (All roles except pure field may see differently)
-    const projectSubmenu = [
-      {
-        path: "/projects",
-        icon: FolderOpen,
-        label: "Project Management",
-        show: isFinance,
-      },
-    ];
-    
-    if (isGM) {
-      projectSubmenu.push(
-        {
-          path: "/projects/surat-jalan",
-          icon: Truck,
-          label: "Surat Jalan",
-          show: true,
-        },
-        {
-          path: "/projects/pekerja",
-          icon: Users,
-          label: "Pekerja Proyek",
-          show: true,
-        }
-      );
-    }
-    if (projectSubmenu.length > 0) {
-      items.push({
-        id: "projects",
-        icon: TrendingUp,
-        label: "Project",
-        submenu: projectSubmenu,
-      });
-    }
-
-    // User Management - GM only
-    if (isGM) {
-      items.push({
-        path: "/users",
-        icon: Users,
-        label: "Manajemen User",
-        show: true,
-      });
-    }
-
-    return items.filter((item) => item.show !== false);
+    return items;
   };
 
   const mainMenuItems = getMenuItems();
@@ -443,6 +335,19 @@ interface MenuItem {
                     </Link>
                   );
                 })}
+                {isGM && (
+                  <button
+                    onClick={() => {
+                       setActiveDivision(null);
+                       setMobileMenuOpen(false);
+                       navigate('/portal');
+                    }}
+                    className="flex items-center space-x-3 p-3 rounded-lg hover:bg-slate-800/60 hover:text-white text-slate-300 transition-colors w-full"
+                  >
+                    <LayoutGrid size={20} />
+                    <span>Ganti Divisi</span>
+                  </button>
+                )}
                 <button
                   onClick={handleLogout}
                   className="flex items-center space-x-3 p-3 rounded-lg hover:bg-red-600 text-red-100 transition-colors w-full"
@@ -602,8 +507,23 @@ interface MenuItem {
           })}
         </nav>
 
-        {/* Footer - Logout */}
-        <div className="p-4 border-t border-slate-800">
+        {/* Footer - Portal & Logout */}
+        <div className="p-4 border-t border-slate-800 space-y-2">
+          {isGM && (
+            <button
+              onClick={() => {
+                 setActiveDivision(null);
+                 navigate('/portal');
+              }}
+              className={`flex items-center space-x-3 p-3 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white transition-colors w-full ${
+                !isOpen && "justify-center"
+              }`}
+              title={!isOpen ? "Kembali ke Portal" : ""}
+            >
+              <LayoutGrid size={20} />
+              {isOpen && <span>Ganti Divisi</span>}
+            </button>
+          )}
           <button
             onClick={handleLogout}
             className={`flex items-center space-x-3 p-3 rounded-lg hover:bg-red-600 text-red-100 transition-colors w-full ${

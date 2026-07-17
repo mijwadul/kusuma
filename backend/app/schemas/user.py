@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict
 
 # System Kusuma Roles: gm (General Manager), finance (Finance Staff), admin (Admin/HR), field (Field Staff)
 # Legacy roles (helper, checker) supported for backward compatibility during migration
-UserRole = Literal["gm", "finance", "admin", "field", "helper", "checker"]
+UserRole = Literal["gm", "finance", "admin", "field", "helper", "checker", "manager", "direktur"]
 
 
 class UserBase(BaseModel):
@@ -17,6 +17,7 @@ class UserBase(BaseModel):
     is_admin: Optional[bool] = False  # True for GM
     is_superuser: Optional[bool] = False  # Superuser flag
     is_active: Optional[bool] = True
+    division: Optional[str] = None
 
 
 class UserCreate(UserBase):
@@ -33,6 +34,7 @@ class UserUpdate(BaseModel):
     is_admin: Optional[bool] = None
     password: Optional[str] = None
     password_change_required: Optional[bool] = None
+    division: Optional[str] = None
 
 
 class User(UserBase):

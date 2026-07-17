@@ -42,7 +42,7 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await login(formData.email, formData.password);
-      navigate('/dashboard');
+      navigate('/portal');
     } catch (error: any) {
       console.error('Login error full:', error);
       let errorMsg = 'Login gagal. Periksa email dan password Anda.';
