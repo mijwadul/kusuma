@@ -107,7 +107,7 @@ export default function LoadingPricesPage() {
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm"
         >
           <Plus size={20} /> Tambah Harga
         </button>
@@ -141,7 +141,7 @@ export default function LoadingPricesPage() {
                 else { priorityLabel = "Prioritas 4 (Global Default)"; priorityColor = "bg-emerald-50 text-emerald-600 border-emerald-200"; }
 
                 return (
-                  <tr key={p.id} onClick={() => setViewPriceId(p.id)} className="hover:bg-blue-50/60 cursor-pointer transition-colors">
+                  <tr key={p.id} onClick={() => setViewPriceId(p.id)} className="hover:bg-emerald-50/60 cursor-pointer transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 rounded-md text-xs font-medium border ${priorityColor}`}>
                         {priorityLabel}
@@ -255,7 +255,7 @@ export default function LoadingPricesPage() {
                 <select
                   value={formData.project_id || ''}
                   onChange={e => setFormData({ ...formData, project_id: e.target.value ? Number(e.target.value) : null })}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border bg-white text-gray-900"
+                  className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-2.5 border bg-white text-gray-900"
                 >
                   <option value="">-- Semua Project (Global) --</option>
                   {projects.map((p: Project) => (
@@ -270,7 +270,7 @@ export default function LoadingPricesPage() {
                 <select
                   value={formData.vendor_id || ''}
                   onChange={e => setFormData({ ...formData, vendor_id: e.target.value ? Number(e.target.value) : null })}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border bg-white text-gray-900"
+                  className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-2.5 border bg-white text-gray-900"
                 >
                   <option value="">-- Alat Internal & Semua Vendor --</option>
                   {vendors.map((v: any) => (
@@ -285,7 +285,7 @@ export default function LoadingPricesPage() {
                 <select
                   value={formData.unit_type}
                   onChange={e => setFormData({ ...formData, unit_type: e.target.value })}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border bg-white text-gray-900"
+                  className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-2.5 border bg-white text-gray-900"
                   required
                 >
                   <option value="rit_tronton">Ritase (Tronton)</option>
@@ -301,7 +301,7 @@ export default function LoadingPricesPage() {
                   type="number"
                   value={formData.price || ''}
                   onChange={e => setFormData({ ...formData, price: Number(e.target.value) })}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border bg-white text-gray-900"
+                  className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-2.5 border bg-white text-gray-900"
                   required
                 />
               </div>
@@ -312,7 +312,7 @@ export default function LoadingPricesPage() {
                   type="date"
                   value={formData.effective_date}
                   onChange={e => setFormData({ ...formData, effective_date: e.target.value })}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border bg-white text-gray-900"
+                  className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-2.5 border bg-white text-gray-900"
                   required
                 />
               </div>
@@ -327,7 +327,7 @@ export default function LoadingPricesPage() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2.5 rounded-xl font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                  className="flex-1 px-4 py-2.5 rounded-xl font-medium bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
                 >
                   Simpan
                 </button>

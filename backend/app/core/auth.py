@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy import func
@@ -91,7 +91,25 @@ def require_role(allowed_roles: list[str]):
     return role_checker
 
 
+def require_division(allowed_divisions: list[str]):
+    """Dependency: pastikan manager hanya bisa akses divisinya sendiri."""
+    def division_checker(user: User = Depends(get_current_user)):
+        # GM, direktur, admin punya akses lintas divisi (bisa disesuaikan jika perlu)
+        if user.role in ["gm", "direktur"] or user.is_admin is True or user.is_superuser is True:
+            return user
+        
+        if user.role == "manager":
+            if user.division not in allowed_divisions:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Akses ditolak: Anda hanya ditugaskan untuk divisi {user.division}",
+                )
+        return user
+    return division_checker
+
+
 def get_current_user(
+    request: Request,
     token: str = Depends(oauth2_scheme),  # type: ignore[assignment]
     db: Session = Depends(get_db),  # type: ignore[assignment]
 ) -> User:
@@ -112,6 +130,16 @@ def get_current_user(
     user = db.query(User).filter(func.lower(User.email) == email.lower()).first()
     if user is None:
         raise credentials_exception
+        
+    # Validasi Read-Only untuk Direktur
+    if user.role == "direktur" and request.method in ["POST", "PUT", "PATCH", "DELETE"]:
+        # Izinkan ganti password jika perlu (atau logout jika pakai POST)
+        if not request.url.path.endswith("/change-password") and not request.url.path.endswith("/logout"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Akses ditolak: Direktur hanya dapat membaca data (Read-Only)."
+            )
+            
     return user
 
 

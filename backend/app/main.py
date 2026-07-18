@@ -1,7 +1,7 @@
 import traceback
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -16,7 +16,7 @@ from .api.v1.work_logs import router as work_logs_router
 from .api.v1.reports import router as reports_router
 from .api.v1.material_prices import router as material_prices_router
 from .api.v1.projects import router as projects_router
-from .core.auth import get_password_hash
+from .core.auth import get_password_hash, require_division
 from .core.config import settings
 from .core.database import SessionLocal, engine
 from .models import Base, User
@@ -128,13 +128,13 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(dashboard_router, prefix="/api/v1/dashboard", tags=["dashboard"])
-app.include_router(equipment_router, prefix="/api/v1/equipment", tags=["equipment"])
+app.include_router(equipment_router, prefix="/api/v1/equipment", tags=["equipment"], dependencies=[Depends(require_division(["alat-berat"]))])
 app.include_router(fuel_router, prefix="/api/v1/fuel", tags=["fuel"])
 app.include_router(work_logs_router, prefix="/api/v1/work-logs", tags=["work-logs"])
 app.include_router(employees_router, prefix="/api/v1/employees", tags=["employees"])
 app.include_router(expenses_router, prefix="/api/v1/expenses", tags=["expenses"])
 app.include_router(
-    income_records_router, prefix="/api/v1/income-records", tags=["income-records"]
+    income_records_router, prefix="/api/v1/income-records", tags=["income-records"], dependencies=[Depends(require_division(["corporate"]))]
 )
 app.include_router(reports_router, prefix="/api/v1/reports", tags=["reports"])
 from .api.v1.projects import router as projects_router
@@ -146,13 +146,13 @@ from .api.v1.vision import router as vision_router
 from .api.v1.loading_prices import router as loading_prices_router
 
 # ... inside router inclusion block ...
-app.include_router(material_prices_router, prefix="/api/v1/material-prices", tags=["material-prices"])
-app.include_router(projects_router, prefix="/api/v1/projects-data", tags=["projects"])
-app.include_router(invoices_router, prefix="/api/v1/invoices", tags=["invoices"])
+app.include_router(material_prices_router, prefix="/api/v1/material-prices", tags=["material-prices"], dependencies=[Depends(require_division(["material"]))])
+app.include_router(projects_router, prefix="/api/v1/projects-data", tags=["projects"], dependencies=[Depends(require_division(["material", "hauling"]))])
+app.include_router(invoices_router, prefix="/api/v1/invoices", tags=["invoices"], dependencies=[Depends(require_division(["corporate"]))])
 app.include_router(vendors_router, prefix="/api/v1/vendors", tags=["vendors"])
-app.include_router(hauling_router, prefix="/api/v1/hauling", tags=["hauling"])
-app.include_router(surat_jalans_router, prefix="/api/v1", tags=["surat-jalan"])
-app.include_router(loading_prices_router, prefix="/api/v1", tags=["loading-prices"])
+app.include_router(hauling_router, prefix="/api/v1/hauling", tags=["hauling"], dependencies=[Depends(require_division(["hauling"]))])
+app.include_router(surat_jalans_router, prefix="/api/v1", tags=["surat-jalan"], dependencies=[Depends(require_division(["hauling"]))])
+app.include_router(loading_prices_router, prefix="/api/v1", tags=["loading-prices"], dependencies=[Depends(require_division(["alat-berat"]))])
 app.include_router(vision_router, prefix="/api/v1/vision", tags=["vision"])
 
 @app.get("/")

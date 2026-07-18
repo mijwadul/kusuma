@@ -32,16 +32,16 @@ const PendingPayrollPanel: React.FC<PendingPayrollPanelProps> = ({ isGM, payroll
                 key={rec.id}
                 className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors"
               >
-                <div>
-                  <p className="text-sm font-medium text-gray-800">
+                <div className="flex-1 min-w-0 mr-2">
+                  <p className="text-sm font-medium text-gray-800 truncate">
                     {rec.employee_name}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-400 truncate">
                     {formatDate(rec.period_start)} –{" "}
                     {formatDate(rec.period_end)}
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 shrink-0">
                   <span className="text-sm font-semibold text-gray-700">
                     {formatIDR(rec.net_salary)}
                   </span>

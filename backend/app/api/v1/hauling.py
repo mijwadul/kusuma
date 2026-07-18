@@ -10,6 +10,11 @@ from ...services.hauling_service import HaulingService
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
+# Dashboard
+@router.get("/dashboard/stats")
+def get_hauling_dashboard_stats(db: Session = Depends(get_db)):
+    return HaulingService.get_dashboard_stats(db)
+
 # Vendor Trucks
 @router.get("/vendors/{vendor_id}/trucks", response_model=List[VendorTruckResponse])
 def get_vendor_trucks(vendor_id: int, db: Session = Depends(get_db)):

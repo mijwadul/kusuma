@@ -15,6 +15,21 @@ from datetime import datetime, date
 
 class HaulingService:
     @staticmethod
+    def get_dashboard_stats(db: Session) -> dict:
+        total_ritase = db.query(SuratJalan).count()
+        active_vendors = db.query(SuratJalan.vendor_id).filter(SuratJalan.vendor_id.isnot(None)).distinct().count()
+        
+        total_tonase = db.query(func.sum(SuratJalan.netto)).scalar() or 0.0
+        total_volume = db.query(func.sum(SuratJalan.volume)).scalar() or 0.0
+        
+        return {
+            "total_ritase": total_ritase,
+            "total_tonase": float(total_tonase),
+            "total_volume": float(total_volume),
+            "active_vendors": active_vendors
+        }
+
+    @staticmethod
     def get_vendor_trucks(db: Session, vendor_id: int) -> List[VendorTruck]:
         return db.query(VendorTruck).filter(VendorTruck.vendor_id == vendor_id).all()
 
@@ -127,74 +142,91 @@ class HaulingService:
 
     @staticmethod
     def _recalculate_surat_jalan_prices(db: Session, project_id: int, vendor_id: int | None, effective_date: date):
-        # Fetch all SJ for this project & vendor after or equal to effective_date
-        # If vendor_id is None (Global price), we might need to recalculate all vendors' SJ 
-        # that don't have a specific vendor price overriding it.
-        # For simplicity, if global, we recalculate ALL SJs for the project after the date.
+        """
+        Recalculates hauling_price and hauling_cost for all SuratJalan records
+        in a project from effective_date onward.
+
+        Optimization: Pre-fetches all relevant ProjectHaulingPrice records in ONE
+        query and performs vendor/date selection in-memory (eliminates N+1).
+        """
+        # 1. Fetch all affected SJs
         query = db.query(SuratJalan).filter(
             SuratJalan.project_id == project_id,
             func.date(SuratJalan.created_at) >= effective_date
         )
-        
         if vendor_id is not None:
-            # If specific vendor changed, only recalculate for that vendor
             query = query.filter(SuratJalan.vendor_id == vendor_id)
-            
         sjs = query.all()
 
-        project = db.query(Project).filter(Project.id == project_id).first()
-        
-        if not project:
+        if not sjs:
             return
 
-        # Pre-fetch vendors to minimize DB hits for balance updates
-        vendor_dict = {}
+        # 2. Load project to get measurement_type (tonase/kubikasi)
+        project = db.query(Project).filter(Project.id == project_id).first()
+        if not project:
+            return
+        measurement_type = getattr(project, 'measurement_type', 'tonase')
 
+        # 3. Determine the date range of the affected SJs
+        dates = [sj.created_at.date() for sj in sjs if sj.created_at]
+        max_date = max(dates) if dates else effective_date
+
+        # 4. PRE-FETCH all relevant ProjectHaulingPrice records in ONE query (N+1 fix)
+        price_filter = db.query(ProjectHaulingPrice).filter(
+            ProjectHaulingPrice.project_id == project_id,
+            func.date(ProjectHaulingPrice.effective_date) <= max_date
+        )
+        if vendor_id is not None:
+            price_filter = price_filter.filter(
+                or_(ProjectHaulingPrice.vendor_id == vendor_id, ProjectHaulingPrice.vendor_id.is_(None))
+            )
+        all_prices = price_filter.all()
+
+        # 5. Index prices in-memory: vendor_id -> [prices sorted by effective_date desc]
+        price_map: dict[int | None, list] = {}
+        for p in all_prices:
+            price_map.setdefault(p.vendor_id, []).append(p)
+        for lst in price_map.values():
+            lst.sort(key=lambda x: x.effective_date, reverse=True)
+
+        def find_applicable_price(sj) -> ProjectHaulingPrice | None:
+            """Find best matching price: vendor-specific first, then global (None)."""
+            sj_date = sj.created_at.date() if sj.created_at else effective_date
+            for vid in [sj.vendor_id, None]:
+                candidates = price_map.get(vid, [])
+                for p in candidates:
+                    p_date = p.effective_date.date() if hasattr(p.effective_date, 'date') else p.effective_date
+                    if p_date <= sj_date:
+                        return p
+            return None
+
+        # 6. Apply prices to each SJ, cache vendors for batch balance sync
+        vendor_cache: dict[int, any] = {}
         for sj in sjs:
             if not sj.vendor_id:
                 continue
-                
-            # Find the applicable price for this SJ's date and vendor
-            sj_date = sj.created_at.date()
-            applicable_price = db.query(ProjectHaulingPrice).filter(
-                ProjectHaulingPrice.project_id == project_id,
-                or_(ProjectHaulingPrice.vendor_id == sj.vendor_id, ProjectHaulingPrice.vendor_id.is_(None)),
-                func.date(ProjectHaulingPrice.effective_date) <= sj_date
-            ).order_by(
-                ProjectHaulingPrice.vendor_id.isnot(None).desc(), # Specific vendor first
-                ProjectHaulingPrice.effective_date.desc()         # Then latest date
-            ).first()
 
-            if applicable_price:
-                new_price = applicable_price.price_per_unit
-                old_cost = float(sj.hauling_cost or 0.0)
-                new_cost = 0.0
-                
-                if project.measurement_type == "tonase" and sj.netto is not None:
-                    new_cost = float(new_price) * float(sj.netto)
-                elif project.measurement_type == "kubikasi" and sj.volume is not None:
-                    new_cost = float(new_price) * float(sj.volume)
-                elif project.measurement_type == "ritase":
-                    new_cost = float(new_price) * 1.0
-                    
-                cost_diff = new_cost - old_cost
-                
-                sj.hauling_price = new_price
-                sj.hauling_cost = new_cost
-                
-                # We will sync vendor balance after all updates
-                if sj.vendor_id and sj.vendor_id not in vendor_dict:
+            applicable = find_applicable_price(sj)
+            if applicable:
+                price_per_unit = float(applicable.price_per_unit)
+                measurement = float(sj.volume or 0) if measurement_type == 'kubikasi' else float(sj.netto or 0)
+
+                sj.hauling_price = applicable.price_per_unit
+                sj.hauling_cost = price_per_unit * measurement
+
+                if sj.vendor_id not in vendor_cache:
                     v = db.query(Vendor).filter(Vendor.id == sj.vendor_id).first()
                     if v:
-                        vendor_dict[sj.vendor_id] = v
-                        
+                        vendor_cache[sj.vendor_id] = v
+
         db.commit()
-        
-        # Sync balances
-        if vendor_dict:
+
+        # 7. Sync vendor balances after bulk updates (single pass per vendor)
+        if vendor_cache:
             from ..services.vendor_service import VendorService
-            for v in vendor_dict.values():
+            for v in vendor_cache.values():
                 VendorService._sync_vendor_balance(db, v)
+
 
     @staticmethod
     def get_project_hauling_obligations(db: Session, project_id: int) -> List[dict]:

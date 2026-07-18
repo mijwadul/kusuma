@@ -140,3 +140,13 @@ export const useVendorHaulingDetails = (vendorId: number | string | null | undef
   });
 };
 
+export const useHaulingDashboardStats = () => {
+  return useQuery({
+    queryKey: ['hauling-dashboard-stats'],
+    queryFn: async () => {
+      const response = await apiClient.get('/hauling/dashboard/stats');
+      return response.data;
+    },
+  });
+};
+
