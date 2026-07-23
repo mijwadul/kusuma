@@ -204,7 +204,7 @@ def generate_invoice_pdf(invoice) -> bytes:
         Spacer(1, 2 * mm),
         Paragraph("<font size='9' color='#4b5563'>Bank Mandiri</font>", style()),
         Paragraph("<font size='9' color='#4b5563'>No. Rekening: <b>1780001847504</b></font>", style()),
-        Paragraph("<font size='9' color='#4b5563'>Atas Nama: <b>DEWI KUSUMA</b></font>", style()),
+        Paragraph("<font size='9' color='#4b5563'>Atas Nama: <b>DEWI KUSUMA WARDHANI</b></font>", style()),
     ]
 
     sig_data = [
@@ -515,7 +515,7 @@ def generate_project_invoice_pdf(invoice) -> bytes:
         Spacer(1, 2 * mm),
         Paragraph("<font size='9' color='#4b5563'>Bank Mandiri</font>", style()),
         Paragraph("<font size='9' color='#4b5563'>No. Rekening: <b>1780001847504</b></font>", style()),
-        Paragraph("<font size='9' color='#4b5563'>Atas Nama: <b>DEWI KUSUMA</b></font>", style()),
+        Paragraph("<font size='9' color='#4b5563'>Atas Nama: <b>DEWI KUSUMA WARDHANI</b></font>", style()),
     ]
 
     sig_data = [
@@ -550,41 +550,47 @@ def generate_project_invoice_pdf(invoice) -> bytes:
         sorted_items = sorted(items, key=lambda x: (getattr(x, "income_date", None) or date.min, getattr(x, "license_plate", "") or ""))
 
         if is_tonase:
-            detail_headers = ["No", "Tanggal", "Nopol", "Bruto", "Tarra", "Potongan", "Netto (Ton)"]
-            col_w = [content_w * 0.05, content_w * 0.15, content_w * 0.20, content_w * 0.15, content_w * 0.15, content_w * 0.15, content_w * 0.15]
+            detail_headers = ["No", "Tanggal", "Nopol", "Supir", "Bruto", "Tarra", "Potongan", "Netto (Ton)"]
+            col_w = [content_w * 0.05, content_w * 0.12, content_w * 0.13, content_w * 0.15, content_w * 0.12, content_w * 0.12, content_w * 0.15, content_w * 0.16]
         else:
-            detail_headers = ["No", "Tanggal", "Nopol", "Panjang", "Lebar", "Tinggi", "Min. T", "Volume (m3)"]
-            col_w = [content_w * 0.05, content_w * 0.12, content_w * 0.15, content_w * 0.12, content_w * 0.12, content_w * 0.12, content_w * 0.12, content_w * 0.20]
+            detail_headers = ["No", "Tanggal", "Nopol", "Supir", "P", "L", "T", "Min.T", "Vol (m3)"]
+            col_w = [content_w * 0.04, content_w * 0.12, content_w * 0.12, content_w * 0.16, content_w * 0.09, content_w * 0.09, content_w * 0.09, content_w * 0.10, content_w * 0.19]
 
-        detail_data = [[Paragraph(f"<font size='8' color='white'><b>{h}</b></font>", style(alignment=TA_CENTER)) for h in detail_headers]]
-        
-        dt_styles = [
-            ("BACKGROUND", (0, 0), (-1, 0), BRAND_BLUE),
-            ("TEXTCOLOR", (0, 0), (-1, 0), WHITE),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#e5e7eb")),
-            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#9ca3af")),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ]
-
-        row_idx = 1
-        item_counter = 1
-        
         for inc_date, group in groupby(sorted_items, key=lambda x: getattr(x, "income_date", None) or date.min):
             group_items = list(group)
             date_ritase = 0
             date_qty = 0.0
             
+            dt_str_sub = fmt_date(inc_date)
+            story.append(Paragraph(f"<font size='10' color='#1f2937'><b>Tanggal: {dt_str_sub}</b></font>", style()))
+            story.append(Spacer(1, 2 * mm))
+            
+            detail_data = [[Paragraph(f"<font size='8' color='white'><b>{h}</b></font>", style(alignment=TA_CENTER)) for h in detail_headers]]
+            
+            dt_styles = [
+                ("BACKGROUND", (0, 0), (-1, 0), BRAND_BLUE),
+                ("TEXTCOLOR", (0, 0), (-1, 0), WHITE),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#e5e7eb")),
+                ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#9ca3af")),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ]
+
+            row_idx = 1
+            item_counter = 1
+            
             for item in group_items:
                 dt_str = fmt_date(getattr(item, "income_date", None))
                 nopol = getattr(item, "license_plate", "-") or "-"
+                supir = getattr(item, "driver_name", "-") or "-"
                 
                 row = [
                     Paragraph(f"<font size='8'>{item_counter}</font>", style(alignment=TA_CENTER)),
                     Paragraph(f"<font size='8'>{dt_str}</font>", style(alignment=TA_CENTER)),
-                    Paragraph(f"<font size='8'>{nopol}</font>", style(alignment=TA_CENTER))
+                    Paragraph(f"<font size='8'>{nopol}</font>", style(alignment=TA_CENTER)),
+                    Paragraph(f"<font size='8'>{supir}</font>", style(alignment=TA_LEFT))
                 ]
                 
                 if is_tonase:
@@ -627,14 +633,12 @@ def generate_project_invoice_pdf(invoice) -> bytes:
                 item_counter += 1
                 row_idx += 1
                 
-            # Subtotal for the date
-            dt_str_sub = fmt_date(inc_date)
             if is_tonase:
                 sub_row = [
                     Paragraph(f"<font size='8'><b>Total {dt_str_sub}</b></font>", style(alignment=TA_RIGHT)),
                     "", "", "",
                     Paragraph(f"<font size='8'><b>{date_ritase} Rit</b></font>", style(alignment=TA_CENTER)),
-                    "",
+                    "", "",
                     Paragraph(f"<font size='8'><b>{date_qty:g}</b></font>", style(alignment=TA_CENTER)),
                 ]
                 dt_styles.extend([
@@ -645,23 +649,23 @@ def generate_project_invoice_pdf(invoice) -> bytes:
             else:
                 sub_row = [
                     Paragraph(f"<font size='8'><b>Total {dt_str_sub}</b></font>", style(alignment=TA_RIGHT)),
-                    "", "", "", "",
+                    "", "", "", "", "",
                     Paragraph(f"<font size='8'><b>{date_ritase} Rit</b></font>", style(alignment=TA_CENTER)),
                     "",
                     Paragraph(f"<font size='8'><b>{date_qty:g}</b></font>", style(alignment=TA_CENTER)),
                 ]
                 dt_styles.extend([
-                    ("SPAN", (0, row_idx), (4, row_idx)),
-                    ("SPAN", (5, row_idx), (6, row_idx)),
+                    ("SPAN", (0, row_idx), (5, row_idx)),
+                    ("SPAN", (6, row_idx), (7, row_idx)),
                     ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#e5e7eb")),
                 ])
             
             detail_data.append(sub_row)
-            row_idx += 1
-
-        dt_table = Table(detail_data, colWidths=col_w, repeatRows=1)
-        dt_table.setStyle(TableStyle(dt_styles))
-        story.append(dt_table)
+            
+            dt_table = Table(detail_data, colWidths=col_w, repeatRows=1)
+            dt_table.setStyle(TableStyle(dt_styles))
+            story.append(dt_table)
+            story.append(Spacer(1, 6 * mm))
 
     def add_footer(canvas, doc):
         canvas.saveState()
