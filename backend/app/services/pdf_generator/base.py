@@ -38,8 +38,14 @@ def fmt_date(value: Any) -> str:
 
 def fmt_idr(value: Any) -> str:
     try:
-        v = float(value or 0)
-        return "Rp {:,.0f}".format(v).replace(",", ".")
+        if value is None:
+            return "Rp 0"
+        v = round(float(value), 4)
+        if v.is_integer():
+            return "Rp {:,.0f}".format(v).replace(",", ".")
+        else:
+            s = "{:,.4f}".format(v).rstrip("0").rstrip(".")
+            return "Rp " + s.replace(",", "X").replace(".", ",").replace("X", ".")
     except (TypeError, ValueError):
         return "Rp 0"
 
