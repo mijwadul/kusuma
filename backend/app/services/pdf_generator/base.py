@@ -49,6 +49,18 @@ def fmt_idr(value: Any) -> str:
     except (TypeError, ValueError):
         return "Rp 0"
 
+def fmt_qty(value: Any, decimals: int = 3) -> str:
+    try:
+        if not value: return "0"
+        v = float(value)
+        if decimals == 0:
+            return "{:,.0f}".format(v).replace(",", ".")
+        else:
+            s = f"{{:,.{decimals}f}}".format(v)
+            return s.replace(",", "X").replace(".", ",").replace("X", ".")
+    except (TypeError, ValueError):
+        return "0"
+
 def get_base_styles():
     styles = getSampleStyleSheet()
     def style(name="Normal", **kw):

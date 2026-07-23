@@ -5,7 +5,7 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm, mm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, PageBreak
-from .base import BRAND_BLUE, BRAND_LIGHT, ACCENT_GREEN, ACCENT_RED, GRAY_DARK, GRAY_MID, GRAY_LIGHT, WHITE, fmt_date, fmt_idr, get_base_styles, get_logo_image
+from .base import BRAND_BLUE, BRAND_LIGHT, ACCENT_GREEN, ACCENT_RED, GRAY_DARK, GRAY_MID, GRAY_LIGHT, WHITE, fmt_date, fmt_idr, fmt_qty, get_base_styles, get_logo_image
 
 def generate_invoice_pdf(invoice) -> bytes:
     if getattr(invoice, "invoice_type", "material_sale") == "project":
@@ -407,7 +407,7 @@ def generate_project_invoice_pdf(invoice) -> bytes:
             Paragraph(f"<font size='8'>{i+1}</font>", style(alignment=TA_CENTER)),
             Paragraph(f"<font size='8'>{d['date_str']}</font>", style(alignment=TA_CENTER)),
             Paragraph(f"<font size='8'>{d['ritase']} Rit</font>", style(alignment=TA_CENTER)),
-            Paragraph(f"<font size='8'>{d['qty']:g} {d['unit']}</font>", style(alignment=TA_CENTER)),
+            Paragraph(f"<font size='8'>{fmt_qty(d['qty'], 3)} {d['unit']}</font>", style(alignment=TA_CENTER)),
             Paragraph(f"<font size='8'>{fmt_idr(d['unit_price'])}</font>", style(alignment=TA_RIGHT)),
             Paragraph(f"<font size='8'><b>{fmt_idr(d['amount'])}</b></font>", style(alignment=TA_RIGHT)),
         ])
@@ -416,7 +416,7 @@ def generate_project_invoice_pdf(invoice) -> bytes:
         Paragraph("<font size='9'><b>Total Keseluruhan</b></font>", style(alignment=TA_RIGHT)),
         "",
         Paragraph(f"<font size='9'><b>{total_ritase} Rit</b></font>", style(alignment=TA_CENTER)),
-        Paragraph(f"<font size='9'><b>{total_qty:g} {first_unit}</b></font>", style(alignment=TA_CENTER)),
+        Paragraph(f"<font size='9'><b>{fmt_qty(total_qty, 3)} {first_unit}</b></font>", style(alignment=TA_CENTER)),
         "", ""
     ])
 
@@ -550,11 +550,11 @@ def generate_project_invoice_pdf(invoice) -> bytes:
         sorted_items = sorted(items, key=lambda x: (getattr(x, "income_date", None) or date.min, getattr(x, "license_plate", "") or ""))
 
         if is_tonase:
-            detail_headers = ["No", "Tanggal", "Nopol", "Supir", "Bruto", "Tarra", "Potongan", "Netto (Ton)"]
-            col_w = [content_w * 0.05, content_w * 0.12, content_w * 0.13, content_w * 0.15, content_w * 0.12, content_w * 0.12, content_w * 0.15, content_w * 0.16]
+            detail_headers = ["No", "Nopol", "Supir", "Bruto", "Tarra", "Potongan", "Netto (Ton)"]
+            col_w = [content_w * 0.05, content_w * 0.15, content_w * 0.20, content_w * 0.15, content_w * 0.15, content_w * 0.15, content_w * 0.15]
         else:
-            detail_headers = ["No", "Tanggal", "Nopol", "Supir", "P", "L", "T", "Min.T", "Vol (m3)"]
-            col_w = [content_w * 0.04, content_w * 0.12, content_w * 0.12, content_w * 0.16, content_w * 0.09, content_w * 0.09, content_w * 0.09, content_w * 0.10, content_w * 0.19]
+            detail_headers = ["No", "Nopol", "Supir", "P", "L", "T", "Min.T", "Vol (m3)"]
+            col_w = [content_w * 0.05, content_w * 0.15, content_w * 0.18, content_w * 0.10, content_w * 0.10, content_w * 0.10, content_w * 0.12, content_w * 0.20]
 
         for inc_date, group in groupby(sorted_items, key=lambda x: getattr(x, "income_date", None) or date.min):
             group_items = list(group)
@@ -582,13 +582,11 @@ def generate_project_invoice_pdf(invoice) -> bytes:
             item_counter = 1
             
             for item in group_items:
-                dt_str = fmt_date(getattr(item, "income_date", None))
                 nopol = getattr(item, "license_plate", "-") or "-"
                 supir = getattr(item, "driver_name", "-") or "-"
                 
                 row = [
                     Paragraph(f"<font size='8'>{item_counter}</font>", style(alignment=TA_CENTER)),
-                    Paragraph(f"<font size='8'>{dt_str}</font>", style(alignment=TA_CENTER)),
                     Paragraph(f"<font size='8'>{nopol}</font>", style(alignment=TA_CENTER)),
                     Paragraph(f"<font size='8'>{supir}</font>", style(alignment=TA_LEFT))
                 ]
@@ -601,10 +599,10 @@ def generate_project_invoice_pdf(invoice) -> bytes:
                     if not netto: netto = getattr(item, "quantity", 0) or 0
                     
                     row.extend([
-                        Paragraph(f"<font size='8'>{bruto:g}</font>", style(alignment=TA_CENTER)),
-                        Paragraph(f"<font size='8'>{tarra:g}</font>", style(alignment=TA_CENTER)),
-                        Paragraph(f"<font size='8'>{minus:g}</font>", style(alignment=TA_CENTER)),
-                        Paragraph(f"<font size='8'><b>{netto:g}</b></font>", style(alignment=TA_CENTER)),
+                        Paragraph(f"<font size='8'>{fmt_qty(bruto, 0)}</font>", style(alignment=TA_CENTER)),
+                        Paragraph(f"<font size='8'>{fmt_qty(tarra, 0)}</font>", style(alignment=TA_CENTER)),
+                        Paragraph(f"<font size='8'>{fmt_qty(minus, 0)}</font>", style(alignment=TA_CENTER)),
+                        Paragraph(f"<font size='8'><b>{fmt_qty(netto, 3)}</b></font>", style(alignment=TA_CENTER)),
                     ])
                     date_qty += netto
                 else:
@@ -616,11 +614,11 @@ def generate_project_invoice_pdf(invoice) -> bytes:
                     if not vol: vol = getattr(item, "quantity", 0) or 0
                     
                     row.extend([
-                        Paragraph(f"<font size='8'>{p:g}</font>", style(alignment=TA_CENTER)),
-                        Paragraph(f"<font size='8'>{l:g}</font>", style(alignment=TA_CENTER)),
-                        Paragraph(f"<font size='8'>{t_val:g}</font>", style(alignment=TA_CENTER)),
-                        Paragraph(f"<font size='8'>{m:g}</font>", style(alignment=TA_CENTER)),
-                        Paragraph(f"<font size='8'><b>{vol:g}</b></font>", style(alignment=TA_CENTER)),
+                        Paragraph(f"<font size='8'>{fmt_qty(p, 3)}</font>", style(alignment=TA_CENTER)),
+                        Paragraph(f"<font size='8'>{fmt_qty(l, 3)}</font>", style(alignment=TA_CENTER)),
+                        Paragraph(f"<font size='8'>{fmt_qty(t_val, 3)}</font>", style(alignment=TA_CENTER)),
+                        Paragraph(f"<font size='8'>{fmt_qty(m, 3)}</font>", style(alignment=TA_CENTER)),
+                        Paragraph(f"<font size='8'><b>{fmt_qty(vol, 3)}</b></font>", style(alignment=TA_CENTER)),
                     ])
                     date_qty += vol
                 
@@ -636,27 +634,27 @@ def generate_project_invoice_pdf(invoice) -> bytes:
             if is_tonase:
                 sub_row = [
                     Paragraph(f"<font size='8'><b>Total {dt_str_sub}</b></font>", style(alignment=TA_RIGHT)),
-                    "", "", "",
+                    "", "",
                     Paragraph(f"<font size='8'><b>{date_ritase} Rit</b></font>", style(alignment=TA_CENTER)),
                     "", "",
-                    Paragraph(f"<font size='8'><b>{date_qty:g}</b></font>", style(alignment=TA_CENTER)),
+                    Paragraph(f"<font size='8'><b>{fmt_qty(date_qty, 3)}</b></font>", style(alignment=TA_CENTER)),
                 ]
                 dt_styles.extend([
-                    ("SPAN", (0, row_idx), (3, row_idx)),
-                    ("SPAN", (4, row_idx), (5, row_idx)),
+                    ("SPAN", (0, row_idx), (2, row_idx)),
+                    ("SPAN", (3, row_idx), (4, row_idx)),
                     ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#e5e7eb")),
                 ])
             else:
                 sub_row = [
                     Paragraph(f"<font size='8'><b>Total {dt_str_sub}</b></font>", style(alignment=TA_RIGHT)),
-                    "", "", "", "", "",
+                    "", "", "", "",
                     Paragraph(f"<font size='8'><b>{date_ritase} Rit</b></font>", style(alignment=TA_CENTER)),
                     "",
-                    Paragraph(f"<font size='8'><b>{date_qty:g}</b></font>", style(alignment=TA_CENTER)),
+                    Paragraph(f"<font size='8'><b>{fmt_qty(date_qty, 3)}</b></font>", style(alignment=TA_CENTER)),
                 ]
                 dt_styles.extend([
-                    ("SPAN", (0, row_idx), (5, row_idx)),
-                    ("SPAN", (6, row_idx), (7, row_idx)),
+                    ("SPAN", (0, row_idx), (4, row_idx)),
+                    ("SPAN", (5, row_idx), (6, row_idx)),
                     ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#e5e7eb")),
                 ])
             
