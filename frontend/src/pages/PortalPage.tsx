@@ -65,14 +65,22 @@ const PortalPage: React.FC = () => {
   if (userStr) {
     try {
       currentUser = JSON.parse(userStr);
-    } catch (e) {}
+    } catch (e) { }
   }
   const isGM = currentUser?.role === 'gm' || currentUser?.role === 'direktur' || currentUser?.is_admin || currentUser?.is_superuser;
+
+  // Auto-redirect non-GM users with a division assignment directly to their dashboard
+  React.useEffect(() => {
+    if (!isGM && currentUser?.division) {
+      setActiveDivision(currentUser.division as Division);
+      navigate('/dashboard');
+    }
+  }, []);
 
   const divisions = allDivisions.filter(div => {
     if (isGM) return true;
     if (currentUser?.division) return div.id === currentUser.division;
-    return true; // Allow if user has no specific division yet, though backend will require it eventually
+    return true;
   });
 
   const containerVariants = {
@@ -97,7 +105,7 @@ const PortalPage: React.FC = () => {
       <div className="w-full max-w-6xl z-10">
         <div className="flex justify-between items-center mb-12">
           <div>
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight">PT. Kusuma Samudera</h1>
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight">PT. Kusuma Samudera Berkah</h1>
             <p className="text-slate-400 text-lg">Silakan pilih divisi ruang lingkup kerja Anda</p>
           </div>
           <button
@@ -109,7 +117,7 @@ const PortalPage: React.FC = () => {
           </button>
         </div>
 
-        <motion.div 
+        <motion.div
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
           variants={containerVariants}
           initial="hidden"
@@ -130,7 +138,7 @@ const PortalPage: React.FC = () => {
                 {div.icon}
                 <h2 className="text-xl font-semibold text-white mb-3">{div.title}</h2>
                 <p className="text-slate-400 text-sm leading-relaxed flex-grow">{div.description}</p>
-                
+
                 <div className="mt-6 flex items-center text-sm font-medium text-slate-300 group-hover:text-white transition-colors">
                   <span>Masuk Portal</span>
                   <svg className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">

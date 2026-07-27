@@ -117,8 +117,22 @@ class EquipmentService:
         return db.query(EquipmentRateHistory).filter(EquipmentRateHistory.equipment_id == equipment_id).order_by(EquipmentRateHistory.created_at.desc()).all()
 
     @staticmethod
-    def get_equipments(db: Session) -> List[Equipment]:
-        return db.query(Equipment).filter(Equipment.status != "deleted").all()
+    def get_equipments(db: Session, status: str = None) -> List[Equipment]:
+        query = db.query(Equipment)
+        if status:
+            query = query.filter(Equipment.status == status)
+        else:
+            query = query.filter(Equipment.status != "deleted")
+        return query.all()
+
+    @staticmethod
+    def restore_equipment(db: Session, equipment_id: int) -> None:
+        equipment = db.query(Equipment).filter(Equipment.id == equipment_id).first()
+        if not equipment:
+            raise NotFoundError("Equipment not found")
+        
+        equipment.status = "active"
+        db.commit()
 
     @staticmethod
     def get_equipment(db: Session, equipment_id: int) -> Equipment:

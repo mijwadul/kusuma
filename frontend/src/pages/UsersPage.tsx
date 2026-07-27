@@ -125,6 +125,14 @@ export default function UsersPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate division for non-global roles
+    const globalRoles = ["gm", "direktur"];
+    if (!globalRoles.includes(formData.role) && !formData.division) {
+      toast.error("Divisi wajib dipilih untuk role ini");
+      return;
+    }
+    
     try {
       const payload: any = { ...formData };
       if (editingUser && !payload.password) {
@@ -472,18 +480,22 @@ export default function UsersPage() {
 
               {formData.role !== "gm" && formData.role !== "direktur" && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Divisi (Akses)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Divisi (Akses) <span className="text-red-500">*</span>
+                  </label>
                   <CustomSelect
+                    required
                     value={formData.division || ""}
                     onChange={(val) => setFormData({ ...formData, division: val as string })}
                     options={[
-                      { value: "", label: "-- Akses Semua Divisi (Jika kosong) --" },
+                      { value: "", label: "-- Pilih Divisi --" },
                       { value: "alat-berat", label: "Divisi Alat Berat" },
                       { value: "hauling", label: "Divisi Trucking & Hauling" },
                       { value: "material", label: "Divisi Material & Lahan" },
                       { value: "corporate", label: "Corporate & Finance" },
                     ]}
                   />
+                  <p className="mt-1 text-xs text-gray-500">Wajib diisi — menentukan divisi yang bisa diakses user ini.</p>
                 </div>
               )}
 

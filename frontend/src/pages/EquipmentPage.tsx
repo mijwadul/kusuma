@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Fuel, AlertTriangle, X } from "lucide-react";
+import { Plus, Fuel, AlertTriangle, X, Trash2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import AlertModal from "../components/AlertModal";
 import EquipmentDetailModal from "../components/EquipmentDetailModal";
@@ -8,7 +8,7 @@ import EquipmentRateHistoryModal from "../components/equipment/EquipmentRateHist
 import EquipmentLedgerModal from "../components/equipment/EquipmentLedgerModal";
 import VendorManagement from "../components/VendorManagement";
 import { useCurrentUser } from "../hooks/useAuth";
-import { useEquipment, useCreateEquipment, useUpdateEquipment, useDeleteEquipment, useEquipmentFuelReport, Equipment } from "../hooks/useEquipment";
+import { useEquipment, useCreateEquipment, useUpdateEquipment, useDeleteEquipment, useEquipmentFuelReport, Equipment, useRestoreEquipment } from "../hooks/useEquipment";
 import { useVendors } from "../hooks/useVendors";
 import CustomSelect from "../components/CustomSelect";
 
@@ -29,6 +29,10 @@ const EquipmentPage = () => {
   const [brandToDelete, setBrandToDelete] = useState<string | null>(null);
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const locationInputRef = useRef<HTMLDivElement>(null);
+  const [showDeleted, setShowDeleted] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [restoreEquipmentId, setRestoreEquipmentId] = useState<number | null>(null);
+  const [restoreEquipmentName, setRestoreEquipmentName] = useState<string>("");
   
   const [brands, setBrands] = useState<string[]>(() => {
     const saved = localStorage.getItem("equipmentBrands");
@@ -40,13 +44,14 @@ const EquipmentPage = () => {
   const { data: currentUser } = useCurrentUser();
   const userRole = currentUser?.role;
 
-  const { data: equipmentList = [], isLoading: loadingEquipment } = useEquipment();
+  const { data: equipmentList = [], isLoading: loadingEquipment } = useEquipment(showDeleted ? "deleted" : undefined);
   const { data: fuelReport = [] } = useEquipmentFuelReport();
   const { data: vendorsList = [] } = useVendors('equipment');
 
   const createMutation = useCreateEquipment();
   const updateMutation = useUpdateEquipment();
   const deleteMutation = useDeleteEquipment();
+  const restoreMutation = useRestoreEquipment();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -200,6 +205,26 @@ const EquipmentPage = () => {
     });
   };
 
+  const handleRestore = (item: Equipment) => {
+    setRestoreEquipmentId(item.id);
+    setRestoreEquipmentName(item.name);
+    setShowRestoreModal(true);
+  };
+
+  const confirmRestore = () => {
+    if (!restoreEquipmentId) return;
+    restoreMutation.mutate(restoreEquipmentId, {
+      onSuccess: () => {
+        toast.success(`Equipment berhasil dikembalikan!`);
+        setShowRestoreModal(false);
+        setRestoreEquipmentId(null);
+      },
+      onError: () => {
+        toast.error("Gagal mengembalikan equipment");
+      }
+    });
+  };
+
   const addNewBrand = (newBrand: string) => {
     if (newBrand && !brands.includes(newBrand)) {
       const updatedBrands = [...brands, newBrand];
@@ -276,6 +301,17 @@ const EquipmentPage = () => {
         </div>
         <div className="flex flex-wrap gap-2">
           <button
+            onClick={() => setShowDeleted(!showDeleted)}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm ${
+              showDeleted 
+                ? "bg-gray-600 hover:bg-gray-700 text-white" 
+                : "bg-red-500 hover:bg-red-600 text-white"
+            }`}
+          >
+            <Trash2 size={18} />
+            <span>{showDeleted ? "Kembali ke Daftar Aktif" : "Lihat Alat Dihapus"}</span>
+          </button>
+          <button
             onClick={() => navigate("/fuel")}
             className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center space-x-2 transition-colors shadow-sm"
           >
@@ -324,6 +360,11 @@ const EquipmentPage = () => {
               <th className="px-4 py-3 text-left whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 BBM Status
               </th>
+              {showDeleted && (
+                <th className="px-4 py-3 text-right whitespace-nowrap text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Aksi
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -350,9 +391,9 @@ const EquipmentPage = () => {
               return (
                 <tr
                   key={item.id}
-                  onClick={() => handleViewDetail(item)}
-                  className="cursor-pointer hover:bg-blue-50 transition-colors"
-                  title="Klik untuk melihat detail"
+                  onClick={() => !showDeleted && handleViewDetail(item)}
+                  className={`${!showDeleted ? "cursor-pointer hover:bg-blue-50" : ""} transition-colors`}
+                  title={!showDeleted ? "Klik untuk melihat detail" : ""}
                 >
                   <td className="px-4 py-3 whitespace-nowrap">{item.name}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
@@ -417,6 +458,19 @@ const EquipmentPage = () => {
                       {statusLabel}
                     </span>
                   </td>
+                  {showDeleted && (
+                    <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRestore(item);
+                        }}
+                        className="text-emerald-600 hover:text-emerald-900 bg-emerald-100 hover:bg-emerald-200 p-2 rounded-lg transition-colors flex items-center gap-1 justify-end w-full"
+                      >
+                        <RotateCcw size={16} /> Restore
+                      </button>
+                    </td>
+                  )}
                 </tr>
               );
             })}
@@ -798,6 +852,16 @@ const EquipmentPage = () => {
         title="Konfirmasi Hapus Merk"
         message={`Apakah Anda yakin ingin menghapus merk "${brandToDelete}"?`}
         confirmText="Hapus"
+        cancelText="Batal"
+      />
+
+      <AlertModal
+        isOpen={showRestoreModal}
+        onClose={() => setShowRestoreModal(false)}
+        onConfirm={confirmRestore}
+        title="Konfirmasi Pengembalian Alat"
+        message={`Apakah Anda yakin ingin mengembalikan alat "${restoreEquipmentName}" menjadi aktif kembali?`}
+        confirmText="Kembalikan"
         cancelText="Batal"
       />
 

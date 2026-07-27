@@ -16,6 +16,11 @@ class UserService:
         if existing:
             raise ValidationError("Email already registered")
         
+        # Validate division requirement for non-global roles
+        global_roles = ["gm", "direktur"]
+        if user.role not in global_roles and not user.division:
+            raise ValidationError(f"Division wajib diisi untuk role '{user.role}'")
+        
         is_admin_user = user.is_admin or user.role in ["admin", "gm"]
         
         db_user = UserModel(
@@ -26,7 +31,8 @@ class UserService:
             employee_id=user.employee_id,
             role=user.role,
             is_admin=is_admin_user,
-            is_active=user.is_active
+            is_active=user.is_active,
+            division=user.division if user.role not in global_roles else None
         )
         db.add(db_user)
         db.commit()
@@ -46,11 +52,24 @@ class UserService:
         elif "password" in update_data:
             update_data.pop("password")
         
+        # Determine effective role after update
+        effective_role = update_data.get("role", db_user.role)
+        global_roles = ["gm", "direktur"]
+        
         if "role" in update_data:
             if update_data["role"] in ["admin", "gm"]:
                 update_data["is_admin"] = True
             else:
                 update_data["is_admin"] = False
+        
+        # Validate division for non-global roles
+        effective_division = update_data.get("division", db_user.division)
+        if effective_role not in global_roles and not effective_division:
+            raise ValidationError(f"Division wajib diisi untuk role '{effective_role}'")
+        
+        # Clear division if role changed to global
+        if effective_role in global_roles:
+            update_data["division"] = None
         
         for key, value in update_data.items():
             setattr(db_user, key, value)

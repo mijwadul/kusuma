@@ -28,7 +28,6 @@ import {
   BarChart3,
   FileBarChart2,
   LayoutGrid,
-  Map,
   Settings,
 } from "lucide-react";
 
@@ -127,6 +126,8 @@ interface MenuItem {
   const isDirector = role === "direktur";
   const isManager = role === "manager";
   const isGM = role === "gm" || isDirector || isManager || role === "admin" || currentUser?.is_admin || currentUser?.is_superuser;
+  // Only actual GM and direktur can switch divisions
+  const canChangeDivision = role === "gm" || role === "direktur" || currentUser?.is_superuser;
 
   // Role-based menu filtering - System Kusuma Roles: gm, finance, admin, field
   // Legacy roles: helper → field, checker → finance
@@ -190,15 +191,21 @@ interface MenuItem {
       const haulingItems = [
         { path: "/projects/surat-jalan", icon: Receipt, label: "Surat Jalan & Pengiriman", show: isField || isGM },
         { path: "/hauling", icon: Truck, label: "Manajemen Vendor Hauling", show: isFinance || isAdmin }
-      ].filter((sub) => sub.show);
-      items.push({ id: "hauling", icon: Truck, label: "Operasional Hauling", submenu: haulingItems });
+      ].filter((item) => item.show);
+      
+      haulingItems.forEach(item => {
+        items.push(item);
+      });
     } else if (activeDivision === 'material') {
       const materialItems = [
         { path: "/projects", icon: FolderOpen, label: "Manajemen Proyek & Lahan", show: isFinance || isAdmin },
         { path: "/material-sales", icon: ShoppingCart, label: "Penjualan Material", show: isField },
         { path: "/projects/pekerja", icon: Users, label: "Pekerja Proyek/Lahan", show: isField || isGM }
-      ].filter((sub) => sub.show);
-      items.push({ id: "material", icon: Map, label: "Material & Lahan", submenu: materialItems });
+      ].filter((item) => item.show);
+      
+      materialItems.forEach(item => {
+        items.push(item);
+      });
     } else if (activeDivision === 'corporate') {
       const financeItems = [
         { path: "/income", icon: Wallet, label: "Pemasukan", show: isFinance },
@@ -335,7 +342,7 @@ interface MenuItem {
                     </Link>
                   );
                 })}
-                {isGM && (
+                {canChangeDivision && (
                   <button
                     onClick={() => {
                        setActiveDivision(null);
@@ -509,7 +516,7 @@ interface MenuItem {
 
         {/* Footer - Portal & Logout */}
         <div className="p-4 border-t border-slate-800 space-y-2">
-          {isGM && (
+          {canChangeDivision && (
             <button
               onClick={() => {
                  setActiveDivision(null);

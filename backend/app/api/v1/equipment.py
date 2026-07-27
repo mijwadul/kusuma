@@ -10,8 +10,8 @@ from ...services.equipment_service import EquipmentService
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
 @router.get("", response_model=List[EquipmentSchema])
-def get_equipment(db: Session = Depends(get_db)):
-    return EquipmentService.get_equipments(db)
+def get_equipment(status: str = None, db: Session = Depends(get_db)):
+    return EquipmentService.get_equipments(db, status)
 
 @router.get("/{equipment_id}", response_model=EquipmentSchema)
 def get_equipment_by_id(equipment_id: int, db: Session = Depends(get_db)):
@@ -46,3 +46,8 @@ def update_equipment(equipment_id: int, equipment_update: EquipmentUpdate, db: S
 def delete_equipment(equipment_id: int, db: Session = Depends(get_db)):
     EquipmentService.delete_equipment(db, equipment_id)
     return {"message": "Equipment deleted successfully"}
+
+@router.post("/{equipment_id}/restore", dependencies=[Depends(require_admin)])
+def restore_equipment(equipment_id: int, db: Session = Depends(get_db)):
+    EquipmentService.restore_equipment(db, equipment_id)
+    return {"message": "Equipment restored successfully"}

@@ -15,7 +15,7 @@ from ..api.v1.work_logs import _calculate_rental_costs
 class DashboardService:
     @staticmethod
     def get_dashboard_stats(db: Session) -> Dict[str, int]:
-        equipment_count = db.query(Equipment).count()
+        equipment_count = db.query(Equipment).filter(Equipment.status != "deleted").count()
         employee_count = db.query(Employee).filter(Employee.is_active == True).count()
         project_count = db.query(Project).count()
         return {
@@ -93,7 +93,7 @@ class DashboardService:
 
     @staticmethod
     def get_equipment(db: Session) -> List[Any]:
-        return db.query(Equipment).all()
+        return db.query(Equipment).filter(Equipment.status != "deleted").all()
 
     @staticmethod
     def get_employees(db: Session, current_user: Any = None) -> List[Any]:

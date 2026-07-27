@@ -19,14 +19,27 @@ export interface Equipment {
   vendor_id?: number;
 }
 
-export const useEquipment = (options?: any) => {
+export const useEquipment = (status?: string, options?: any) => {
   return useQuery<Equipment[], Error>({
-    queryKey: ['equipment'],
+    queryKey: ['equipment', status],
     queryFn: async () => {
-      const response = await apiClient.get<Equipment[]>('/equipment');
+      const url = status ? `/equipment?status=${status}` : '/equipment';
+      const response = await apiClient.get<Equipment[]>(url);
       return response.data;
     },
     ...options
+  });
+};
+
+export const useRestoreEquipment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await apiClient.post(`/equipment/${id}/restore`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+    },
   });
 };
 
