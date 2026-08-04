@@ -28,7 +28,7 @@ const PortalPage: React.FC = () => {
   const allDivisions = [
     {
       id: 'alat-berat' as Division,
-      title: 'Divisi Alat Berat',
+      title: 'Alat Berat dan Produksi',
       description: 'Pusat kontrol dan administrasi seluruh operasional alat berat, timesheet, dan BBM.',
       icon: <Factory size={48} className="mb-4 text-amber-400" />,
       color: 'from-amber-500 to-amber-700',
@@ -36,23 +36,23 @@ const PortalPage: React.FC = () => {
     },
     {
       id: 'hauling' as Division,
-      title: 'Divisi Trucking & Hauling',
-      description: 'Pusat kontrol logistik, mobilitas armada, surat jalan dan pengiriman material.',
+      title: 'Hauling dan Trucking',
+      description: 'Pusat kontrol logistik, mobilitas armada, dan manajemen vendor pengangkutan.',
       icon: <Truck size={48} className="mb-4 text-blue-400" />,
       color: 'from-blue-500 to-blue-700',
       hoverColor: 'hover:shadow-blue-500/50',
     },
     {
       id: 'material' as Division,
-      title: 'Divisi Material & Lahan',
-      description: 'Pusat pengelolaan aset tanah, perijinan, dan komersialisasi penjualan material.',
+      title: 'Penjualan Material dan Lahan',
+      description: 'Pusat pengelolaan aset tanah, surat jalan, perijinan, dan komersialisasi penjualan material.',
       icon: <Map size={48} className="mb-4 text-emerald-400" />,
       color: 'from-emerald-500 to-emerald-700',
       hoverColor: 'hover:shadow-emerald-500/50',
     },
     {
       id: 'corporate' as Division,
-      title: 'Corporate & Finance',
+      title: 'Office dan Finance',
       description: 'Pusat administrasi global lintas divisi, keuangan, cashflow, dan HRD.',
       icon: <Building2 size={48} className="mb-4 text-purple-400" />,
       color: 'from-purple-500 to-purple-700',
@@ -68,18 +68,22 @@ const PortalPage: React.FC = () => {
     } catch (e) { }
   }
   const isGM = currentUser?.role === 'gm' || currentUser?.role === 'direktur' || currentUser?.is_admin || currentUser?.is_superuser;
+  const userDivision = currentUser?.division;
+  const isValidDivision = Boolean(userDivision && allDivisions.some(d => d.id === userDivision));
 
-  // Auto-redirect non-GM users with a division assignment directly to their dashboard
+  // Auto-redirect users (including admin) with a valid division assignment directly to their dashboard
   React.useEffect(() => {
-    if (!isGM && currentUser?.division) {
-      setActiveDivision(currentUser.division as Division);
+    if (isValidDivision) {
+      setActiveDivision(userDivision as Division);
       navigate('/dashboard');
     }
-  }, []);
+  }, [isValidDivision, userDivision, setActiveDivision, navigate]);
 
   const divisions = allDivisions.filter(div => {
     if (isGM) return true;
-    if (currentUser?.division) return div.id === currentUser.division;
+    if (isValidDivision) return div.id === userDivision;
+    // Fallback for old database users with invalid/no division: 
+    // show all divisions to prevent crash and empty page
     return true;
   });
 

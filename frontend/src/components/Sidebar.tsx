@@ -189,7 +189,6 @@ interface MenuItem {
       });
     } else if (activeDivision === 'hauling') {
       const haulingItems = [
-        { path: "/projects/surat-jalan", icon: Receipt, label: "Surat Jalan & Pengiriman", show: isField || isGM },
         { path: "/hauling", icon: Truck, label: "Manajemen Vendor Hauling", show: isFinance || isAdmin }
       ].filter((item) => item.show);
       
@@ -200,6 +199,7 @@ interface MenuItem {
       const materialItems = [
         { path: "/projects", icon: FolderOpen, label: "Manajemen Proyek & Lahan", show: isFinance || isAdmin },
         { path: "/material-sales", icon: ShoppingCart, label: "Penjualan Material", show: isField },
+        { path: "/projects/surat-jalan", icon: Receipt, label: "Surat Jalan & Pengiriman", show: isField || isGM },
         { path: "/projects/pekerja", icon: Users, label: "Pekerja Proyek/Lahan", show: isField || isGM }
       ].filter((item) => item.show);
       

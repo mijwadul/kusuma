@@ -24,7 +24,6 @@ const AttendancePanel: React.FC<AttendancePanelProps> = ({
   handleAttendanceAction,
   setDeleteAttendanceModal
 }) => {
-  if (role !== "field") return null;
 
   return (
     <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all duration-300">

@@ -69,7 +69,7 @@ export default function DashboardPage() {
   const { data: todayAttendance = [], isLoading: attendanceLoading } = useTodayAttendance(
     yesterdayDate,
     toLocalDateInput(new Date()),
-    role === "field"
+    !isGM || currentUser?.role === 'admin' || currentUser?.is_admin || currentUser?.is_superuser
   );
 
   // Mutations
@@ -112,15 +112,16 @@ export default function DashboardPage() {
   const operationEmployees = useMemo(() => {
     let filtered = employees;
     if (activeDivision === 'alat-berat') {
-      filtered = filtered.filter((e: any) => e.department === 'Alat Berat');
+      filtered = filtered.filter((e: any) => e.department?.toLowerCase().includes('alat berat'));
     } else if (activeDivision === 'hauling') {
-      filtered = filtered.filter((e: any) => e.department === 'Operasional Hauling');
+      filtered = filtered.filter((e: any) => e.department?.toLowerCase().includes('hauling'));
     } else if (activeDivision === 'material') {
-      filtered = filtered.filter((e: any) => e.department === 'Material & Lahan');
+      filtered = filtered.filter((e: any) => e.department?.toLowerCase().includes('material') || e.department?.toLowerCase().includes('lahan'));
     } else if (activeDivision === 'corporate') {
-      filtered = filtered.filter((e: any) => e.department === 'Corporate & Finance');
+      filtered = filtered.filter((e: any) => e.department?.toLowerCase().includes('corporate') || e.department?.toLowerCase().includes('finance'));
     }
-    return filtered;
+    // Fallback for old databases where department might be null or misnamed
+    return filtered.length > 0 ? filtered : employees;
   }, [employees, activeDivision]);
 
   const aiMessage = useMemo(() => {
@@ -286,8 +287,8 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-      </div>      {/* Attendance Panel rendered for all divisions unless role is GM */}
-      {!isGM && (
+      </div>      {/* Attendance Panel rendered for all divisions unless role is GM, but Admins are allowed */}
+      {(!isGM || currentUser?.role === 'admin' || currentUser?.is_admin || currentUser?.is_superuser) && (
         <AttendancePanel
           role={role}
           operationEmployees={operationEmployees}
