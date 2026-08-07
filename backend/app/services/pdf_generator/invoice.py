@@ -203,8 +203,8 @@ def generate_invoice_pdf(invoice) -> bytes:
         Paragraph("<font size='9'><b>Informasi Pembayaran:</b></font>", style()),
         Spacer(1, 2 * mm),
         Paragraph("<font size='9' color='#4b5563'>Bank Mandiri</font>", style()),
-        Paragraph("<font size='9' color='#4b5563'>No. Rekening: <b>1780001847504</b></font>", style()),
-        Paragraph("<font size='9' color='#4b5563'>Atas Nama: <b>DEWI KUSUMA WARDHANI</b></font>", style()),
+        Paragraph("<font size='9' color='#4b5563'>No. Rekening: <b>1780010847230</b></font>", style()),
+        Paragraph("<font size='9' color='#4b5563'>Atas Nama: <b>PT. Kusuma Samudera Group</b></font>", style()),
     ]
 
     sig_data = [
