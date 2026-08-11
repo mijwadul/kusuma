@@ -15,6 +15,7 @@ from .surat_jalan import SuratJalan
 from .user import User
 from .work_log import WorkLog
 from .invoice import Invoice
+from .bank_account import BankAccount
 from .vendor import Vendor, VendorTopUp
 from .vendor_truck import VendorTruck
 from .project_hauling_price import ProjectHaulingPrice

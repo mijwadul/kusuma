@@ -41,13 +41,20 @@ def generate_invoice_pdf(invoice) -> bytes:
     start_date = fmt_date(getattr(invoice, "start_date", None))
     end_date = fmt_date(getattr(invoice, "end_date", None))
     
+    project = getattr(invoice, "project", None)
+    project_location = getattr(project, "location", "") if project else ""
+    
+    customer_html = f"<font size='14'><b>{customer_name}</b></font>"
+    if project_location:
+        customer_html += f"<br/><font size='10' color='#4b5563'>{project_location}</font>"
+    
     info_table = Table([
         [
             Paragraph("<font size='9' color='#6b7280'>Kepada Yth:</font>", style()),
             Paragraph("<font size='9' color='#6b7280'>Periode Penjualan:</font>", style(alignment=TA_RIGHT))
         ],
         [
-            Paragraph(f"<font size='14'><b>{customer_name}</b></font>", style()),
+            Paragraph(customer_html, style()),
             Paragraph(f"<font size='10'><b>{start_date} - {end_date}</b></font>", style(alignment=TA_RIGHT))
         ]
     ], colWidths=[content_w * 0.6, content_w * 0.4])
@@ -199,13 +206,16 @@ def generate_invoice_pdf(invoice) -> bytes:
         story.append(Spacer(1, 8 * mm))
 
     # Signature
-    payment_info = [
-        Paragraph("<font size='9'><b>Informasi Pembayaran:</b></font>", style()),
-        Spacer(1, 2 * mm),
-        Paragraph("<font size='9' color='#4b5563'>Bank Mandiri</font>", style()),
-        Paragraph("<font size='9' color='#4b5563'>No. Rekening: <b>1780010847230</b></font>", style()),
-        Paragraph("<font size='9' color='#4b5563'>Atas Nama: <b>PT. Kusuma Samudera Group</b></font>", style()),
-    ]
+    payment_info = []
+    bank_account = getattr(invoice, "bank_account", None)
+    if bank_account:
+        payment_info = [
+            Paragraph("<font size='9'><b>Informasi Pembayaran:</b></font>", style()),
+            Spacer(1, 2 * mm),
+            Paragraph(f"<font size='9' color='#4b5563'>{bank_account.bank_name}</font>", style()),
+            Paragraph(f"<font size='9' color='#4b5563'>No. Rekening: <b>{bank_account.account_number}</b></font>", style()),
+            Paragraph(f"<font size='9' color='#4b5563'>Atas Nama: <b>{bank_account.account_name}</b></font>", style()),
+        ]
 
     sig_data = [
         [Paragraph("<font size='9'>Hormat Kami,</font>", style(alignment=TA_CENTER))],
@@ -343,13 +353,20 @@ def generate_project_invoice_pdf(invoice) -> bytes:
     start_date = fmt_date(getattr(invoice, "start_date", None))
     end_date = fmt_date(getattr(invoice, "end_date", None))
     
+    project = getattr(invoice, "project", None)
+    project_location = getattr(project, "location", "") if project else ""
+    
+    customer_html = f"<font size='14'><b>{customer_name}</b></font>"
+    if project_location:
+        customer_html += f"<br/><font size='10' color='#4b5563'>{project_location}</font>"
+    
     info_table = Table([
         [
             Paragraph("<font size='9' color='#6b7280'>Kepada Yth:</font>", style()),
             Paragraph("<font size='9' color='#6b7280'>Periode Penjualan:</font>", style(alignment=TA_RIGHT))
         ],
         [
-            Paragraph(f"<font size='14'><b>{customer_name}</b></font>", style()),
+            Paragraph(customer_html, style()),
             Paragraph(f"<font size='10'><b>{start_date} - {end_date}</b></font>", style(alignment=TA_RIGHT))
         ]
     ], colWidths=[content_w * 0.6, content_w * 0.4])
@@ -510,13 +527,16 @@ def generate_project_invoice_pdf(invoice) -> bytes:
         story.append(Paragraph(f"<font size='9' color='#4b5563'>{notes}</font>", style()))
         story.append(Spacer(1, 8 * mm))
 
-    payment_info = [
-        Paragraph("<font size='9'><b>Informasi Pembayaran:</b></font>", style()),
-        Spacer(1, 2 * mm),
-        Paragraph("<font size='9' color='#4b5563'>Bank Mandiri</font>", style()),
-        Paragraph("<font size='9' color='#4b5563'>No. Rekening: <b>1780001847504</b></font>", style()),
-        Paragraph("<font size='9' color='#4b5563'>Atas Nama: <b>DEWI KUSUMA WARDHANI</b></font>", style()),
-    ]
+    payment_info = []
+    bank_account = getattr(invoice, "bank_account", None)
+    if bank_account:
+        payment_info = [
+            Paragraph("<font size='9'><b>Informasi Pembayaran:</b></font>", style()),
+            Spacer(1, 2 * mm),
+            Paragraph(f"<font size='9' color='#4b5563'>{bank_account.bank_name}</font>", style()),
+            Paragraph(f"<font size='9' color='#4b5563'>No. Rekening: <b>{bank_account.account_number}</b></font>", style()),
+            Paragraph(f"<font size='9' color='#4b5563'>Atas Nama: <b>{bank_account.account_name}</b></font>", style()),
+        ]
 
     sig_data = [
         [Paragraph("<font size='9'>Hormat Kami,</font>", style(alignment=TA_CENTER))],

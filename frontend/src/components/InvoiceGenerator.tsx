@@ -41,6 +41,12 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
   const [discountType, setDiscountType] = useState("");
   const [discountValue, setDiscountValue] = useState("");
   
+  const [bankAccounts, setBankAccounts] = useState<any[]>([]);
+  const [selectedBankId, setSelectedBankId] = useState<string>("");
+  const [newBank, setNewBank] = useState({ bank_name: "", account_number: "", account_name: "" });
+  const [invoiceNumberType, setInvoiceNumberType] = useState<"auto" | "manual">("auto");
+  const [invoiceNumber, setInvoiceNumber] = useState<string>("");
+  
   // Preview State
   const [previewData, setPreviewData] = useState<any>(null);
 
@@ -64,12 +70,16 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
   useEffect(() => {
     if (isOpen) {
       fetchUninvoicedCustomers();
+      fetchBankAccounts();
       if (existingInvoice) {
         setCustomerName(existingInvoice.customer_name);
         setInvoiceDate(existingInvoice.invoice_date || toLocalDateInput(new Date()));
         setStartDate(existingInvoice.start_date);
         setEndDate(existingInvoice.end_date);
         setNotes(existingInvoice.notes || "");
+        setSelectedBankId(existingInvoice.bank_account_id ? String(existingInvoice.bank_account_id) : "");
+        setInvoiceNumberType(existingInvoice.invoice_number ? "manual" : "auto");
+        setInvoiceNumber(existingInvoice.invoice_number || "");
         setStep(2);
         fetchPreviewForExisting(existingInvoice);
       } else {
@@ -82,9 +92,28 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
         setNotes("");
         setDiscountType("");
         setDiscountValue("");
+        setSelectedBankId("");
+        setNewBank({ bank_name: "", account_number: "", account_name: "" });
+        setInvoiceNumberType("auto");
+        setInvoiceNumber("");
       }
     }
   }, [isOpen, existingInvoice]);
+
+  const fetchBankAccounts = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/bank-accounts`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBankAccounts(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchPreviewForExisting = async (invoice: any) => {
     setLoading(true);
@@ -166,10 +195,20 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
 
 
 
-  const handleSaveOnly = async () => {
-    setLoading(true);
-    try {
-      const payload = {
+  const createPayload = async () => {
+      let finalBankId = selectedBankId === "add-new" ? null : (selectedBankId ? parseInt(selectedBankId) : null);
+      if (selectedBankId === "add-new") {
+        if (!newBank.bank_name || !newBank.account_number || !newBank.account_name) {
+          throw new Error("Harap lengkapi form rekening baru");
+        }
+        const bankRes = await authFetch(`${API_URL}/bank-accounts`, {
+          method: "POST",
+          body: JSON.stringify(newBank)
+        });
+        finalBankId = bankRes.id;
+      }
+
+      return {
         customer_name: previewData.customer_name,
         invoice_date: invoiceDate,
         start_date: previewData.start_date,
@@ -177,8 +216,16 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
         total_amount: previewData.total_amount,
         notes: notes || undefined,
         discount_type: discountType || null,
-        discount_value: discountValue ? parseFloat(discountValue) : null
+        discount_value: discountValue ? parseFloat(discountValue) : null,
+        bank_account_id: finalBankId,
+        invoice_number: invoiceNumberType === "manual" && invoiceNumber ? invoiceNumber : undefined,
       };
+  };
+
+  const handleSaveOnly = async () => {
+    setLoading(true);
+    try {
+      const payload = await createPayload();
       
       if (existingInvoice) {
         await authFetch(`${API_URL}/invoices/${existingInvoice.id}`, {
@@ -207,16 +254,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
     setLoading(true);
     
     try {
-      const payload = {
-        customer_name: previewData.customer_name,
-        invoice_date: invoiceDate,
-        start_date: previewData.start_date,
-        end_date: previewData.end_date,
-        total_amount: previewData.total_amount,
-        notes: notes || undefined,
-        discount_type: discountType || null,
-        discount_value: discountValue ? parseFloat(discountValue) : null
-      };
+      const payload = await createPayload();
       
       let res;
       if (existingInvoice) {
@@ -345,6 +383,66 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
                   />
                 </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nomor Invoice <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <select 
+                      value={invoiceNumberType} 
+                      onChange={(e) => setInvoiceNumberType(e.target.value as any)}
+                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 w-1/3"
+                    >
+                      <option value="auto">Auto (n+1)</option>
+                      <option value="manual">Manual</option>
+                    </select>
+                    {invoiceNumberType === "manual" && (
+                      <input
+                        type="text"
+                        value={invoiceNumber}
+                        onChange={(e) => setInvoiceNumber(e.target.value)}
+                        placeholder="Masukkan nomor..."
+                        className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 w-2/3"
+                        required
+                      />
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Rekening Pembayaran
+                  </label>
+                  <CustomSelect
+                    value={selectedBankId}
+                    onChange={(val) => setSelectedBankId(val as string)}
+                    options={[
+                      { value: "", label: "-- Tidak ada rekening / Lewati --" },
+                      ...bankAccounts.map((b) => ({ value: String(b.id), label: `${b.bank_name} - ${b.account_number}` })),
+                      { value: "add-new", label: "+ Tambah Rekening Baru" }
+                    ]}
+                  />
+                </div>
+              </div>
+
+              {selectedBankId === "add-new" && (
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Nama Bank *</label>
+                    <input type="text" value={newBank.bank_name} onChange={e => setNewBank({...newBank, bank_name: e.target.value})} className={inputCls} placeholder="BCA" required />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">No. Rekening *</label>
+                    <input type="text" value={newBank.account_number} onChange={e => setNewBank({...newBank, account_number: e.target.value})} className={inputCls} placeholder="12345678" required />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Atas Nama *</label>
+                    <input type="text" value={newBank.account_name} onChange={e => setNewBank({...newBank, account_name: e.target.value})} className={inputCls} placeholder="PT Kusuma" required />
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Catatan Tambahan (Opsional)

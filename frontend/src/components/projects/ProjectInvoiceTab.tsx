@@ -63,6 +63,30 @@ export default function ProjectInvoiceTab() {
   const [discountType, setDiscountType] = useState("");
   const [discountValue, setDiscountValue] = useState("");
 
+  const [bankAccounts, setBankAccounts] = useState<any[]>([]);
+  const [selectedBankId, setSelectedBankId] = useState<string>("");
+  const [newBank, setNewBank] = useState({ bank_name: "", account_number: "", account_name: "" });
+  const [invoiceNumberType, setInvoiceNumberType] = useState<"auto" | "manual">("auto");
+  const [invoiceNumber, setInvoiceNumber] = useState<string>("");
+
+  React.useEffect(() => {
+    const fetchBankAccounts = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_URL}/bank-accounts`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setBankAccounts(data);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchBankAccounts();
+  }, []);
+
   const [previewData, setPreviewData] = useState<any>(null);
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: number | null }>({ isOpen: false, id: null });
 
@@ -77,6 +101,10 @@ export default function ProjectInvoiceTab() {
     setNotes("");
     setDiscountType("");
     setDiscountValue("");
+    setSelectedBankId("");
+    setNewBank({ bank_name: "", account_number: "", account_name: "" });
+    setInvoiceNumberType("auto");
+    setInvoiceNumber("");
   };
 
   const handleOpenCreate = () => {
@@ -94,6 +122,9 @@ export default function ProjectInvoiceTab() {
     setNotes(inv.notes || "");
     setDiscountType(inv.discount_type || "");
     setDiscountValue(inv.discount_value ? String(inv.discount_value) : "");
+    setSelectedBankId(inv.bank_account_id ? String(inv.bank_account_id) : "");
+    setInvoiceNumberType(inv.invoice_number ? "manual" : "auto");
+    setInvoiceNumber(inv.invoice_number || "");
     setView("form");
     
     // Auto preview logic for editing could be triggered here or manually by user
@@ -153,22 +184,47 @@ export default function ProjectInvoiceTab() {
     }
   };
 
+  const createPayload = async () => {
+    let finalBankId = selectedBankId === "add-new" ? null : (selectedBankId ? parseInt(selectedBankId) : null);
+    if (selectedBankId === "add-new") {
+      if (!newBank.bank_name || !newBank.account_number || !newBank.account_name) {
+        throw new Error("Harap lengkapi form rekening baru");
+      }
+      const token = localStorage.getItem("token");
+      const bankRes = await fetch(`${API_URL}/bank-accounts`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(newBank)
+      });
+      if (!bankRes.ok) throw new Error("Gagal membuat rekening baru");
+      const bankData = await bankRes.json();
+      finalBankId = bankData.id;
+    }
+
+    const project = projects.find((p: any) => String(p.id) === projectId);
+    return {
+      invoice_type: "project",
+      project_id: parseInt(projectId),
+      customer_name: project?.client_name || project?.name || "Unknown",
+      invoice_date: invoiceDate,
+      start_date: previewData.start_date,
+      end_date: previewData.end_date,
+      total_amount: previewData.total_amount,
+      notes: notes || undefined,
+      discount_type: discountType || null,
+      discount_value: discountValue ? parseFloat(discountValue) : null,
+      bank_account_id: finalBankId,
+      invoice_number: invoiceNumberType === "manual" && invoiceNumber ? invoiceNumber : undefined,
+    };
+  };
+
   const handleSaveOnly = async () => {
     setLoading(true);
     try {
-      const project = projects.find((p: any) => String(p.id) === projectId);
-      const payload = {
-        invoice_type: "project",
-        project_id: parseInt(projectId),
-        customer_name: project?.client_name || project?.name || "Unknown",
-        invoice_date: invoiceDate,
-        start_date: previewData.start_date,
-        end_date: previewData.end_date,
-        total_amount: previewData.total_amount,
-        notes: notes || undefined,
-        discount_type: discountType || null,
-        discount_value: discountValue ? parseFloat(discountValue) : null,
-      };
+      const payload = await createPayload();
 
       if (editId) {
         await updateInvoice.mutateAsync({ id: editId, data: payload });
@@ -190,19 +246,7 @@ export default function ProjectInvoiceTab() {
   const handleSaveAndDownload = async () => {
     setLoading(true);
     try {
-      const project = projects.find((p: any) => String(p.id) === projectId);
-      const payload = {
-        invoice_type: "project",
-        project_id: parseInt(projectId),
-        customer_name: project?.client_name || project?.name || "Unknown",
-        invoice_date: invoiceDate,
-        start_date: previewData.start_date,
-        end_date: previewData.end_date,
-        total_amount: previewData.total_amount,
-        notes: notes || undefined,
-        discount_type: discountType || null,
-        discount_value: discountValue ? parseFloat(discountValue) : null,
-      };
+      const payload = await createPayload();
 
       let invoiceId = editId;
       let invoiceNumber = "";
@@ -433,6 +477,66 @@ export default function ProjectInvoiceTab() {
                 />
               </div>
             </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nomor Invoice <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <select 
+                    value={invoiceNumberType} 
+                    onChange={(e) => setInvoiceNumberType(e.target.value as any)}
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 w-1/3"
+                  >
+                    <option value="auto">Auto (n+1)</option>
+                    <option value="manual">Manual</option>
+                  </select>
+                  {invoiceNumberType === "manual" && (
+                    <input
+                      type="text"
+                      value={invoiceNumber}
+                      onChange={(e) => setInvoiceNumber(e.target.value)}
+                      placeholder="Masukkan nomor..."
+                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 w-2/3"
+                      required
+                    />
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Rekening Pembayaran
+                </label>
+                <CustomSelect
+                  value={selectedBankId}
+                  onChange={(val) => setSelectedBankId(val as string)}
+                  options={[
+                    { value: "", label: "-- Tidak ada rekening / Lewati --" },
+                    ...bankAccounts.map((b) => ({ value: String(b.id), label: `${b.bank_name} - ${b.account_number}` })),
+                    { value: "add-new", label: "+ Tambah Rekening Baru" }
+                  ]}
+                />
+              </div>
+            </div>
+
+            {selectedBankId === "add-new" && (
+              <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Nama Bank *</label>
+                  <input type="text" value={newBank.bank_name} onChange={e => setNewBank({...newBank, bank_name: e.target.value})} className={inputCls} placeholder="BCA" required />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">No. Rekening *</label>
+                  <input type="text" value={newBank.account_number} onChange={e => setNewBank({...newBank, account_number: e.target.value})} className={inputCls} placeholder="12345678" required />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Atas Nama *</label>
+                  <input type="text" value={newBank.account_name} onChange={e => setNewBank({...newBank, account_name: e.target.value})} className={inputCls} placeholder="PT Kusuma" required />
+                </div>
+              </div>
+            )}
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Catatan Tambahan (Opsional)

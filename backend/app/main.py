@@ -144,11 +144,13 @@ from .api.v1.surat_jalans import router as surat_jalans_router
 from .api.v1.hauling import router as hauling_router
 from .api.v1.vision import router as vision_router
 from .api.v1.loading_prices import router as loading_prices_router
+from .api.v1.bank_accounts import router as bank_accounts_router
 
 # ... inside router inclusion block ...
 app.include_router(material_prices_router, prefix="/api/v1/material-prices", tags=["material-prices"], dependencies=[Depends(require_division(["material"]))])
 app.include_router(projects_router, prefix="/api/v1/projects-data", tags=["projects"], dependencies=[Depends(require_division(["material", "hauling"]))])
 app.include_router(invoices_router, prefix="/api/v1/invoices", tags=["invoices"], dependencies=[Depends(require_division(["corporate"]))])
+app.include_router(bank_accounts_router, prefix="/api/v1/bank-accounts", tags=["bank-accounts"], dependencies=[Depends(require_division(["corporate"]))])
 app.include_router(vendors_router, prefix="/api/v1/vendors", tags=["vendors"])
 app.include_router(hauling_router, prefix="/api/v1/hauling", tags=["hauling"], dependencies=[Depends(require_division(["hauling"]))])
 app.include_router(surat_jalans_router, prefix="/api/v1", tags=["surat-jalan"], dependencies=[Depends(require_division(["hauling"]))])

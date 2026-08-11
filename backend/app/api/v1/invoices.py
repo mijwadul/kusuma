@@ -58,6 +58,8 @@ class InvoiceCreate(BaseModel):
     notes: Optional[str] = None
     discount_type: Optional[str] = None
     discount_value: Optional[float] = None
+    invoice_number: Optional[str] = None
+    bank_account_id: Optional[int] = None
 
 class InvoiceUpdate(BaseModel):
     invoice_type: Optional[str] = None
@@ -71,6 +73,8 @@ class InvoiceUpdate(BaseModel):
     notes: Optional[str] = None
     discount_type: Optional[str] = None
     discount_value: Optional[float] = None
+    invoice_number: Optional[str] = None
+    bank_account_id: Optional[int] = None
 
 class InvoiceResponse(BaseModel):
     id: int
@@ -90,6 +94,7 @@ class InvoiceResponse(BaseModel):
     status: str
     notes: Optional[str]
     is_downloaded: Optional[bool] = False
+    bank_account_id: Optional[int] = None
 
     @field_validator('is_downloaded', mode='before')
     @classmethod
@@ -134,6 +139,13 @@ def preview_invoice(
     current_user: User = Depends(get_current_user),
 ):
     return InvoiceService.preview_invoice(db, invoice_type, project_id, customer_name, customer_id, start_date, end_date, invoice_id)
+
+@router.get("/next-number", response_model=str)
+def get_next_invoice_number(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return InvoiceService.get_next_invoice_number(db)
 
 @router.post("", response_model=InvoiceResponse, status_code=status.HTTP_201_CREATED)
 def create_invoice(

@@ -28,6 +28,7 @@ export interface Invoice {
   discount_amount?: number | null;
   final_amount?: number | null;
   is_downloaded: boolean;
+  bank_account_id?: number | null;
   created_at?: string;
 }
 

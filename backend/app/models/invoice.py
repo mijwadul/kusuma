@@ -1,5 +1,6 @@
 from sqlalchemy import Boolean, Column, Date, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 
 from .base import Base
 
@@ -20,6 +21,8 @@ class Invoice(Base):
     notes = Column(Text, nullable=True)
     is_downloaded = Column(Boolean, default=False, server_default="0", nullable=False)
     
+    bank_account_id = Column(Integer, ForeignKey("bank_accounts.id"), nullable=True)
+    
     discount_type = Column(String(20), nullable=True) # 'percentage' or 'nominal'
     discount_value = Column(Float, nullable=True)
     discount_amount = Column(Float, nullable=True)
@@ -28,3 +31,6 @@ class Invoice(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    bank_account = relationship("BankAccount")
+    project = relationship("Project")

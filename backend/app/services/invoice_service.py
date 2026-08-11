@@ -192,36 +192,29 @@ class InvoiceService:
             )
 
     @staticmethod
+    def get_next_invoice_number(db: Session) -> str:
+        today = date.today()
+        date_str = today.strftime('%Y%m%d')
+        
+        last_invoice = db.query(Invoice).filter(Invoice.invoice_number.like("INV-%")).order_by(Invoice.id.desc()).first()
+        seq = 1
+        if last_invoice and last_invoice.invoice_number:
+            try:
+                parts = last_invoice.invoice_number.split("-")
+                seq = int(parts[-1]) + 1
+            except:
+                pass
+                
+        return f"INV-{date_str}-{seq:04d}"
+
+    @staticmethod
     def create_invoice(db: Session, current_user: User, data: InvoiceCreate) -> InvoiceResponse:
         from sqlalchemy import func
         
-        #existing_invoice = db.query(Invoice).filter(
-        #    Invoice.customer_name.ilike(data.customer_name),
-        #   Invoice.start_date <= data.end_date,
-        #    Invoice.end_date >= data.start_date
-        #).first()
-        
-        #if existing_invoice:
-        #    raise ValidationError(f"Invoice untuk customer ini pada periode yang bersinggungan ({existing_invoice.start_date} s/d {existing_invoice.end_date}) sudah pernah dibuat dengan nomor {existing_invoice.invoice_number}. Silakan edit invoice tersebut alih-alih membuat yang baru.")
-
-        today = date.today()
-        prefix = f"INV-{today.strftime('%Y%m%d')}-"
-        
-        last_invoice = (
-            db.query(Invoice)
-            .filter(Invoice.invoice_number.like(f"{prefix}%"))
-            .order_by(Invoice.id.desc())
-            .first()
-        )
-        
-        seq = 1
-        if last_invoice:
-            try:
-                seq = int(last_invoice.invoice_number.split("-")[-1]) + 1
-            except:
-                pass
-
-        invoice_number = f"{prefix}{seq:04d}"
+        if data.invoice_number:
+            invoice_number = data.invoice_number
+        else:
+            invoice_number = InvoiceService.get_next_invoice_number(db)
 
         discount_amount = 0.0
         final_amount = data.total_amount
@@ -249,6 +242,7 @@ class InvoiceService:
             discount_amount=discount_amount if data.discount_type else None,
             final_amount=final_amount if data.discount_type else None,
             notes=data.notes,
+            bank_account_id=data.bank_account_id,
             created_by=current_user.id if current_user else None,
         )
 
@@ -307,6 +301,7 @@ class InvoiceService:
             status=new_invoice.status,
             notes=new_invoice.notes,
             is_downloaded=new_invoice.is_downloaded,
+            bank_account_id=new_invoice.bank_account_id,
             created_at=str(new_invoice.created_at),
         )
 
@@ -331,6 +326,7 @@ class InvoiceService:
                 final_amount=inv.final_amount,
                 status=inv.status,
                 notes=inv.notes,
+                bank_account_id=inv.bank_account_id,
                 created_at=str(inv.created_at),
             )
             for inv in invoices
@@ -372,6 +368,7 @@ class InvoiceService:
             status=inv.status,
             notes=inv.notes,
             is_downloaded=inv.is_downloaded,
+            bank_account_id=inv.bank_account_id,
             created_at=str(inv.created_at),
         )
 
@@ -414,6 +411,7 @@ class InvoiceService:
             status=inv.status,
             notes=inv.notes,
             is_downloaded=inv.is_downloaded,
+            bank_account_id=inv.bank_account_id,
             created_at=str(inv.created_at),
         )
 
@@ -519,6 +517,7 @@ class InvoiceService:
             status=inv.status,
             notes=inv.notes,
             is_downloaded=inv.is_downloaded,
+            bank_account_id=inv.bank_account_id,
             created_at=str(inv.created_at),
         )
 
