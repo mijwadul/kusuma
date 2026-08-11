@@ -260,3 +260,16 @@ body {
 .bg-status-info-bg { background-color: #e8f0fe !important; }
 .text-status-info-text { color: #1a73e8 !important; }
 .border-status-info-border { border-color: #d2e3fc !important; }
+
+/* Global fix for centered modal dialogs cutting off top when content is taller than viewport */
+.fixed.inset-0.items-center {
+  align-items: flex-start !important;
+  overflow-y: auto !important;
+  padding-top: 2rem !important;
+  padding-bottom: 2rem !important;
+}
+
+.fixed.inset-0.items-center > div {
+  margin-top: auto !important;
+  margin-bottom: auto !important;
+}
