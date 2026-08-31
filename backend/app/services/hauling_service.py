@@ -669,38 +669,178 @@ class HaulingService:
         resp.vendor_name = bill.vendor.name if bill.vendor else "-"
         resp.project_name = bill.project.name if bill.project else "-"
 
-        # Ambil SJ yang terhubung
-        sjs = db.query(SuratJalan).filter(SuratJalan.hauling_bill_id == bill.id).order_by(SuratJalan.created_at.asc()).all()
+    # Ambil Surat Jalan yang terhubung ke bill
+        sjs = (
+        db.query(SuratJalan)
+        .filter(SuratJalan.hauling_bill_id == bill.id)
+        .order_by(SuratJalan.created_at.asc())
+        .all()
+    )
 
-        # Dapatkan harga yang berlaku saat itu
+        # ============================================================
+        # AMBIL HARGA HAULING YANG BERLAKU
+        # Termasuk material_deduction_per_rit
+        # ============================================================
+
         rows = []
         date_groups_map: dict[date, dict] = {}
-        for sj in sjs:
-            hp = float(sj.hauling_price or 0)
-            meas = float(sj.volume or 0) if bill.measurement_type == 'kubikasi' else float(sj.netto or 0)
-            cost = float(sj.hauling_cost or (hp * meas))
-            sj_date_val = sj.created_at.date() if sj.created_at else bill.start_date
-            unit_val = 'm3' if bill.measurement_type == 'kubikasi' else 'ton'
 
-            # Est. deduction
-            deduction = (cost - (float(sj.hauling_cost or cost))) # or proportional
+        # Ambil semua project hauling price yang relevan
+        project_price_map: dict[int, list] = {}
+
+        project_ids = list({
+            sj.project_id
+            for sj in sjs
+            if sj.project_id is not None
+        })
+
+        if project_ids:
+            prices = (
+                db.query(ProjectHaulingPrice)
+                .filter(
+                    ProjectHaulingPrice.project_id.in_(project_ids),
+                    or_(
+                        ProjectHaulingPrice.vendor_id == bill.vendor_id,
+                        ProjectHaulingPrice.vendor_id.is_(None)
+                    ),
+                    func.date(ProjectHaulingPrice.effective_date) <= bill.end_date
+                )
+                .order_by(ProjectHaulingPrice.effective_date.desc())
+                .all()
+            )
+
+            for price in prices:
+                key = (price.project_id, price.vendor_id)
+                project_price_map.setdefault(key, []).append(price)
+
+        # ============================================================
+        # HELPER UNTUK MENCARI HARGA YANG BERLAKU
+        # ============================================================
+
+        def find_applicable_price(sj: SuratJalan) -> Optional[ProjectHaulingPrice]:
+            if not sj.project_id:
+                return None
+
+            sj_date = (
+                sj.created_at.date()
+                if sj.created_at
+                else bill.start_date
+            )
+
+            # Prioritas:
+            # 1. Harga khusus vendor
+            # 2. Harga global vendor_id = None
+            for vendor_key in [bill.vendor_id, None]:
+                candidates = project_price_map.get(
+                    (sj.project_id, vendor_key),
+                    []
+                )
+
+                for price in candidates:
+                    price_date = (
+                        price.effective_date.date()
+                        if hasattr(price.effective_date, "date")
+                        else price.effective_date
+                    )
+
+                    if price_date <= sj_date:
+                        return price
+
+            return None
+
+        # ============================================================
+        # BANGUN DETAIL SETIAP SURAT JALAN
+        # ============================================================
+
+        for sj in sjs:
+
+            # Cari harga yang berlaku pada tanggal SJ
+            applicable = find_applicable_price(sj)
+
+            # Harga hauling
+            hp = (
+                float(applicable.price_per_unit)
+                if applicable
+                else float(sj.hauling_price or 0)
+            )
+
+            # --------------------------------------------------------
+            # TENTUKAN MEASUREMENT
+            # --------------------------------------------------------
+
+            meas = (
+                float(sj.volume or 0)
+                if bill.measurement_type == "kubikasi"
+                else float(sj.netto or 0)
+            )
+
+            # --------------------------------------------------------
+            # BIAYA KOTOR
+            # --------------------------------------------------------
+
+            cost = float(
+                sj.hauling_cost
+                if sj.hauling_cost is not None
+                else hp * meas
+            )
+
+            # --------------------------------------------------------
+            # POTONGAN MATERIAL
+            # --------------------------------------------------------
+
+            deduction = (
+                float(applicable.material_deduction_per_rit or 0)
+                if applicable
+                else 0.0
+            )
+
+            # --------------------------------------------------------
+            # NET TAGIHAN
+            # --------------------------------------------------------
+
             net = cost - deduction
+
+            sj_date_val = (
+                sj.created_at.date()
+                if sj.created_at
+                else bill.start_date
+            )
+
+            unit_val = (
+                "m3"
+                if bill.measurement_type == "kubikasi"
+                else "ton"
+            )
+
+            # ========================================================
+            # DETAIL ROW
+            # ========================================================
 
             row_item = HaulingBillingSJ(
                 sj_id=sj.id,
                 sj_date=sj_date_val,
-                nopol=sj.nopol or '-',
+                nopol=sj.nopol or "-",
                 supir=sj.nama_supir,
                 measurement=meas,
                 measurement_unit=unit_val,
                 hauling_price=hp,
                 hauling_cost=cost,
+
+                # POTONGAN MATERIAL PER RITASE
                 material_deduction=deduction,
+
+                # NET SETELAH POTONGAN
                 net_cost=net,
+
                 hauling_is_billed=True,
                 hauling_bill_id=bill.id,
             )
+
             rows.append(row_item)
+
+            # ========================================================
+            # GROUPING PER TANGGAL
+            # ========================================================
 
             if sj_date_val not in date_groups_map:
                 date_groups_map[sj_date_val] = {
@@ -714,7 +854,9 @@ class HaulingService:
                     "rates": set(),
                     "rows": [],
                 }
+
             g = date_groups_map[sj_date_val]
+
             g["ritase"] += 1
             g["measurement"] += meas
             g["hauling_cost"] += cost
@@ -723,23 +865,37 @@ class HaulingService:
             g["rates"].add(hp)
             g["rows"].append(row_item)
 
+        # ============================================================
+        # BANGUN GROUPED DATES
+        # ============================================================
+
         sorted_date_groups = []
+
         for dval in sorted(date_groups_map.keys()):
+
             gdata = date_groups_map[dval]
-            sorted_date_groups.append(HaulingBillingGroupDate(
-                date=gdata["date"],
-                ritase=gdata["ritase"],
-                measurement=round(gdata["measurement"], 2), # <-- Tambahkan round(, 2)
-                measurement_unit=gdata["measurement_unit"],
-                hauling_cost=gdata["hauling_cost"],
-                material_deduction=gdata["material_deduction"],
-                net_cost=gdata["net_cost"],
-                rates=sorted(list(gdata["rates"])),
-                rows=gdata["rows"],
-            ))
+
+            sorted_date_groups.append(
+                HaulingBillingGroupDate(
+                    date=gdata["date"],
+                    ritase=gdata["ritase"],
+                    measurement=round(gdata["measurement"], 2),
+                    measurement_unit=gdata["measurement_unit"],
+                    hauling_cost=gdata["hauling_cost"],
+                    material_deduction=gdata["material_deduction"],
+                    net_cost=gdata["net_cost"],
+                    rates=sorted(list(gdata["rates"])),
+                    rows=gdata["rows"],
+                )
+            )
+
+        # ============================================================
+        # PASANG DETAIL KE RESPONSE
+        # ============================================================
 
         resp.rows = rows
         resp.grouped_dates = sorted_date_groups
+
         return resp
 
     @staticmethod
