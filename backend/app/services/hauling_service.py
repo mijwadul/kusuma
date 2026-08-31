@@ -524,7 +524,7 @@ class HaulingService:
             sorted_date_groups.append(HaulingBillingGroupDate(
                 date=gdata["date"],
                 ritase=gdata["ritase"],
-                measurement=gdata["measurement"],
+                measurement=round(gdata["measurement"], 2), # <-- Tambahkan round(, 2)
                 measurement_unit=gdata["measurement_unit"],
                 hauling_cost=gdata["hauling_cost"],
                 material_deduction=gdata["material_deduction"],
@@ -534,7 +534,7 @@ class HaulingService:
             ))
 
         total_ritase = len(rows)
-        total_measurement = sum(r.measurement for r in rows)
+        total_measurement = round(sum(r.measurement for r in rows), 2)
         total_hauling_cost = sum(r.hauling_cost for r in rows)
         total_material_deduction = sum(r.material_deduction for r in rows)
         total_net = sum(r.net_cost for r in rows)
@@ -729,7 +729,7 @@ class HaulingService:
             sorted_date_groups.append(HaulingBillingGroupDate(
                 date=gdata["date"],
                 ritase=gdata["ritase"],
-                measurement=gdata["measurement"],
+                measurement=round(gdata["measurement"], 2), # <-- Tambahkan round(, 2)
                 measurement_unit=gdata["measurement_unit"],
                 hauling_cost=gdata["hauling_cost"],
                 material_deduction=gdata["material_deduction"],
