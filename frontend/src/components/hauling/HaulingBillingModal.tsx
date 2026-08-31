@@ -362,21 +362,19 @@ export default function HaulingBillingModal({ isOpen, onClose, vendor }: Hauling
         <div className="flex border-b border-gray-200 bg-slate-100 px-6 pt-2">
           <button
             onClick={() => setActiveTab('create')}
-            className={`px-4 py-2.5 text-xs font-bold rounded-t-xl transition-colors flex items-center gap-2 ${
-              activeTab === 'create'
+            className={`px-4 py-2.5 text-xs font-bold rounded-t-xl transition-colors flex items-center gap-2 ${activeTab === 'create'
                 ? 'bg-white text-blue-700 border-t border-x border-gray-200 shadow-sm'
                 : 'text-gray-500 hover:text-gray-900'
-            }`}
+              }`}
           >
             <Filter size={14} /> Buat Rekap Baru
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`px-4 py-2.5 text-xs font-bold rounded-t-xl transition-colors flex items-center gap-2 ${
-              activeTab === 'history'
+            className={`px-4 py-2.5 text-xs font-bold rounded-t-xl transition-colors flex items-center gap-2 ${activeTab === 'history'
                 ? 'bg-white text-blue-700 border-t border-x border-gray-200 shadow-sm'
                 : 'text-gray-500 hover:text-gray-900'
-            }`}
+              }`}
           >
             <History size={14} /> Riwayat Laporan Tersimpan ({savedBills.length})
           </button>
@@ -746,7 +744,7 @@ export default function HaulingBillingModal({ isOpen, onClose, vendor }: Hauling
                 Belum ada riwayat laporan tagihan yang disimpan untuk vendor ini.
               </div>
             ) : (
-              <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+              <div className="border border-gray-200 rounded-xl overflow-x-auto shadow-sm">
                 <table className="w-full text-xs">
                   <thead className="bg-gray-50 text-gray-600 font-semibold border-b whitespace-nowrap">
                     <tr>

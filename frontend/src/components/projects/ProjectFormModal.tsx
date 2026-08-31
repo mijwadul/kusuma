@@ -47,25 +47,25 @@ export default function ProjectFormModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm mb-1">Nama Proyek *</label>
-              <input required value={projForm.name || ""} onChange={e => setProjForm(p => ({...p, name: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm" />
+              <input required value={projForm.name || ""} onChange={e => setProjForm(p => ({ ...p, name: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm" />
             </div>
             <div>
               <label className="block text-sm mb-1">Klien / Pemesan</label>
-              <input value={projForm.client_name || ""} onChange={e => setProjForm(p => ({...p, client_name: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm" />
+              <input value={projForm.client_name || ""} onChange={e => setProjForm(p => ({ ...p, client_name: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm" />
             </div>
             <div>
               <label className="block text-sm mb-1">Lokasi</label>
-              <input value={projForm.location || ""} onChange={e => setProjForm(p => ({...p, location: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm" />
+              <input value={projForm.location || ""} onChange={e => setProjForm(p => ({ ...p, location: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm" />
             </div>
             <div>
               <label className="block text-sm mb-1">Budget (Rp)</label>
-              <input type="number" value={projForm.budget || ""} onChange={e => setProjForm(p => ({...p, budget: parseFloat(e.target.value) || 0}))} className="w-full border rounded-lg px-3 py-2 text-sm" />
+              <input type="number" value={projForm.budget || ""} onChange={e => setProjForm(p => ({ ...p, budget: parseFloat(e.target.value) || 0 }))} className="w-full border rounded-lg px-3 py-2 text-sm" />
             </div>
             <div>
               <label className="block text-sm mb-1">Status</label>
               <CustomSelect
                 value={projForm.status || "ongoing"}
-                onChange={(val) => setProjForm(p => ({...p, status: val as string}))}
+                onChange={(val) => setProjForm(p => ({ ...p, status: val as string }))}
                 options={[
                   { value: "ongoing", label: "Ongoing" },
                   { value: "completed", label: "Completed" },
@@ -78,7 +78,7 @@ export default function ProjectFormModal({
               <label className="block text-sm mb-1">Tipe Pengukuran</label>
               <CustomSelect
                 value={projForm.measurement_type || "tonase"}
-                onChange={(val) => setProjForm(p => ({...p, measurement_type: val as string}))}
+                onChange={(val) => setProjForm(p => ({ ...p, measurement_type: val as string }))}
                 options={[
                   { value: "tonase", label: "Tonase (Ton)" },
                   { value: "kubikasi", label: "Kubikasi (m3)" },
@@ -92,7 +92,7 @@ export default function ProjectFormModal({
                 {projForm.assigned_user_ids?.map((id, i) => {
                   const user = allUsers.find(u => u.id === id);
                   const displayName = user ? (user.full_name || user.email) : `User ID: ${id}`;
-                  return <span key={i} className="bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded flex items-center gap-1">{displayName} <X size={12} className="cursor-pointer hover:text-emerald-950" onClick={() => setProjForm(p => ({...p, assigned_user_ids: p.assigned_user_ids?.filter(uid => uid !== id)}))}/></span>
+                  return <span key={i} className="bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded flex items-center gap-1">{displayName} <X size={12} className="cursor-pointer hover:text-emerald-950" onClick={() => setProjForm(p => ({ ...p, assigned_user_ids: p.assigned_user_ids?.filter(uid => uid !== id) }))} /></span>
                 })}
               </div>
               <CustomSelect
@@ -100,7 +100,7 @@ export default function ProjectFormModal({
                 onChange={val => {
                   const num = parseInt(val as string);
                   if (num && !projForm.assigned_user_ids?.includes(num)) {
-                    setProjForm(p => ({...p, assigned_user_ids: [...(p.assigned_user_ids || []), num]}));
+                    setProjForm(p => ({ ...p, assigned_user_ids: [...(p.assigned_user_ids || []), num] }));
                   }
                 }}
                 options={[
@@ -115,7 +115,7 @@ export default function ProjectFormModal({
                 {projForm.assigned_employee_ids?.map((id, i) => {
                   const emp = allEmployees.find(e => e.id === id);
                   const displayName = emp?.name || `Pekerja ID: ${id}`;
-                  return <span key={i} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded flex items-center gap-1">{displayName} <X size={12} className="cursor-pointer hover:text-blue-950" onClick={() => setProjForm(p => ({...p, assigned_employee_ids: p.assigned_employee_ids?.filter(eid => eid !== id)}))}/></span>
+                  return <span key={i} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded flex items-center gap-1">{displayName} <X size={12} className="cursor-pointer hover:text-blue-950" onClick={() => setProjForm(p => ({ ...p, assigned_employee_ids: p.assigned_employee_ids?.filter(eid => eid !== id) }))} /></span>
                 })}
               </div>
               <CustomSelect
@@ -123,7 +123,7 @@ export default function ProjectFormModal({
                 onChange={val => {
                   const num = parseInt(val as string);
                   if (num && !projForm.assigned_employee_ids?.includes(num)) {
-                    setProjForm(p => ({...p, assigned_employee_ids: [...(p.assigned_employee_ids || []), num]}));
+                    setProjForm(p => ({ ...p, assigned_employee_ids: [...(p.assigned_employee_ids || []), num] }));
                   }
                 }}
                 options={[
@@ -135,46 +135,49 @@ export default function ProjectFormModal({
             </div>
           </div>
 
+          {/* Bagian Target Material yang Diperbaiki */}
           <div className="pt-4 border-t">
             <div className="flex justify-between items-center mb-2">
               <h3 className="font-semibold text-sm">Target Material</h3>
               <button type="button" onClick={addProjMaterial} className="text-xs flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-1 rounded">
-                <Plus size={14}/> Tambah Material
+                <Plus size={14} /> Tambah Material
               </button>
             </div>
             {projForm.material_items?.map((m, idx) => (
-              <div key={idx} className="flex items-end gap-2 mb-2 p-2 bg-gray-50 rounded border">
-                <div className="flex-1">
+              <div key={idx} className="grid grid-cols-1 sm:grid-cols-12 gap-2 mb-2 p-3 bg-gray-50 rounded-xl border items-end">
+                <div className="sm:col-span-4 min-w-0">
                   <CustomSelect
                     value={m.material_type}
                     onChange={val => updateProjMaterial(idx, "material_type", val as string)}
                     options={(meta?.material_types || []).map((mt: string) => ({ value: mt, label: mt }))}
                   />
                 </div>
-                <div className="w-24">
+                <div className="sm:col-span-2 min-w-0">
                   <label className="block text-xs mb-1">Target Qty</label>
-                  <input type="number" required value={m.target_quantity} onChange={e => updateProjMaterial(idx, "target_quantity", e.target.value)} className="w-full border rounded text-sm p-1.5" />
+                  <input type="number" required value={m.target_quantity} onChange={e => updateProjMaterial(idx, "target_quantity", e.target.value)} className="w-full border rounded-lg text-sm p-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
                 </div>
-                <div className="w-24">
+                <div className="sm:col-span-2 min-w-0">
                   <CustomSelect
                     value={m.unit}
                     onChange={val => updateProjMaterial(idx, "unit", val as string)}
                     options={(meta?.material_units?.[m.material_type] || meta?.all_units || []).map((u: string) => ({ value: u, label: u }))}
                   />
                 </div>
-                <div className="flex-1">
+                <div className="sm:col-span-3 min-w-0">
                   <label className="block text-xs mb-1">Harga/Satuan (opsional)</label>
-                  <input type="number" placeholder="Rp..." value={m.unit_price || ""} onChange={e => updateProjMaterial(idx, "unit_price", e.target.value)} className="w-full border rounded text-sm p-1.5" />
+                  <input type="number" placeholder="Rp..." value={m.unit_price || ""} onChange={e => updateProjMaterial(idx, "unit_price", e.target.value)} className="w-full border rounded-lg text-sm p-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
                 </div>
-                <button type="button" onClick={() => removeProjMaterial(idx)} className="p-2 text-red-500 hover:bg-red-100 rounded mb-0.5"><Trash2 size={14}/></button>
+                <div className="sm:col-span-1 flex justify-end pb-0.5">
+                  <button type="button" onClick={() => removeProjMaterial(idx)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors" title="Hapus Material"><Trash2 size={16} /></button>
+                </div>
               </div>
             ))}
             {(!projForm.material_items || projForm.material_items.length === 0) && <p className="text-xs text-gray-400 italic">Belum ada target material.</p>}
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 border rounded-xl text-sm">Batal</button>
-            <button type="submit" disabled={isPending} className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold flex items-center gap-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 border rounded-xl text-sm hover:bg-gray-50">Batal</button>
+            <button type="submit" disabled={isPending} className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold flex items-center gap-2 hover:bg-emerald-700">
               {isPending && <Loader2 size={14} className="animate-spin" />}
               Simpan Proyek
             </button>
