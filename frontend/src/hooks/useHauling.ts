@@ -150,3 +150,93 @@ export const useHaulingDashboardStats = () => {
   });
 };
 
+export const useVendorHaulingBilling = (params: {
+  vendorId?: number | string | null;
+  startDate: string;
+  endDate: string;
+  projectId?: number | string | null;
+  nopol?: string | null;
+  onlyUnbilled?: boolean;
+  enabled?: boolean;
+}) => {
+  return useQuery({
+    queryKey: ['vendor-hauling-billing', params.vendorId, params.startDate, params.endDate, params.projectId, params.nopol, params.onlyUnbilled],
+    queryFn: async () => {
+      if (!params.vendorId || !params.startDate || !params.endDate) return null;
+      const q = new URLSearchParams({
+        start_date: params.startDate,
+        end_date: params.endDate,
+      });
+      if (params.projectId) q.append('project_id', String(params.projectId));
+      if (params.nopol) q.append('nopol', params.nopol);
+      if (params.onlyUnbilled) q.append('only_unbilled', 'true');
+
+      const response = await apiClient.get(`/hauling/vendors/${params.vendorId}/billing?${q.toString()}`);
+      return response.data;
+    },
+    enabled: params.enabled !== false && !!params.vendorId && !!params.startDate && !!params.endDate,
+  });
+};
+
+export const useCreateHaulingBill = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiClient.post('/hauling/bills', data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hauling-bills'] });
+      queryClient.invalidateQueries({ queryKey: ['vendor-hauling-billing'] });
+      queryClient.invalidateQueries({ queryKey: ['all-hauling-obligations'] });
+      queryClient.invalidateQueries({ queryKey: ['project-hauling-obligations'] });
+      queryClient.invalidateQueries({ queryKey: ['vendor-hauling-details'] });
+    },
+  });
+};
+
+export const useHaulingBills = (params?: { vendorId?: number | string | null; projectId?: number | string | null }) => {
+  return useQuery({
+    queryKey: ['hauling-bills', params?.vendorId, params?.projectId],
+    queryFn: async () => {
+      const q = new URLSearchParams();
+      if (params?.vendorId) q.append('vendor_id', String(params.vendorId));
+      if (params?.projectId) q.append('project_id', String(params.projectId));
+      const response = await apiClient.get(`/hauling/bills?${q.toString()}`);
+      return response.data;
+    },
+  });
+};
+
+export const useHaulingBillDetail = (billId?: number | null) => {
+  return useQuery({
+    queryKey: ['hauling-bill-detail', billId],
+    queryFn: async () => {
+      if (!billId) return null;
+      const response = await apiClient.get(`/hauling/bills/${billId}`);
+      return response.data;
+    },
+    enabled: !!billId,
+  });
+};
+
+export const useDeleteHaulingBill = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (billId: number) => {
+      const response = await apiClient.delete(`/hauling/bills/${billId}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hauling-bills'] });
+      queryClient.invalidateQueries({ queryKey: ['vendor-hauling-billing'] });
+      queryClient.invalidateQueries({ queryKey: ['all-hauling-obligations'] });
+      queryClient.invalidateQueries({ queryKey: ['project-hauling-obligations'] });
+      queryClient.invalidateQueries({ queryKey: ['vendor-hauling-details'] });
+    },
+  });
+};
+
+
+
+

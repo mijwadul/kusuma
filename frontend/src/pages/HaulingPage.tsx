@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { Truck, Plus, ChevronDown, ChevronRight, Building2 } from 'lucide-react';
+import { Truck, Plus, ChevronDown, ChevronRight, Building2, ReceiptText } from 'lucide-react';
 import { useVendors, useCreateVendor, useUpdateVendor, useDeleteVendor, useCreateVendorTopup, useVendorTopups, useUpdateVendorTopup, useDeleteVendorTopup, useVendorTruckBalances, Vendor } from '../hooks/useVendors';
 import { useVendorTrucks, useCreateVendorTruck, useUpdateVendorTruck, useDeleteVendorTruck, useAllHaulingObligations, useVendorHaulingDetails } from '../hooks/useHauling';
 import VendorReportModal from '../components/VendorReportModal';
+import HaulingBillingModal from '../components/hauling/HaulingBillingModal';
 
 // Imported Extracted Components
 import HaulingVendorFormModal from '../components/hauling/HaulingVendorFormModal';
@@ -21,6 +22,8 @@ export default function HaulingPage() {
   const [vendorData, setVendorData] = useState({ name: "", contact_person: "", phone: "", address: "", vendor_type: "hauling", allow_deposit_cascade: false });
   const [showVendorDetail, setShowVendorDetail] = useState<Vendor | null>(null);
   const [reportVendor, setReportVendor] = useState<Vendor | null>(null);
+  const [billingVendor, setBillingVendor] = useState<Vendor | null>(null);
+
 
   // Top Up State
   const [showTopupForm, setShowTopupForm] = useState<number | null>(null);
@@ -270,23 +273,25 @@ export default function HaulingPage() {
                         </tr>
                         {isExpanded && (
                           <tr className="bg-slate-50 border-t border-slate-100">
-                            <VendorTrucksList 
-                              vendorId={v.id} 
-                              onAddTruck={(vendorId) => {
-                                setEditingTruck(null);
-                                setTruckData({ nopol: '', supir_default: '', tipe_truk: 'tronton', panjang: null, lebar: null, tinggi: null });
-                                setShowTruckForm({ vendorId });
-                              }}
-                              onEditTruck={(vendorId, t) => {
-                                setEditingTruck(t);
-                                setTruckData({ 
-                                  nopol: t.nopol, supir_default: t.supir_default || '', 
-                                  tipe_truk: t.tipe_truk, panjang: t.panjang ?? null, lebar: t.lebar ?? null, tinggi: t.tinggi ?? null 
-                                });
-                                setShowTruckForm({ vendorId });
-                              }}
-                              onDeleteTruck={handleDeleteTruck}
-                            />
+                            <td colSpan={4} className="p-0">
+                              <VendorTrucksList 
+                                vendorId={v.id} 
+                                onAddTruck={(vendorId) => {
+                                  setEditingTruck(null);
+                                  setTruckData({ nopol: '', supir_default: '', tipe_truk: 'tronton', panjang: null, lebar: null, tinggi: null });
+                                  setShowTruckForm({ vendorId });
+                                }}
+                                onEditTruck={(vendorId, t) => {
+                                  setEditingTruck(t);
+                                  setTruckData({ 
+                                    nopol: t.nopol, supir_default: t.supir_default || '', 
+                                    tipe_truk: t.tipe_truk, panjang: t.panjang ?? null, lebar: t.lebar ?? null, tinggi: t.tinggi ?? null 
+                                  });
+                                  setShowTruckForm({ vendorId });
+                                }}
+                                onDeleteTruck={handleDeleteTruck}
+                              />
+                            </td>
                           </tr>
                         )}
                       </React.Fragment>
@@ -366,10 +371,18 @@ export default function HaulingPage() {
         }}
         onDeleteVendor={handleDeleteVendor}
         setReportVendor={setReportVendor}
+        setBillingVendor={(v) => {
+          setShowVendorDetail(null);
+          setBillingVendor(v);
+        }}
       />
 
       {reportVendor && (
         <VendorReportModal isOpen={!!reportVendor} vendor={reportVendor} onClose={() => setReportVendor(null)} />
+      )}
+
+      {billingVendor && (
+        <HaulingBillingModal isOpen={!!billingVendor} vendor={billingVendor} onClose={() => setBillingVendor(null)} />
       )}
 
       {/* CONFIRM MODAL */}

@@ -777,6 +777,7 @@ export default function ProjectsPage() {
         <HaulingPricesModal
           projectId={showHaulingModal.id!}
           projectName={showHaulingModal.name}
+          measurementType={showHaulingModal.measurement_type}
           onClose={() => setShowHaulingModal(null)}
         />
       )}

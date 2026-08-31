@@ -5,7 +5,13 @@ from .base import Base
 
 class ProjectHaulingPrice(Base):
     """
-    Harga Hauling per Vendor per Project
+    Harga Hauling per Vendor per Project.
+
+    price_per_unit             : harga per m³ (kubikasi) atau per ton (tonase),
+                                 sesuai measurement_type project.
+    material_deduction_per_rit : potongan harga material per ritase (per surat jalan).
+                                 Digunakan saat rekap tagihan vendor:
+                                 Net = (price_per_unit × volume/netto) − (material_deduction_per_rit × ritase)
     """
     __tablename__ = "project_hauling_prices"
 
@@ -15,6 +21,9 @@ class ProjectHaulingPrice(Base):
     
     # Harga dihitung berdasarkan measurement_type di tabel Project (Tonase atau Kubikasi)
     price_per_unit = Column(DECIMAL(15, 2), nullable=False)
+    
+    # Potongan harga material per ritase (opsional, default 0)
+    material_deduction_per_rit = Column(DECIMAL(15, 2), nullable=False, default=0)
     
     # Tanggal mulai berlakunya harga ini
     effective_date = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

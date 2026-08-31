@@ -20,3 +20,4 @@ from .vendor import Vendor, VendorTopUp
 from .vendor_truck import VendorTruck
 from .project_hauling_price import ProjectHaulingPrice
 from .project_loading_price import ProjectLoadingPrice
+from .hauling_bill import HaulingBill

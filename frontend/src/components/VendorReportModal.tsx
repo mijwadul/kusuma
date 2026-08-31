@@ -55,36 +55,41 @@ export default function VendorReportModal({ isOpen, onClose, vendor }: VendorRep
 
       const { data } = await apiClient.get(`/vendors/${vendor.id}/report?${params.toString()}`);
       
-      const tableHead = [
+      const rekapHead = [
         ['No', 'Nomor Polisi', 'Total Trip', 'Total Tonase (Ton)', 'Total Kubikasi (m³)', 'Estimasi Biaya Rental']
       ];
 
-      const tableBody = data.truck_details.map((truck: any, index: number) => [
+      const rekapBody = data.truck_details.map((truck: any, index: number) => [
         index + 1,
         truck.nopol,
-        truck.trips,
+        `${truck.trips} Rit`,
         truck.tonnage.toLocaleString('id-ID', { maximumFractionDigits: 2 }),
         truck.volume.toLocaleString('id-ID', { maximumFractionDigits: 2 }),
         formatIDR(truck.hauling_cost)
       ]);
 
-      const summary = [
-        { label: 'Total Top-Up / Deposit', value: formatIDR(data.total_topup) },
-        { label: 'Total Trip Keseluruhan', value: `${data.hauling_summary.total_trips} Trip` },
-        { label: 'Total Tonase Keseluruhan', value: `${data.hauling_summary.total_tonnage.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton` },
-        { label: 'Total Kubikasi Keseluruhan', value: `${data.hauling_summary.total_volume.toLocaleString('id-ID', { maximumFractionDigits: 2 })} m³` },
-        { label: 'Total Estimasi Biaya Rental', value: formatIDR(data.hauling_summary.total_hauling_cost) },
-      ];
+      rekapBody.push([
+        { content: 'TOTAL KESELURUHAN:', colSpan: 2, styles: { fontStyle: 'bold', halign: 'right', fillColor: [241, 245, 249] } },
+        { content: `${data.hauling_summary.total_trips} Rit`, styles: { fontStyle: 'bold', halign: 'center', fillColor: [241, 245, 249] } },
+        { content: `${data.hauling_summary.total_tonnage.toLocaleString('id-ID', { maximumFractionDigits: 2 })} Ton`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [241, 245, 249] } },
+        { content: `${data.hauling_summary.total_volume.toLocaleString('id-ID', { maximumFractionDigits: 2 })} m³`, styles: { fontStyle: 'bold', halign: 'right', fillColor: [241, 245, 249] } },
+        { content: formatIDR(data.hauling_summary.total_hauling_cost), styles: { fontStyle: 'bold', halign: 'right', textColor: [13, 148, 136], fillColor: [241, 245, 249] } }
+      ]);
 
       await generatePremiumPDF({
-        title: `Laporan Aktivitas Vendor`,
-        subtitle: `Vendor: ${data.vendor_name}\nProject: ${data.project_name}`,
+        title: `LAPORAN AKTIVITAS VENDOR`,
+        subtitle: `Proyek: ${data.project_name}`,
         dateRange: data.period,
         filename: `Laporan_Vendor_${vendor.name.replace(/\s+/g, '_')}_${startDate}_${endDate}.pdf`,
         orientation: 'landscape',
-        tableHead,
-        tableBody,
-        summary
+        recipient: {
+          name: data.vendor_name,
+          contact: vendor.contact_person ? `CP: ${vendor.contact_person} (${vendor.phone || '-'})` : undefined,
+          address: vendor.address || undefined
+        },
+        rekapTitle: "REKAPITULASI AKTIVITAS ARMADA VENDOR",
+        rekapHead,
+        rekapBody
       });
 
       toast.success('Laporan PDF berhasil dibuat!');

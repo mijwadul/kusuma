@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Building2, ChevronDown, ChevronRight, Edit, Trash2, FileText } from 'lucide-react';
+import { X, Building2, ChevronDown, ChevronRight, Edit, Trash2, FileText, ReceiptText } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -16,6 +16,7 @@ interface Props {
   onEditVendor: (vendor: any) => void;
   onDeleteVendor: (vendorId: number) => void;
   setReportVendor: (vendor: any) => void;
+  setBillingVendor?: (vendor: any) => void;
 }
 
 export default function HaulingVendorDetailModal({
@@ -32,7 +33,8 @@ export default function HaulingVendorDetailModal({
   onDeleteTopup,
   onEditVendor,
   onDeleteVendor,
-  setReportVendor
+  setReportVendor,
+  setBillingVendor
 }: Props) {
   const [showObligationDetail, setShowObligationDetail] = useState(false);
   const [expandedProjects, setExpandedProjects] = useState<Record<number, boolean>>({});
@@ -51,15 +53,25 @@ export default function HaulingVendorDetailModal({
             <Building2 className="text-blue-600" /> Detail Vendor
           </h3>
           <div className="flex items-center gap-2">
+            {setBillingVendor && (
+              <button
+                onClick={() => setBillingVendor(vendor)}
+                className="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-xs shadow-sm transition-colors"
+                title="Rekap Tagihan / Invoice"
+              >
+                <ReceiptText size={15} /> Tagihan
+              </button>
+            )}
             <button
               onClick={() => setReportVendor(vendor)}
-              className="text-white bg-teal-600 hover:bg-teal-700 px-3 py-1.5 rounded font-medium flex items-center gap-1 text-sm"
+              className="text-white bg-teal-600 hover:bg-teal-700 px-3 py-1.5 rounded-lg font-medium flex items-center gap-1 text-xs transition-colors"
             >
-              <FileText size={16} /> Laporan
+              <FileText size={15} /> Laporan
             </button>
             <button onClick={onClose} className="text-gray-500 hover:text-gray-800"><X size={20}/></button>
           </div>
         </div>
+
         
         <div className="space-y-4 mb-6">
           <div>

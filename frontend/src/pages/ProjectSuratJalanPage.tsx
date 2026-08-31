@@ -4,7 +4,7 @@ import { useCreateSuratJalan, useProjectSuratJalans, useUpdateSuratJalan, useDel
 import { toast } from 'sonner';
 import { Plus, X, Loader2, Truck, FileText, ChevronDown, ChevronRight, Trash2, Pencil } from 'lucide-react';
 import AlertModal from '../components/AlertModal';
-import { toLocalDateTimeInputString, truncToTwo, formatNopol, formatTitleCase } from '../utils/formatters';
+import { toLocalDateTimeInputString, formatNopol, formatTitleCase } from '../utils/formatters';
 import { generatePremiumPDF } from '../utils/pdfGenerator';
 
 import { useVendorTrucks } from '../hooks/useHauling';
@@ -848,6 +848,76 @@ export default function ProjectSuratJalanPage() {
         else coltCount++;
       });
 
+      // ── Grouping untuk Lembar Rekapitulasi (Page 1 Table) ─────────────────
+      const rekapPerDate = new Map<string, {
+        dateStr: string;
+        ritase: number;
+        tronton: number;
+        colt: number;
+        totalMeas: number;
+      }>();
+
+      filtered.forEach((sj: any) => {
+        const d = new Date(sj.created_at);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const sjDateStr = `${y}-${m}-${day}`;
+
+        if (!rekapPerDate.has(sjDateStr)) {
+          rekapPerDate.set(sjDateStr, {
+            dateStr: sjDateStr,
+            ritase: 0,
+            tronton: 0,
+            colt: 0,
+            totalMeas: 0,
+          });
+        }
+        const item = rekapPerDate.get(sjDateStr)!;
+        item.ritase += 1;
+        const tType = (sj.truck_type || '').toLowerCase();
+        const isTronton = tType ? tType === 'tronton' : ((sj.netto || sj.volume || 0) > 20);
+        if (isTronton) item.tronton += 1;
+        else item.colt += 1;
+
+        const val = mt === 'tonase' ? (sj.netto || 0) : mt === 'kubikasi' ? (sj.volume || 0) : 1;
+        item.totalMeas += val;
+      });
+
+      const sortedRekapDates = Array.from(rekapPerDate.values()).sort((a, b) => a.dateStr.localeCompare(b.dateStr));
+
+      const rekapHead = [
+        [
+          'No',
+          'Tanggal Operasional',
+          'Total Ritase',
+          'Armada Tronton',
+          'Armada Colt Diesel',
+          `Total ${mt === 'tonase' ? 'Tonase (Ton)' : mt === 'kubikasi' ? 'Kubikasi (m³)' : 'Ritase'}`,
+        ],
+      ];
+
+      const rekapBody: (string | number | any)[][] = sortedRekapDates.map((item, idx) => {
+        const [y, m, d] = item.dateStr.split('-');
+        return [
+          idx + 1,
+          `${d}/${m}/${y}`,
+          `${item.ritase} Rit`,
+          `${item.tronton} Rit`,
+          `${item.colt} Rit`,
+          mt === 'tonase' ? `${item.totalMeas} Ton` : mt === 'kubikasi' ? `${item.totalMeas} m³` : `${item.ritase} Rit`,
+        ];
+      });
+
+      // Total row in rekap table
+      rekapBody.push([
+        { content: 'TOTAL KESELURUHAN:', colSpan: 2, styles: { fontStyle: 'bold', halign: 'right', fillColor: [241, 245, 249] } },
+        { content: `${filtered.length} Rit`, styles: { fontStyle: 'bold', halign: 'center', fillColor: [241, 245, 249] } },
+        { content: `${trontonCount} Rit`, styles: { fontStyle: 'bold', halign: 'center', fillColor: [241, 245, 249] } },
+        { content: `${coltCount} Rit`, styles: { fontStyle: 'bold', halign: 'center', fillColor: [241, 245, 249] } },
+        { content: `${mt === 'tonase' ? totalTonase + ' Ton' : totalKubikasi + ' m³'}`, styles: { fontStyle: 'bold', halign: 'right', textColor: [13, 148, 136], fillColor: [241, 245, 249] } },
+      ]);
+
       const tableHead = [['No', 'Waktu', 'Nopol', 'Supir', 'Vendor', 'Tipe', mt === 'tonase' ? 'Bruto / Tarra (Kg)' : mt === 'kubikasi' ? 'P x L x T' : 'Keterangan', mt === 'tonase' ? 'Netto' : mt === 'kubikasi' ? 'Volume' : 'Jumlah']];
       
       const grouped: Record<string, Record<string, any[]>> = {};
@@ -906,40 +976,40 @@ export default function ProjectSuratJalanPage() {
               mt === 'tonase'
                 ? `${sj.bruto ? Math.round(sj.bruto).toLocaleString('id-ID') : '-'} / ${sj.tarra ? Math.round(sj.tarra).toLocaleString('id-ID') : '-'}`
                 : mt === 'kubikasi' ? `${sj.panjang || '-'}x${sj.lebar || '-'}x${sj.tinggi || '-'}` : '-',
-              mt === 'tonase' ? `${val.toFixed(2)} T` : mt === 'kubikasi' ? `${val.toFixed(2)} m³` : '1 Rit'
+              mt === 'tonase' ? `${val} T` : mt === 'kubikasi' ? `${val} m³` : '1 Rit'
             ]);
           });
 
           tableBody.push([
             { content: 'Subtotal:', colSpan: 7, styles: { fontStyle: 'bold', halign: 'right' } },
-            { content: mt === 'tonase' ? `${subTotal.toFixed(2)} T` : mt === 'kubikasi' ? `${subTotal.toFixed(2)} m³` : `${subTotal} Rit`, styles: { fontStyle: 'bold', textColor: [13, 148, 136] } }
+            { content: mt === 'tonase' ? `${subTotal} T` : mt === 'kubikasi' ? `${subTotal} m³` : `${subTotal} Rit`, styles: { fontStyle: 'bold', textColor: [13, 148, 136] } }
           ]);
         });
       });
 
-      const summaryItems = [
-        `Total Ritase Tronton: ${trontonCount}`,
-        `Total Ritase Colt Diesel: ${coltCount}`,
-        `Grand Total: ${mt === 'tonase' ? truncToTwo(totalTonase) + ' Ton' : truncToTwo(totalKubikasi) + ' m³'}`,
-        '',
-        'Total per Vendor:'
-      ];
-      Object.keys(vendorTotals).forEach(v => {
-        summaryItems.push(`  ${v}: ${truncToTwo(vendorTotals[v])} ${mt === 'tonase' ? 'Ton' : 'm³'}`);
-      });
 
       await generatePremiumPDF({
-        title: "Laporan Surat Jalan Proyek",
-        subtitle: `Proyek: ${project.name} | ${vendorLabel}`,
+        title: "REKAPITULASI SURAT JALAN PROYEK",
+        subtitle: `Proyek: ${project.name}`,
         dateRange: `${params.startDate} s/d ${params.endDate}`,
         filename: `Surat_Jalan_${project.name.replace(/\s+/g, '_')}_${params.startDate}_${params.endDate}.pdf`,
+        orientation: 'landscape',
+        recipient: {
+          name: project.name,
+          subName: project.client_name ? `Klien: ${project.client_name}` : undefined,
+          address: project.location || undefined,
+          contact: vendorLabel !== 'Semua Vendor & Armada' ? vendorLabel : undefined,
+        },
+        rekapTitle: "REKAPITULASI OPERASIONAL SURAT JALAN",
+        rekapHead,
+        rekapBody,
+        detailTitle: "LAMPIRAN RINCIAN DETAIL SURAT JALAN PROYEK",
         tableHead,
         tableBody,
-        summaryItems
       });
 
       setShowPdfModal(false);
-      toast.success('PDF berhasil didownload');
+      toast.success('PDF Surat Jalan berhasil didownload');
     } catch (err) {
       toast.error('Gagal export PDF');
       console.error(err);

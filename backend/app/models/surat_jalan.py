@@ -43,12 +43,18 @@ class SuratJalan(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    # Invoicing tracking
+    # Invoicing tracking (Customer / Project invoice)
     is_invoiced = Column(Boolean, default=False, nullable=True)
     invoice_id = Column(Integer, ForeignKey("invoices.id", ondelete="SET NULL"), nullable=True)
     
+    # Hauling Billing tracking (Vendor hauling billing / payment report)
+    hauling_is_billed = Column(Boolean, default=False, nullable=True)
+    hauling_bill_id = Column(Integer, ForeignKey("hauling_bills.id", ondelete="SET NULL"), nullable=True)
+
     project = relationship("Project", backref="surat_jalans")
     field_staff = relationship("User", backref="surat_jalans_created")
     vendor = relationship("Vendor", foreign_keys=[vendor_id])
     loading_vendor = relationship("Vendor", foreign_keys=[loading_vendor_id])
     truck = relationship("VendorTruck", foreign_keys=[truck_id])
+    hauling_bill = relationship("HaulingBill", back_populates="surat_jalans", foreign_keys=[hauling_bill_id])
+
