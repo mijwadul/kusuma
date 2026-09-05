@@ -16,7 +16,7 @@ interface HaulingPricesModalProps {
 const formatIDR = (v: number | string | null | undefined) =>
   Number(v ?? 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
 
-const unitLabel = (mt?: string) => mt === 'kubikasi' ? 'm³' : 'ton';
+const unitLabel = (mt?: string) => mt === 'kubikasi' ? 'm³' : mt === 'ritase' ? 'rit' : 'ton';
 
 export default function HaulingPricesModal({ projectId, projectName, measurementType, onClose }: HaulingPricesModalProps) {
   const { data: prices, isLoading } = useProjectHaulingPrices(projectId);
@@ -33,6 +33,7 @@ export default function HaulingPricesModal({ projectId, projectName, measurement
   });
 
   const [selectedVendor, setSelectedVendor] = useState<number | 'global' | ''>('');
+  const [vehicleType, setVehicleType] = useState<string>('');
   const [pricePerUnit, setPricePerUnit] = useState<string>('');
   const [materialDeduction, setMaterialDeduction] = useState<string>('');
   const [effectiveDate, setEffectiveDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -43,6 +44,7 @@ export default function HaulingPricesModal({ projectId, projectName, measurement
 
   const resetForm = () => {
     setSelectedVendor('');
+    setVehicleType('');
     setPricePerUnit('');
     setMaterialDeduction('');
     setEditingPriceId(null);
@@ -61,6 +63,7 @@ export default function HaulingPricesModal({ projectId, projectName, measurement
     const payload = {
       project_id: projectId,
       vendor_id: selectedVendor === 'global' ? null : Number(selectedVendor),
+      vehicle_type: vehicleType || null,
       price_per_unit: parseFloat(pricePerUnit),
       material_deduction_per_rit: parseFloat(materialDeduction || '0'),
       effective_date: effectiveDate
@@ -88,6 +91,7 @@ export default function HaulingPricesModal({ projectId, projectName, measurement
   const handleEdit = (p: any) => {
     setEditingPriceId(p.id);
     setSelectedVendor(p.vendor_id === null ? 'global' : p.vendor_id);
+    setVehicleType(p.vehicle_type || '');
     setPricePerUnit(p.price_per_unit.toString());
     setMaterialDeduction((p.material_deduction_per_rit ?? 0).toString());
     setEffectiveDate(p.effective_date ? new Date(p.effective_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
@@ -149,6 +153,22 @@ export default function HaulingPricesModal({ projectId, projectName, measurement
               />
             </div>
 
+            {/* Tipe Kendaraan (hanya untuk Ritase) */}
+            {measurementType === 'ritase' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tipe Kendaraan</label>
+                <CustomSelect
+                  value={vehicleType}
+                  onChange={val => setVehicleType(val as string)}
+                  options={[
+                    { value: '', label: '-- Semua Tipe Kendaraan (Global) --' },
+                    { value: 'colt_diesel', label: 'Colt Diesel' },
+                    { value: 'tronton', label: 'Tronton' }
+                  ]}
+                />
+              </div>
+            )}
+
             {/* Harga + Potongan side by side */}
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -162,7 +182,7 @@ export default function HaulingPricesModal({ projectId, projectName, measurement
                   value={pricePerUnit ? Number(pricePerUnit).toLocaleString('id-ID') : ''}
                   onChange={e => setPricePerUnit(e.target.value.replace(/\D/g, ''))}
                 />
-                <p className="text-xs text-gray-400 mt-1">Dihitung × {unit === 'm³' ? 'kubikasi (m³)' : 'tonase (ton)'}</p>
+                <p className="text-xs text-gray-400 mt-1">Dihitung {unit === 'rit' ? 'flat per ritase' : `× ${unit === 'm³' ? 'kubikasi (m³)' : 'tonase (ton)'}`}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -184,7 +204,11 @@ export default function HaulingPricesModal({ projectId, projectName, measurement
               <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5 text-sm">
                 <Info size={15} className="text-blue-500 shrink-0 mt-0.5" />
                 <span className="text-blue-700">
-                  Tagihan per SJ = (<strong>{formatIDR(netPreview)}</strong> × {unit === 'm³' ? 'kubikasi' : 'tonase'}) − <strong>{formatIDR(deductionPreview)}</strong>/rit
+                  Tagihan per SJ = {unit === 'rit' ? (
+                    <><strong>{formatIDR(netPreview)}</strong>/rit</>
+                  ) : (
+                    <>(<strong>{formatIDR(netPreview)}</strong> × {unit === 'm³' ? 'kubikasi' : 'tonase'})</>
+                  )} − <strong>{formatIDR(deductionPreview)}</strong>/rit
                 </span>
               </div>
             )}
@@ -254,9 +278,16 @@ export default function HaulingPricesModal({ projectId, projectName, measurement
                       return (
                         <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-4 py-3 font-medium text-gray-800">
-                            {p.vendor_id === null
-                              ? <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-bold">Global</span>
-                              : (vendor?.name || 'Unknown')}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {p.vendor_id === null
+                                ? <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-bold">Global</span>
+                                : (vendor?.name || 'Unknown')}
+                              {p.vehicle_type && (
+                                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs rounded-full font-semibold">
+                                  {p.vehicle_type === 'colt_diesel' ? 'Colt Diesel' : p.vehicle_type === 'tronton' ? 'Tronton' : p.vehicle_type}
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-4 py-3 text-gray-500">
                             {p.effective_date ? new Date(p.effective_date).toLocaleDateString('id-ID') : '-'}

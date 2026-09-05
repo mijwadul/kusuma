@@ -66,16 +66,30 @@ class InvoiceService:
                     qty_val = float(r.netto or 0)
                     unit_val = "ton"
                     sj_info = f" [B1:{r.bruto} B2:{r.tarra} M:{r.minus_berat}]"
+                    current_unit_price = unit_price
                 elif measurement_type == 'kubikasi':
                     qty_val = float(r.volume or 0)
                     unit_val = "m3"
                     sj_info = f" [P:{r.panjang} L:{r.lebar} T:{r.tinggi} M:{r.minus_tinggi}]"
+                    current_unit_price = unit_price
                 else:
                     qty_val = 1.0
                     unit_val = "ritase"
                     sj_info = ""
+                    # Ritase price matching truck_type
+                    current_unit_price = unit_price
+                    if project.material_items:
+                        matched_item = None
+                        if r.truck_type:
+                            matched_item = next((m for m in project.material_items if m.vehicle_type == r.truck_type), None)
+                        if not matched_item:
+                            matched_item = next((m for m in project.material_items if not m.vehicle_type), None)
+                        if not matched_item and len(project.material_items) > 0:
+                            matched_item = project.material_items[0]
+                        if matched_item and matched_item.unit_price is not None:
+                            current_unit_price = matched_item.unit_price
                 
-                amt = qty_val * unit_price
+                amt = qty_val * current_unit_price
                 desc = f"Surat Jalan {r.nopol or '-'}{sj_info}"
 
                 items.append(
@@ -85,7 +99,7 @@ class InvoiceService:
                         material_type=project.name,
                         quantity=qty_val,
                         unit=unit_val,
-                        unit_price=unit_price,
+                        unit_price=current_unit_price,
                         amount=amt,
                         description=desc,
                         license_plate=r.nopol,
@@ -103,6 +117,8 @@ class InvoiceService:
                         loading_vendor_name=r.loading_vendor.name if r.loading_vendor else None,
                         loading_price=r.loading_price,
                         loading_cost=r.loading_cost,
+                        truck_type=r.truck_type,
+                        vehicle_type=r.truck_type,
                     )
                 )
                 total += amt

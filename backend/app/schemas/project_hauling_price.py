@@ -5,6 +5,7 @@ from datetime import datetime, date
 class ProjectHaulingPriceBase(BaseModel):
     project_id: int
     vendor_id: Optional[int] = None
+    vehicle_type: Optional[str] = None
     price_per_unit: float
     material_deduction_per_rit: float = 0.0
     effective_date: Optional[date] = None
@@ -14,6 +15,7 @@ class ProjectHaulingPriceCreate(ProjectHaulingPriceBase):
 
 class ProjectHaulingPriceUpdate(BaseModel):
     vendor_id: Optional[int] = None
+    vehicle_type: Optional[str] = None
     price_per_unit: Optional[float] = None
     material_deduction_per_rit: Optional[float] = None
     effective_date: Optional[date] = None

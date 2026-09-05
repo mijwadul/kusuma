@@ -37,6 +37,10 @@ class InvoicePreviewItem(BaseModel):
     loading_vendor_name: Optional[str] = None
     loading_price: Optional[float] = None
     loading_cost: Optional[float] = None
+    
+    # Tipe kendaraan (khususnya untuk ritase)
+    truck_type: Optional[str] = None
+    vehicle_type: Optional[str] = None
 
 class InvoicePreviewResponse(BaseModel):
     customer_name: str

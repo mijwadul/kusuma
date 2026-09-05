@@ -4,7 +4,8 @@ from pydantic import BaseModel
 class MaterialItemSchema(BaseModel):
     material_type: str
     unit: str
-    target_quantity: float
+    target_quantity: Optional[float] = None
+    vehicle_type: Optional[str] = None
     unit_price: Optional[float] = None
     notes: Optional[str] = None
 

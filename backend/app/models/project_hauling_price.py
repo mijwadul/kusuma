@@ -19,6 +19,9 @@ class ProjectHaulingPrice(Base):
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     vendor_id = Column(Integer, ForeignKey("vendors.id"), nullable=True)
     
+    # Tipe kendaraan (opsional, khususnya untuk ritase: 'tronton', 'colt_diesel', atau NULL untuk semua)
+    vehicle_type = Column(String(50), nullable=True)
+
     # Harga dihitung berdasarkan measurement_type di tabel Project (Tonase atau Kubikasi)
     price_per_unit = Column(DECIMAL(15, 2), nullable=False)
     

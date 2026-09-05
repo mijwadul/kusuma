@@ -1,6 +1,6 @@
 import math
 from typing import List
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, case
 from sqlalchemy.orm import Session
 from ..models.surat_jalan import SuratJalan
 from ..models.project import Project
@@ -76,16 +76,37 @@ class SuratJalanService:
                     db.refresh(vendor)
                 data.vendor_id = vendor.id
 
+        # Determine truck_type
+        truck_type = getattr(data, 'truck_type', None)
+        if not truck_type and project.measurement_type != "ritase":
+            if project.measurement_type == "tonase" and netto is not None:
+                truck_type = "tronton" if netto > 25 else "colt_diesel" if netto > 0 else None
+            elif project.measurement_type == "kubikasi" and volume is not None:
+                truck_type = "tronton" if volume > 20 else "colt_diesel" if volume > 0 else None
+
         if data.vendor_id:
             vendor = db.query(Vendor).filter(Vendor.id == data.vendor_id).first()
             if vendor:
                 today_date = date.today()
-                price_record = db.query(ProjectHaulingPrice).filter(
+                case_vehicle = case(
+                    (ProjectHaulingPrice.vehicle_type == truck_type, 2),
+                    (ProjectHaulingPrice.vehicle_type.is_(None), 1),
+                    else_=0
+                ) if truck_type else case((ProjectHaulingPrice.vehicle_type.is_(None), 1), else_=0)
+
+                q_price = db.query(ProjectHaulingPrice).filter(
                     ProjectHaulingPrice.project_id == project.id,
                     or_(ProjectHaulingPrice.vendor_id == vendor.id, ProjectHaulingPrice.vendor_id.is_(None)),
                     func.date(ProjectHaulingPrice.effective_date) <= today_date
-                ).order_by(
+                )
+                if truck_type:
+                    q_price = q_price.filter(or_(ProjectHaulingPrice.vehicle_type == truck_type, ProjectHaulingPrice.vehicle_type.is_(None)))
+                else:
+                    q_price = q_price.filter(ProjectHaulingPrice.vehicle_type.is_(None))
+
+                price_record = q_price.order_by(
                     ProjectHaulingPrice.vendor_id.isnot(None).desc(),
+                    case_vehicle.desc(),
                     ProjectHaulingPrice.effective_date.desc()
                 ).first()
                 if price_record:
@@ -127,7 +148,7 @@ class SuratJalanService:
             asal_tambang=data.asal_tambang,
             vendor_id=data.vendor_id,
             truck_id=data.truck_id,
-            truck_type=getattr(data, 'truck_type', None),
+            truck_type=truck_type,
             hauling_price=hauling_price,
             hauling_cost=hauling_cost,
             loading_vendor_id=data.loading_vendor_id,
@@ -281,18 +302,39 @@ class SuratJalanService:
         if netto is not None: sj.netto = netto
         if volume is not None: sj.volume = volume
 
+        # If not ritase, auto-detect truck_type
+        if project.measurement_type != "ritase":
+            if project.measurement_type == "tonase" and sj.netto is not None:
+                sj.truck_type = "tronton" if sj.netto > 25 else "colt_diesel" if sj.netto > 0 else None
+            elif project.measurement_type == "kubikasi" and sj.volume is not None:
+                sj.truck_type = "tronton" if sj.volume > 20 else "colt_diesel" if sj.volume > 0 else None
+
         # Recalculate Hauling Cost
         hauling_price = None
         hauling_cost = None
         
         if sj.vendor_id:
             sj_date = sj.created_at.date()
-            price_record = db.query(ProjectHaulingPrice).filter(
+            truck_type = sj.truck_type
+            case_vehicle = case(
+                (ProjectHaulingPrice.vehicle_type == truck_type, 2),
+                (ProjectHaulingPrice.vehicle_type.is_(None), 1),
+                else_=0
+            ) if truck_type else case((ProjectHaulingPrice.vehicle_type.is_(None), 1), else_=0)
+
+            q_price = db.query(ProjectHaulingPrice).filter(
                 ProjectHaulingPrice.project_id == project.id,
                 or_(ProjectHaulingPrice.vendor_id == sj.vendor_id, ProjectHaulingPrice.vendor_id.is_(None)),
                 func.date(ProjectHaulingPrice.effective_date) <= sj_date
-            ).order_by(
+            )
+            if truck_type:
+                q_price = q_price.filter(or_(ProjectHaulingPrice.vehicle_type == truck_type, ProjectHaulingPrice.vehicle_type.is_(None)))
+            else:
+                q_price = q_price.filter(ProjectHaulingPrice.vehicle_type.is_(None))
+
+            price_record = q_price.order_by(
                 ProjectHaulingPrice.vendor_id.isnot(None).desc(),
+                case_vehicle.desc(),
                 ProjectHaulingPrice.effective_date.desc()
             ).first()
             if price_record:

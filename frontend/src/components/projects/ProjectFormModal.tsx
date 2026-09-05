@@ -143,35 +143,66 @@ export default function ProjectFormModal({
                 <Plus size={14} /> Tambah Material
               </button>
             </div>
-            {projForm.material_items?.map((m, idx) => (
-              <div key={idx} className="grid grid-cols-1 sm:grid-cols-12 gap-2 mb-2 p-3 bg-gray-50 rounded-xl border items-end">
-                <div className="sm:col-span-4 min-w-0">
-                  <CustomSelect
-                    value={m.material_type}
-                    onChange={val => updateProjMaterial(idx, "material_type", val as string)}
-                    options={(meta?.material_types || []).map((mt: string) => ({ value: mt, label: mt }))}
-                  />
+            {projForm.material_items?.map((m, idx) => {
+              const isRitase = m.unit === 'ritase' || projForm.measurement_type === 'ritase';
+              return (
+                <div key={idx} className="grid grid-cols-1 sm:grid-cols-12 gap-2 mb-2 p-3 bg-gray-50 rounded-xl border items-end">
+                  <div className={isRitase ? "sm:col-span-3 min-w-0" : "sm:col-span-4 min-w-0"}>
+                    <label className="block text-xs mb-1">Jenis Material</label>
+                    <CustomSelect
+                      value={m.material_type}
+                      onChange={val => updateProjMaterial(idx, "material_type", val as string)}
+                      options={(meta?.material_types || []).map((mt: string) => ({ value: mt, label: mt }))}
+                    />
+                  </div>
+                  {isRitase && (
+                    <div className="sm:col-span-3 min-w-0">
+                      <label className="block text-xs mb-1">Jenis Kendaraan</label>
+                      <CustomSelect
+                        value={m.vehicle_type || ""}
+                        onChange={val => updateProjMaterial(idx, "vehicle_type", val as string)}
+                        options={[
+                          { value: "", label: "-- Semua / Bebas --" },
+                          { value: "colt_diesel", label: "Colt Diesel" },
+                          { value: "tronton", label: "Tronton" }
+                        ]}
+                      />
+                    </div>
+                  )}
+                  <div className="sm:col-span-2 min-w-0">
+                    <label className="block text-xs mb-1">Satuan</label>
+                    <CustomSelect
+                      value={m.unit}
+                      onChange={val => updateProjMaterial(idx, "unit", val as string)}
+                      options={(meta?.material_units?.[m.material_type] || meta?.all_units || []).map((u: string) => ({ value: u, label: u }))}
+                    />
+                  </div>
+                  <div className={isRitase ? "sm:col-span-1 min-w-0" : "sm:col-span-2 min-w-0"}>
+                    <label className="block text-xs mb-1">Target Qty</label>
+                    <input
+                      type="number"
+                      placeholder="Opsional"
+                      value={m.target_quantity ?? ""}
+                      onChange={e => updateProjMaterial(idx, "target_quantity", e.target.value)}
+                      className="w-full border rounded-lg text-sm p-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div className={isRitase ? "sm:col-span-2 min-w-0" : "sm:col-span-3 min-w-0"}>
+                    <label className="block text-xs mb-1">Harga/Satuan</label>
+                    <input
+                      type="number"
+                      placeholder="Rp..."
+                      value={m.unit_price || ""}
+                      onChange={e => updateProjMaterial(idx, "unit_price", e.target.value)}
+                      className="w-full border rounded-lg text-sm p-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div className="sm:col-span-1 flex justify-end pb-0.5">
+                    <button type="button" onClick={() => removeProjMaterial(idx)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors" title="Hapus Material"><Trash2 size={16} /></button>
+                  </div>
                 </div>
-                <div className="sm:col-span-2 min-w-0">
-                  <label className="block text-xs mb-1">Target Qty</label>
-                  <input type="number" required value={m.target_quantity} onChange={e => updateProjMaterial(idx, "target_quantity", e.target.value)} className="w-full border rounded-lg text-sm p-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
-                </div>
-                <div className="sm:col-span-2 min-w-0">
-                  <CustomSelect
-                    value={m.unit}
-                    onChange={val => updateProjMaterial(idx, "unit", val as string)}
-                    options={(meta?.material_units?.[m.material_type] || meta?.all_units || []).map((u: string) => ({ value: u, label: u }))}
-                  />
-                </div>
-                <div className="sm:col-span-3 min-w-0">
-                  <label className="block text-xs mb-1">Harga/Satuan (opsional)</label>
-                  <input type="number" placeholder="Rp..." value={m.unit_price || ""} onChange={e => updateProjMaterial(idx, "unit_price", e.target.value)} className="w-full border rounded-lg text-sm p-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
-                </div>
-                <div className="sm:col-span-1 flex justify-end pb-0.5">
-                  <button type="button" onClick={() => removeProjMaterial(idx)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors" title="Hapus Material"><Trash2 size={16} /></button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {(!projForm.material_items || projForm.material_items.length === 0) && <p className="text-xs text-gray-400 italic">Belum ada target material.</p>}
           </div>
 

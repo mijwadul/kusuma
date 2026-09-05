@@ -604,7 +604,16 @@ export default function ProjectInvoiceTab() {
                   {previewData.items.map((item: any, i: number) => (
                     <tr key={i} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatDate(item.income_date)}</td>
-                      <td className="px-4 py-3 text-gray-800 whitespace-nowrap">{item.material_type}</td>
+                      <td className="px-4 py-3 text-gray-800 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <span>{item.material_type}</span>
+                          {item.truck_type && (
+                            <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs rounded-full font-semibold">
+                              {item.truck_type === 'colt_diesel' ? 'Colt Diesel' : item.truck_type === 'tronton' ? 'Tronton' : item.truck_type}
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-gray-800 whitespace-nowrap">{item.license_plate || '-'}</td>
                       <td className="px-4 py-3 text-gray-800 whitespace-nowrap">{item.driver_name || '-'}</td>
                       <td className="px-4 py-3 text-gray-500 truncate max-w-xs">{item.description}</td>

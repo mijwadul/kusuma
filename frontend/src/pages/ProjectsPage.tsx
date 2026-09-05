@@ -133,7 +133,7 @@ export default function ProjectsPage() {
         material_items: p.material_items.map(m => {
           const validUnits = meta?.material_units?.[m.material_type] || meta?.all_units || [];
           const unit = validUnits.includes(m.unit) ? m.unit : validUnits[0] || "ton";
-          return { ...m, unit };
+          return { ...m, unit, vehicle_type: m.vehicle_type || "" };
         }),
         measurement_type: p.measurement_type || "tonase",
         assigned_user_ids: p.assigned_users?.map(u => u.id) || p.assigned_user_ids || [],
@@ -157,8 +157,11 @@ export default function ProjectsPage() {
         budget: parseFloat(String(projForm.budget)) || 0,
         material_items: (projForm.material_items || []).map(m => ({
           ...m,
-          target_quantity: parseFloat(String(m.target_quantity)) || 0,
-          unit_price: m.unit_price ? parseFloat(String(m.unit_price)) : null
+          target_quantity: (m.target_quantity !== "" && m.target_quantity !== null && m.target_quantity !== undefined)
+            ? parseFloat(String(m.target_quantity))
+            : null,
+          unit_price: m.unit_price ? parseFloat(String(m.unit_price)) : null,
+          vehicle_type: m.vehicle_type || null,
         }))
       };
       
@@ -179,7 +182,7 @@ export default function ProjectsPage() {
       const defaultMat = meta?.material_types?.[0] || "";
       const defaultUnit = (meta?.material_units?.[defaultMat] || ["ton"])[0];
       const newItems = prev.material_items ? [...prev.material_items] : [];
-      newItems.push({ material_type: defaultMat, unit: defaultUnit, target_quantity: "", unit_price: "" });
+      newItems.push({ material_type: defaultMat, unit: defaultUnit, target_quantity: "", unit_price: "", vehicle_type: "" });
       return { ...prev, material_items: newItems };
     });
   };

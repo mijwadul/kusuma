@@ -160,10 +160,11 @@ const SuratJalanFormModal = ({
   };
 
   const autoDetectTruckType = (mt: string, gross: string, tare: string, minusW: string, p: string, l: string, t: string, minusH: string) => {
+    if (mt === 'ritase') return '';
     if (mt === 'tonase') {
       const netto = (parseFloat(gross) || 0) - (parseFloat(tare) || 0) - (parseFloat(minusW) || 0);
       const nettoTon = netto / 1000;
-      return nettoTon > 20 ? 'tronton' : nettoTon > 0 ? 'colt_diesel' : '';
+      return nettoTon > 25 ? 'tronton' : nettoTon > 0 ? 'colt_diesel' : '';
     } else {
       const pV = parseFloat(p) || 0;
       const lV = parseFloat(l) || 0;
@@ -185,6 +186,11 @@ const SuratJalanFormModal = ({
     }
 
     const finalFormData = migrationData ? { ...formData, ...migrationData } : formData;
+
+    if (measurementType === 'ritase' && !finalFormData.truck_type) {
+      toast.error('Pilih tipe kendaraan (Colt Diesel atau Tronton) untuk proyek ritase');
+      return;
+    }
 
     try {
       const payload: any = {
@@ -496,7 +502,7 @@ const SuratJalanFormModal = ({
                       const mt = parseFloat(formData.minus_height) || 0;
                       calcValue = Math.floor((p * l * Math.max(0, t - mt)) / 1000000 * 100) / 100;
                     }
-                    const isLarge = calcValue > 20;
+                    const isLarge = measurementType === 'tonase' ? calcValue > 25 : calcValue > 20;
                     return (
                       <div className="mt-4 p-4 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-between">
                         <span className="text-sm font-medium text-emerald-800">
@@ -511,7 +517,7 @@ const SuratJalanFormModal = ({
                           </span>
                           {isLarge && (
                             <span className="text-xs bg-orange-100 text-orange-700 font-semibold px-2 py-0.5 rounded-full">
-                              ≥ 20 → Tronton
+                              {measurementType === 'tonase' ? '> 25 Ton → Tronton' : '> 20 m³ → Tronton'}
                             </span>
                           )}
                         </div>
@@ -540,7 +546,7 @@ const SuratJalanFormModal = ({
               {/* Tipe Kendaraan */}
               <div className="mt-3">
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Tipe Kendaraan
+                  Tipe Kendaraan {measurementType === 'ritase' && <span className="text-red-500">*</span>}
                   {formData.truck_type && measurementType !== 'ritase' && (
                     <span className="ml-2 text-xs text-emerald-600 font-normal">✓ terdeteksi otomatis</span>
                   )}

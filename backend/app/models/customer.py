@@ -48,7 +48,8 @@ class ProjectMaterialItem(Base):
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     material_type = Column(String(100), nullable=False)   # Limestone, Dolomite, dll
     unit = Column(String(20), nullable=False)              # m3 | ton | ritase
-    target_quantity = Column(Float, nullable=False)        # Volume yang diminta
+    vehicle_type = Column(String(50), nullable=True)       # tronton | colt_diesel (untuk ritase)
+    target_quantity = Column(Float, nullable=True)         # Volume yang diminta (opsional)
     unit_price = Column(Float, nullable=True)             # Harga yang disepakati (bisa override dari price table)
     notes = Column(Text, nullable=True)
 

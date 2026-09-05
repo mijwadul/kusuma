@@ -91,6 +91,11 @@ class HaulingService:
             query = query.filter(ProjectHaulingPrice.vendor_id == data.vendor_id)
         else:
             query = query.filter(ProjectHaulingPrice.vendor_id.is_(None))
+
+        if data.vehicle_type:
+            query = query.filter(ProjectHaulingPrice.vehicle_type == data.vehicle_type)
+        else:
+            query = query.filter(ProjectHaulingPrice.vehicle_type.is_(None))
             
         price = query.first()
         
@@ -192,18 +197,32 @@ class HaulingService:
             )
         all_prices = price_filter.all()
 
-        # 5. Index prices in-memory: vendor_id -> [prices sorted by effective_date desc]
-        price_map: dict[int | None, list] = {}
+        # 5. Index prices in-memory: (vendor_id, vehicle_type) -> [prices sorted by effective_date desc]
+        price_map: dict = {}
         for p in all_prices:
-            price_map.setdefault(p.vendor_id, []).append(p)
+            price_map.setdefault((p.vendor_id, p.vehicle_type), []).append(p)
         for lst in price_map.values():
             lst.sort(key=lambda x: x.effective_date, reverse=True)
 
         def find_applicable_price(sj) -> ProjectHaulingPrice | None:
-            """Find best matching price: vendor-specific first, then global (None)."""
+            """Find best matching price:
+            1. vendor + vehicle_type
+            2. vendor + null vehicle_type
+            3. global + vehicle_type
+            4. global + null vehicle_type
+            """
             sj_date = sj.created_at.date() if sj.created_at else effective_date
-            for vid in [sj.vendor_id, None]:
-                candidates = price_map.get(vid, [])
+            truck_type = getattr(sj, 'truck_type', None)
+            search_keys = []
+            if truck_type:
+                search_keys.append((sj.vendor_id, truck_type))
+            search_keys.append((sj.vendor_id, None))
+            if truck_type:
+                search_keys.append((None, truck_type))
+            search_keys.append((None, None))
+
+            for key in search_keys:
+                candidates = price_map.get(key, [])
                 for p in candidates:
                     p_date = p.effective_date.date() if hasattr(p.effective_date, 'date') else p.effective_date
                     if p_date <= sj_date:
@@ -219,7 +238,12 @@ class HaulingService:
             applicable = find_applicable_price(sj)
             if applicable:
                 price_per_unit = float(applicable.price_per_unit)
-                measurement = float(sj.volume or 0) if measurement_type == 'kubikasi' else float(sj.netto or 0)
+                if measurement_type == 'kubikasi':
+                    measurement = float(sj.volume or 0)
+                elif measurement_type == 'ritase':
+                    measurement = 1.0
+                else:
+                    measurement = float(sj.netto or 0)
 
                 sj.hauling_price = applicable.price_per_unit
                 sj.hauling_cost = price_per_unit * measurement

@@ -5,7 +5,8 @@ export interface MaterialItem {
   id?: number;
   material_type: string;
   unit: string;
-  target_quantity: number | string;
+  vehicle_type?: string | null;
+  target_quantity?: number | string | null;
   unit_price?: number | string | null;
   notes?: string;
 }

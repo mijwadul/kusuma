@@ -381,145 +381,279 @@ def generate_project_invoice_pdf(invoice) -> bytes:
 
     items = getattr(invoice, "items", [])
     
-    summary_raw = defaultdict(lambda: {'date_str': '', 'ritase': 0, 'qty': 0.0, 'unit': '', 'unit_price': 0.0, 'amount': 0.0})
-    for item in items:
-        raw_date = getattr(item, "income_date", None)
-        if not raw_date: continue
-        qty = getattr(item, "quantity", 0) or 0
-        unit = getattr(item, "unit", "") or ""
-        price = getattr(item, "unit_price", 0) or 0
-        amount = getattr(item, "amount", 0) or 0
-        
-        summary_raw[raw_date]['date_str'] = fmt_date(raw_date)
-        summary_raw[raw_date]['ritase'] += 1
-        summary_raw[raw_date]['qty'] += qty
-        summary_raw[raw_date]['unit'] = unit
-        summary_raw[raw_date]['unit_price'] = price
-        summary_raw[raw_date]['amount'] += amount
-
-    sorted_raw_dates = sorted(list(summary_raw.keys()))
-
-    table_data = [[
-        Paragraph("<font size='9' color='white'><b>No</b></font>", style(alignment=TA_CENTER)),
-        Paragraph("<font size='9' color='white'><b>Tanggal</b></font>", style(alignment=TA_CENTER)),
-        Paragraph("<font size='9' color='white'><b>Jumlah Ritase</b></font>", style(alignment=TA_CENTER)),
-        Paragraph("<font size='9' color='white'><b>Jumlah Qty</b></font>", style(alignment=TA_CENTER)),
-        Paragraph("<font size='9' color='white'><b>Harga Satuan</b></font>", style(alignment=TA_CENTER)),
-        Paragraph("<font size='9' color='white'><b>Subtotal</b></font>", style(alignment=TA_CENTER)),
-    ]]
-
-    total_ritase = 0
-    total_qty = 0.0
-    first_unit = ""
-    if sorted_raw_dates:
-        first_unit = summary_raw[sorted_raw_dates[0]]['unit']
-
-    subtotal = 0.0
-    for i, rdate in enumerate(sorted_raw_dates):
-        d = summary_raw[rdate]
-        subtotal += d['amount']
-        total_ritase += d['ritase']
-        total_qty += d['qty']
-        table_data.append([
-            Paragraph(f"<font size='8'>{i+1}</font>", style(alignment=TA_CENTER)),
-            Paragraph(f"<font size='8'>{d['date_str']}</font>", style(alignment=TA_CENTER)),
-            Paragraph(f"<font size='8'>{d['ritase']} Rit</font>", style(alignment=TA_CENTER)),
-            Paragraph(f"<font size='8'>{fmt_qty(d['qty'], 3)} {d['unit']}</font>", style(alignment=TA_CENTER)),
-            Paragraph(f"<font size='8'>{fmt_idr(d['unit_price'])}</font>", style(alignment=TA_RIGHT)),
-            Paragraph(f"<font size='8'><b>{fmt_idr(d['amount'])}</b></font>", style(alignment=TA_RIGHT)),
-        ])
-
-    table_data.append([
-        Paragraph("<font size='9'><b>Total Keseluruhan</b></font>", style(alignment=TA_RIGHT)),
-        "",
-        Paragraph(f"<font size='9'><b>{total_ritase} Rit</b></font>", style(alignment=TA_CENTER)),
-        Paragraph(f"<font size='9'><b>{fmt_qty(total_qty, 3)} {first_unit}</b></font>", style(alignment=TA_CENTER)),
-        "", ""
-    ])
+    is_ritase = False
+    if project and getattr(project, "measurement_type", "") == "ritase":
+        is_ritase = True
+    elif any(getattr(item, "unit", "").lower() in ["ritase", "rit"] for item in items):
+        is_ritase = True
 
     discount_type = getattr(invoice, "discount_type", None)
     discount_val = getattr(invoice, "discount_value", 0) or 0
     total_amount = getattr(invoice, "total_amount", 0) or 0
-    
-    table_data.append([
-        Paragraph("<font size='9'><b>Subtotal</b></font>", style(alignment=TA_RIGHT)),
-        "", "", "", "",
-        Paragraph(f"<font size='9'><b>{fmt_idr(subtotal)}</b></font>", style(alignment=TA_RIGHT))
-    ])
 
-    extra_rows = 1
-    if discount_type and discount_val:
-        discount_amount = 0
-        disc_label = "Diskon"
-        if discount_type == "percentage":
-            discount_amount = subtotal * (discount_val / 100.0)
-            disc_label = f"Diskon ({discount_val}%)"
-        else:
-            discount_amount = discount_val
-            disc_label = "Diskon (Nominal)"
-            
+    if is_ritase:
+        summary_raw = defaultdict(lambda: {'date_str': '', 'raw_date': None, 'truck_type': '', 'ritase': 0, 'unit_price': 0.0, 'amount': 0.0})
+        for item in items:
+            raw_date = getattr(item, "income_date", None)
+            if not raw_date: continue
+            ttype = getattr(item, "truck_type", "") or getattr(item, "vehicle_type", "") or ""
+            price = getattr(item, "unit_price", 0) or 0
+            amount = getattr(item, "amount", 0) or 0
+
+            key = (raw_date, ttype)
+            summary_raw[key]['raw_date'] = raw_date
+            summary_raw[key]['date_str'] = fmt_date(raw_date)
+            summary_raw[key]['truck_type'] = ttype
+            summary_raw[key]['ritase'] += 1
+            summary_raw[key]['unit_price'] = price
+            summary_raw[key]['amount'] += amount
+
+        sorted_keys = sorted(list(summary_raw.keys()), key=lambda k: (k[0], 0 if k[1] == 'colt_diesel' else (1 if k[1] == 'tronton' else 2)))
+
+        table_data = [[
+            Paragraph("<font size='9' color='white'><b>No</b></font>", style(alignment=TA_CENTER)),
+            Paragraph("<font size='9' color='white'><b>Tanggal</b></font>", style(alignment=TA_CENTER)),
+            Paragraph("<font size='9' color='white'><b>Jenis Kendaraan</b></font>", style(alignment=TA_CENTER)),
+            Paragraph("<font size='9' color='white'><b>Jumlah Ritase</b></font>", style(alignment=TA_CENTER)),
+            Paragraph("<font size='9' color='white'><b>Harga Satuan</b></font>", style(alignment=TA_CENTER)),
+            Paragraph("<font size='9' color='white'><b>Subtotal</b></font>", style(alignment=TA_CENTER)),
+        ]]
+
+        total_ritase = 0
+        subtotal = 0.0
+        for i, key in enumerate(sorted_keys):
+            d = summary_raw[key]
+            subtotal += d['amount']
+            total_ritase += d['ritase']
+            tt_label = "Colt Diesel" if d['truck_type'] == 'colt_diesel' else ("Tronton" if d['truck_type'] == 'tronton' else (d['truck_type'] or '-'))
+            table_data.append([
+                Paragraph(f"<font size='8'>{i+1}</font>", style(alignment=TA_CENTER)),
+                Paragraph(f"<font size='8'>{d['date_str']}</font>", style(alignment=TA_CENTER)),
+                Paragraph(f"<font size='8'>{tt_label}</font>", style(alignment=TA_CENTER)),
+                Paragraph(f"<font size='8'>{d['ritase']} Rit</font>", style(alignment=TA_CENTER)),
+                Paragraph(f"<font size='8'>{fmt_idr(d['unit_price'])}</font>", style(alignment=TA_RIGHT)),
+                Paragraph(f"<font size='8'><b>{fmt_idr(d['amount'])}</b></font>", style(alignment=TA_RIGHT)),
+            ])
+
         table_data.append([
-            Paragraph(f"<font size='9' color='#ef4444'><b>{disc_label}</b></font>", style(alignment=TA_RIGHT)),
+            Paragraph("<font size='9'><b>Total Keseluruhan</b></font>", style(alignment=TA_RIGHT)),
+            "", "",
+            Paragraph(f"<font size='9'><b>{total_ritase} Rit</b></font>", style(alignment=TA_CENTER)),
+            "",
+            Paragraph(f"<font size='9'><b>{fmt_idr(subtotal)}</b></font>", style(alignment=TA_RIGHT))
+        ])
+
+        table_data.append([
+            Paragraph("<font size='9'><b>Subtotal</b></font>", style(alignment=TA_RIGHT)),
             "", "", "", "",
-            Paragraph(f"<font size='9' color='#ef4444'><b>- {fmt_idr(discount_amount)}</b></font>", style(alignment=TA_RIGHT))
+            Paragraph(f"<font size='9'><b>{fmt_idr(subtotal)}</b></font>", style(alignment=TA_RIGHT))
+        ])
+
+        extra_rows = 1
+        if discount_type and discount_val:
+            if discount_type == "percentage":
+                discount_amount = subtotal * (discount_val / 100.0)
+                disc_label = f"Diskon ({discount_val}%)"
+            else:
+                discount_amount = discount_val
+                disc_label = "Diskon (Nominal)"
+                
+            table_data.append([
+                Paragraph(f"<font size='9' color='#ef4444'><b>{disc_label}</b></font>", style(alignment=TA_RIGHT)),
+                "", "", "", "",
+                Paragraph(f"<font size='9' color='#ef4444'><b>- {fmt_idr(discount_amount)}</b></font>", style(alignment=TA_RIGHT))
+            ])
+            extra_rows += 1
+
+        table_data.append([
+            Paragraph("<font size='10' color='#10b981'><b>TOTAL TAGIHAN</b></font>", style(alignment=TA_RIGHT)),
+            "", "", "", "",
+            Paragraph(f"<font size='10' color='#10b981'><b>{fmt_idr(total_amount)}</b></font>", style(alignment=TA_RIGHT))
         ])
         extra_rows += 1
 
-    table_data.append([
-        Paragraph("<font size='10' color='#10b981'><b>TOTAL TAGIHAN</b></font>", style(alignment=TA_RIGHT)),
-        "", "", "", "",
-        Paragraph(f"<font size='10' color='#10b981'><b>{fmt_idr(total_amount)}</b></font>", style(alignment=TA_RIGHT))
-    ])
-    extra_rows += 1
-
-    col_widths = [
-        content_w * 0.05,
-        content_w * 0.20,
-        content_w * 0.15,
-        content_w * 0.20,
-        content_w * 0.20,
-        content_w * 0.20,
-    ]
-    
-    t = Table(table_data, colWidths=col_widths, repeatRows=1)
-    
-    t_styles = [
-        ("BACKGROUND", (0, 0), (-1, 0), BRAND_BLUE),
-        ("TEXTCOLOR", (0, 0), (-1, 0), WHITE),
-        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("INNERGRID", (0, 0), (-1, -extra_rows - 1), 0.25, colors.HexColor("#e5e7eb")),
-        ("BOX", (0, 0), (-1, -extra_rows - 1), 0.5, colors.HexColor("#9ca3af")),
-        ("TOPPADDING", (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-    ]
-    
-    for i in range(len(sorted_raw_dates)):
-        bg_color = WHITE if i % 2 == 0 else GRAY_LIGHT
-        t_styles.append(("BACKGROUND", (0, i + 1), (-1, i + 1), bg_color))
+        col_widths = [
+            content_w * 0.06,
+            content_w * 0.20,
+            content_w * 0.20,
+            content_w * 0.16,
+            content_w * 0.19,
+            content_w * 0.19,
+        ]
         
-    total_row_idx = len(sorted_raw_dates) + 1
-    t_styles.extend([
-        ("SPAN", (0, total_row_idx), (1, total_row_idx)),
-        ("SPAN", (4, total_row_idx), (5, total_row_idx)),
-        ("BACKGROUND", (0, total_row_idx), (-1, total_row_idx), GRAY_LIGHT),
-    ])
-
-    for j in range(1, extra_rows + 1):
-        row_idx = -j
-        t_styles.extend([
-            ("SPAN", (0, row_idx), (4, row_idx)),
-            ("ALIGN", (0, row_idx), (0, row_idx), "RIGHT"),
-            ("BACKGROUND", (0, row_idx), (-1, row_idx), BRAND_LIGHT if j == 1 else (colors.HexColor("#fee2e2") if extra_rows > 2 and j == 2 else WHITE)),
-            ("BOX", (0, row_idx), (-1, row_idx), 0.5, colors.HexColor("#9ca3af")),
-        ])
-        if j == 1:
-            t_styles.append(("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#d1fae5")))
-            t_styles.append(("BOX", (0, row_idx), (-1, row_idx), 1, ACCENT_GREEN))
+        t = Table(table_data, colWidths=col_widths, repeatRows=1)
+        t_styles = [
+            ("BACKGROUND", (0, 0), (-1, 0), BRAND_BLUE),
+            ("TEXTCOLOR", (0, 0), (-1, 0), WHITE),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("INNERGRID", (0, 0), (-1, -extra_rows - 1), 0.25, colors.HexColor("#e5e7eb")),
+            ("BOX", (0, 0), (-1, -extra_rows - 1), 0.5, colors.HexColor("#9ca3af")),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ]
+        
+        for i in range(len(sorted_keys)):
+            bg_color = WHITE if i % 2 == 0 else GRAY_LIGHT
+            t_styles.append(("BACKGROUND", (0, i + 1), (-1, i + 1), bg_color))
             
-    t.setStyle(TableStyle(t_styles))
-    story.append(t)
-    story.append(Spacer(1, 8 * mm))
+        total_row_idx = len(sorted_keys) + 1
+        t_styles.extend([
+            ("SPAN", (0, total_row_idx), (2, total_row_idx)),
+            ("BACKGROUND", (0, total_row_idx), (-1, total_row_idx), GRAY_LIGHT),
+        ])
+
+        for j in range(1, extra_rows + 1):
+            row_idx = -j
+            t_styles.extend([
+                ("SPAN", (0, row_idx), (4, row_idx)),
+                ("ALIGN", (0, row_idx), (0, row_idx), "RIGHT"),
+                ("BACKGROUND", (0, row_idx), (-1, row_idx), BRAND_LIGHT if j == 1 else (colors.HexColor("#fee2e2") if extra_rows > 2 and j == 2 else WHITE)),
+                ("BOX", (0, row_idx), (-1, row_idx), 0.5, colors.HexColor("#9ca3af")),
+            ])
+            if j == 1:
+                t_styles.append(("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#d1fae5")))
+                t_styles.append(("BOX", (0, row_idx), (-1, row_idx), 1, ACCENT_GREEN))
+                
+        t.setStyle(TableStyle(t_styles))
+        story.append(t)
+        story.append(Spacer(1, 8 * mm))
+    else:
+        summary_raw = defaultdict(lambda: {'date_str': '', 'ritase': 0, 'qty': 0.0, 'unit': '', 'unit_price': 0.0, 'amount': 0.0})
+        for item in items:
+            raw_date = getattr(item, "income_date", None)
+            if not raw_date: continue
+            qty = getattr(item, "quantity", 0) or 0
+            unit = getattr(item, "unit", "") or ""
+            price = getattr(item, "unit_price", 0) or 0
+            amount = getattr(item, "amount", 0) or 0
+            
+            summary_raw[raw_date]['date_str'] = fmt_date(raw_date)
+            summary_raw[raw_date]['ritase'] += 1
+            summary_raw[raw_date]['qty'] += qty
+            summary_raw[raw_date]['unit'] = unit
+            summary_raw[raw_date]['unit_price'] = price
+            summary_raw[raw_date]['amount'] += amount
+
+        sorted_raw_dates = sorted(list(summary_raw.keys()))
+
+        table_data = [[
+            Paragraph("<font size='9' color='white'><b>No</b></font>", style(alignment=TA_CENTER)),
+            Paragraph("<font size='9' color='white'><b>Tanggal</b></font>", style(alignment=TA_CENTER)),
+            Paragraph("<font size='9' color='white'><b>Jumlah Ritase</b></font>", style(alignment=TA_CENTER)),
+            Paragraph("<font size='9' color='white'><b>Jumlah Qty</b></font>", style(alignment=TA_CENTER)),
+            Paragraph("<font size='9' color='white'><b>Harga Satuan</b></font>", style(alignment=TA_CENTER)),
+            Paragraph("<font size='9' color='white'><b>Subtotal</b></font>", style(alignment=TA_CENTER)),
+        ]]
+
+        total_ritase = 0
+        total_qty = 0.0
+        first_unit = ""
+        if sorted_raw_dates:
+            first_unit = summary_raw[sorted_raw_dates[0]]['unit']
+
+        subtotal = 0.0
+        for i, rdate in enumerate(sorted_raw_dates):
+            d = summary_raw[rdate]
+            subtotal += d['amount']
+            total_ritase += d['ritase']
+            total_qty += d['qty']
+            table_data.append([
+                Paragraph(f"<font size='8'>{i+1}</font>", style(alignment=TA_CENTER)),
+                Paragraph(f"<font size='8'>{d['date_str']}</font>", style(alignment=TA_CENTER)),
+                Paragraph(f"<font size='8'>{d['ritase']} Rit</font>", style(alignment=TA_CENTER)),
+                Paragraph(f"<font size='8'>{fmt_qty(d['qty'], 3)} {d['unit']}</font>", style(alignment=TA_CENTER)),
+                Paragraph(f"<font size='8'>{fmt_idr(d['unit_price'])}</font>", style(alignment=TA_RIGHT)),
+                Paragraph(f"<font size='8'><b>{fmt_idr(d['amount'])}</b></font>", style(alignment=TA_RIGHT)),
+            ])
+
+        table_data.append([
+            Paragraph("<font size='9'><b>Total Keseluruhan</b></font>", style(alignment=TA_RIGHT)),
+            "",
+            Paragraph(f"<font size='9'><b>{total_ritase} Rit</b></font>", style(alignment=TA_CENTER)),
+            Paragraph(f"<font size='9'><b>{fmt_qty(total_qty, 3)} {first_unit}</b></font>", style(alignment=TA_CENTER)),
+            "", ""
+        ])
+
+        table_data.append([
+            Paragraph("<font size='9'><b>Subtotal</b></font>", style(alignment=TA_RIGHT)),
+            "", "", "", "",
+            Paragraph(f"<font size='9'><b>{fmt_idr(subtotal)}</b></font>", style(alignment=TA_RIGHT))
+        ])
+
+        extra_rows = 1
+        if discount_type and discount_val:
+            discount_amount = 0
+            disc_label = "Diskon"
+            if discount_type == "percentage":
+                discount_amount = subtotal * (discount_val / 100.0)
+                disc_label = f"Diskon ({discount_val}%)"
+            else:
+                discount_amount = discount_val
+                disc_label = "Diskon (Nominal)"
+                
+            table_data.append([
+                Paragraph(f"<font size='9' color='#ef4444'><b>{disc_label}</b></font>", style(alignment=TA_RIGHT)),
+                "", "", "", "",
+                Paragraph(f"<font size='9' color='#ef4444'><b>- {fmt_idr(discount_amount)}</b></font>", style(alignment=TA_RIGHT))
+            ])
+            extra_rows += 1
+
+        table_data.append([
+            Paragraph("<font size='10' color='#10b981'><b>TOTAL TAGIHAN</b></font>", style(alignment=TA_RIGHT)),
+            "", "", "", "",
+            Paragraph(f"<font size='10' color='#10b981'><b>{fmt_idr(total_amount)}</b></font>", style(alignment=TA_RIGHT))
+        ])
+        extra_rows += 1
+
+        col_widths = [
+            content_w * 0.05,
+            content_w * 0.20,
+            content_w * 0.15,
+            content_w * 0.20,
+            content_w * 0.20,
+            content_w * 0.20,
+        ]
+        
+        t = Table(table_data, colWidths=col_widths, repeatRows=1)
+        
+        t_styles = [
+            ("BACKGROUND", (0, 0), (-1, 0), BRAND_BLUE),
+            ("TEXTCOLOR", (0, 0), (-1, 0), WHITE),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("INNERGRID", (0, 0), (-1, -extra_rows - 1), 0.25, colors.HexColor("#e5e7eb")),
+            ("BOX", (0, 0), (-1, -extra_rows - 1), 0.5, colors.HexColor("#9ca3af")),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ]
+        
+        for i in range(len(sorted_raw_dates)):
+            bg_color = WHITE if i % 2 == 0 else GRAY_LIGHT
+            t_styles.append(("BACKGROUND", (0, i + 1), (-1, i + 1), bg_color))
+            
+        total_row_idx = len(sorted_raw_dates) + 1
+        t_styles.extend([
+            ("SPAN", (0, total_row_idx), (1, total_row_idx)),
+            ("SPAN", (4, total_row_idx), (5, total_row_idx)),
+            ("BACKGROUND", (0, total_row_idx), (-1, total_row_idx), GRAY_LIGHT),
+        ])
+
+        for j in range(1, extra_rows + 1):
+            row_idx = -j
+            t_styles.extend([
+                ("SPAN", (0, row_idx), (4, row_idx)),
+                ("ALIGN", (0, row_idx), (0, row_idx), "RIGHT"),
+                ("BACKGROUND", (0, row_idx), (-1, row_idx), BRAND_LIGHT if j == 1 else (colors.HexColor("#fee2e2") if extra_rows > 2 and j == 2 else WHITE)),
+                ("BOX", (0, row_idx), (-1, row_idx), 0.5, colors.HexColor("#9ca3af")),
+            ])
+            if j == 1:
+                t_styles.append(("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#d1fae5")))
+                t_styles.append(("BOX", (0, row_idx), (-1, row_idx), 1, ACCENT_GREEN))
+                
+        t.setStyle(TableStyle(t_styles))
+        story.append(t)
+        story.append(Spacer(1, 8 * mm))
 
     notes = getattr(invoice, "notes", "")
     if notes:
@@ -569,7 +703,10 @@ def generate_project_invoice_pdf(invoice) -> bytes:
         # Sort items by date then nopol
         sorted_items = sorted(items, key=lambda x: (getattr(x, "income_date", None) or date.min, getattr(x, "license_plate", "") or ""))
 
-        if is_tonase:
+        if is_ritase:
+            detail_headers = ["No", "Nopol", "Supir", "Jenis Kendaraan", "Ritase"]
+            col_w = [content_w * 0.08, content_w * 0.24, content_w * 0.28, content_w * 0.25, content_w * 0.15]
+        elif is_tonase:
             detail_headers = ["No", "Nopol", "Supir", "Bruto", "Tarra", "Potongan", "Netto (Ton)"]
             col_w = [content_w * 0.05, content_w * 0.15, content_w * 0.20, content_w * 0.15, content_w * 0.15, content_w * 0.15, content_w * 0.15]
         else:
@@ -578,112 +715,173 @@ def generate_project_invoice_pdf(invoice) -> bytes:
 
         for inc_date, group in groupby(sorted_items, key=lambda x: getattr(x, "income_date", None) or date.min):
             group_items = list(group)
-            date_ritase = 0
-            date_qty = 0.0
-            
             dt_str_sub = fmt_date(inc_date)
             story.append(Paragraph(f"<font size='10' color='#1f2937'><b>Tanggal: {dt_str_sub}</b></font>", style()))
             story.append(Spacer(1, 2 * mm))
-            
-            detail_data = [[Paragraph(f"<font size='8' color='white'><b>{h}</b></font>", style(alignment=TA_CENTER)) for h in detail_headers]]
-            
-            dt_styles = [
-                ("BACKGROUND", (0, 0), (-1, 0), BRAND_BLUE),
-                ("TEXTCOLOR", (0, 0), (-1, 0), WHITE),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#e5e7eb")),
-                ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#9ca3af")),
-                ("TOPPADDING", (0, 0), (-1, -1), 4),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-            ]
 
-            row_idx = 1
-            item_counter = 1
-            
-            for item in group_items:
-                nopol = getattr(item, "license_plate", "-") or "-"
-                supir = getattr(item, "driver_name", "-") or "-"
-                
-                row = [
-                    Paragraph(f"<font size='8'>{item_counter}</font>", style(alignment=TA_CENTER)),
-                    Paragraph(f"<font size='8'>{nopol}</font>", style(alignment=TA_CENTER)),
-                    Paragraph(f"<font size='8'>{supir}</font>", style(alignment=TA_LEFT))
-                ]
-                
-                if is_tonase:
-                    bruto = getattr(item, "sj_gross_weight", 0) or 0
-                    tarra = getattr(item, "sj_tare_weight", 0) or 0
-                    minus = getattr(item, "sj_weight_minus", 0) or 0
-                    netto = getattr(item, "sj_net_weight", 0) or 0
-                    if not netto: netto = getattr(item, "quantity", 0) or 0
-                    
-                    row.extend([
-                        Paragraph(f"<font size='8'>{fmt_qty(bruto, 0)}</font>", style(alignment=TA_CENTER)),
-                        Paragraph(f"<font size='8'>{fmt_qty(tarra, 0)}</font>", style(alignment=TA_CENTER)),
-                        Paragraph(f"<font size='8'>{fmt_qty(minus, 0)}</font>", style(alignment=TA_CENTER)),
-                        Paragraph(f"<font size='8'><b>{fmt_qty(netto, 3)}</b></font>", style(alignment=TA_CENTER)),
+            if is_ritase:
+                # Group items within this date by vehicle type (Colt Diesel then Tronton)
+                sorted_by_vtype = sorted(group_items, key=lambda x: (
+                    0 if (getattr(x, "truck_type", "") or getattr(x, "vehicle_type", "")) == "colt_diesel" else (
+                        1 if (getattr(x, "truck_type", "") or getattr(x, "vehicle_type", "")) == "tronton" else 2
+                    ),
+                    getattr(x, "license_plate", "") or ""
+                ))
+                date_total_ritase = 0
+
+                for t_type, sub_group in groupby(sorted_by_vtype, key=lambda x: getattr(x, "truck_type", "") or getattr(x, "vehicle_type", "") or ""):
+                    sub_items = list(sub_group)
+                    tt_name = "Colt Diesel" if t_type == "colt_diesel" else ("Tronton" if t_type == "tronton" else (t_type or "Lainnya"))
+                    story.append(Paragraph(f"<font size='9' color='#374151'><b>Kategori Armada: {tt_name}</b></font>", style()))
+                    story.append(Spacer(1, 1.5 * mm))
+
+                    detail_data = [[Paragraph(f"<font size='8' color='white'><b>{h}</b></font>", style(alignment=TA_CENTER)) for h in detail_headers]]
+                    dt_styles = [
+                        ("BACKGROUND", (0, 0), (-1, 0), BRAND_BLUE),
+                        ("TEXTCOLOR", (0, 0), (-1, 0), WHITE),
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                        ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#e5e7eb")),
+                        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#9ca3af")),
+                        ("TOPPADDING", (0, 0), (-1, -1), 4),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                    ]
+                    sub_ritase = 0
+                    for s_idx, item in enumerate(sub_items):
+                        nopol = getattr(item, "license_plate", "-") or "-"
+                        supir = getattr(item, "driver_name", "-") or "-"
+                        detail_data.append([
+                            Paragraph(f"<font size='8'>{s_idx + 1}</font>", style(alignment=TA_CENTER)),
+                            Paragraph(f"<font size='8'>{nopol}</font>", style(alignment=TA_CENTER)),
+                            Paragraph(f"<font size='8'>{supir}</font>", style(alignment=TA_LEFT)),
+                            Paragraph(f"<font size='8'>{tt_name}</font>", style(alignment=TA_CENTER)),
+                            Paragraph(f"<font size='8'>1 Rit</font>", style(alignment=TA_CENTER)),
+                        ])
+                        bg_color = WHITE if (s_idx + 1) % 2 != 0 else GRAY_LIGHT
+                        dt_styles.append(("BACKGROUND", (0, s_idx + 1), (-1, s_idx + 1), bg_color))
+                        sub_ritase += 1
+
+                    date_total_ritase += sub_ritase
+                    sub_tot_idx = len(detail_data)
+                    detail_data.append([
+                        Paragraph(f"<font size='8'><b>Subtotal {tt_name}</b></font>", style(alignment=TA_RIGHT)),
+                        "", "", "",
+                        Paragraph(f"<font size='8'><b>{sub_ritase} Rit</b></font>", style(alignment=TA_CENTER)),
                     ])
-                    date_qty += netto
-                else:
-                    p = getattr(item, "sj_length", 0) or 0
-                    l = getattr(item, "sj_width", 0) or 0
-                    t_val = getattr(item, "sj_height", 0) or 0
-                    m = getattr(item, "sj_volume_minus", 0) or 0
-                    vol = getattr(item, "sj_volume", 0) or 0
-                    if not vol: vol = getattr(item, "quantity", 0) or 0
-                    
-                    row.extend([
-                        Paragraph(f"<font size='8'>{fmt_qty(p, 3)}</font>", style(alignment=TA_CENTER)),
-                        Paragraph(f"<font size='8'>{fmt_qty(l, 3)}</font>", style(alignment=TA_CENTER)),
-                        Paragraph(f"<font size='8'>{fmt_qty(t_val, 3)}</font>", style(alignment=TA_CENTER)),
-                        Paragraph(f"<font size='8'>{fmt_qty(m, 3)}</font>", style(alignment=TA_CENTER)),
-                        Paragraph(f"<font size='8'><b>{fmt_qty(vol, 3)}</b></font>", style(alignment=TA_CENTER)),
+                    dt_styles.extend([
+                        ("SPAN", (0, sub_tot_idx), (3, sub_tot_idx)),
+                        ("BACKGROUND", (0, sub_tot_idx), (-1, sub_tot_idx), colors.HexColor("#f3f4f6")),
                     ])
-                    date_qty += vol
-                
-                date_ritase += 1
-                detail_data.append(row)
-                
-                bg_color = WHITE if item_counter % 2 != 0 else GRAY_LIGHT
-                dt_styles.append(("BACKGROUND", (0, row_idx), (-1, row_idx), bg_color))
-                
-                item_counter += 1
-                row_idx += 1
-                
-            if is_tonase:
-                sub_row = [
-                    Paragraph(f"<font size='8'><b>Total {dt_str_sub}</b></font>", style(alignment=TA_RIGHT)),
-                    "", "",
-                    Paragraph(f"<font size='8'><b>{date_ritase} Rit</b></font>", style(alignment=TA_CENTER)),
-                    "", "",
-                    Paragraph(f"<font size='8'><b>{fmt_qty(date_qty, 3)}</b></font>", style(alignment=TA_CENTER)),
-                ]
-                dt_styles.extend([
-                    ("SPAN", (0, row_idx), (2, row_idx)),
-                    ("SPAN", (3, row_idx), (4, row_idx)),
-                    ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#e5e7eb")),
-                ])
+
+                    dt_table = Table(detail_data, colWidths=col_w, repeatRows=1)
+                    dt_table.setStyle(TableStyle(dt_styles))
+                    story.append(dt_table)
+                    story.append(Spacer(1, 3 * mm))
+
+                story.append(Paragraph(f"<font size='9' color='#059669'><b>Total Ritase Tanggal {dt_str_sub}: {date_total_ritase} Rit</b></font>", style(alignment=TA_RIGHT)))
+                story.append(Spacer(1, 6 * mm))
             else:
-                sub_row = [
-                    Paragraph(f"<font size='8'><b>Total {dt_str_sub}</b></font>", style(alignment=TA_RIGHT)),
-                    "", "", "", "",
-                    Paragraph(f"<font size='8'><b>{date_ritase} Rit</b></font>", style(alignment=TA_CENTER)),
-                    "",
-                    Paragraph(f"<font size='8'><b>{fmt_qty(date_qty, 3)}</b></font>", style(alignment=TA_CENTER)),
+                date_ritase = 0
+                date_qty = 0.0
+                detail_data = [[Paragraph(f"<font size='8' color='white'><b>{h}</b></font>", style(alignment=TA_CENTER)) for h in detail_headers]]
+                
+                dt_styles = [
+                    ("BACKGROUND", (0, 0), (-1, 0), BRAND_BLUE),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), WHITE),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#e5e7eb")),
+                    ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#9ca3af")),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
                 ]
-                dt_styles.extend([
-                    ("SPAN", (0, row_idx), (4, row_idx)),
-                    ("SPAN", (5, row_idx), (6, row_idx)),
-                    ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#e5e7eb")),
-                ])
-            
-            detail_data.append(sub_row)
-            
-            dt_table = Table(detail_data, colWidths=col_w, repeatRows=1)
-            dt_table.setStyle(TableStyle(dt_styles))
-            story.append(dt_table)
-            story.append(Spacer(1, 6 * mm))
+
+                row_idx = 1
+                item_counter = 1
+                
+                for item in group_items:
+                    nopol = getattr(item, "license_plate", "-") or "-"
+                    supir = getattr(item, "driver_name", "-") or "-"
+                    
+                    row = [
+                        Paragraph(f"<font size='8'>{item_counter}</font>", style(alignment=TA_CENTER)),
+                        Paragraph(f"<font size='8'>{nopol}</font>", style(alignment=TA_CENTER)),
+                        Paragraph(f"<font size='8'>{supir}</font>", style(alignment=TA_LEFT))
+                    ]
+                    
+                    if is_tonase:
+                        bruto = getattr(item, "sj_gross_weight", 0) or 0
+                        tarra = getattr(item, "sj_tare_weight", 0) or 0
+                        minus = getattr(item, "sj_weight_minus", 0) or 0
+                        netto = getattr(item, "sj_net_weight", 0) or 0
+                        if not netto: netto = getattr(item, "quantity", 0) or 0
+                        
+                        row.extend([
+                            Paragraph(f"<font size='8'>{fmt_qty(bruto, 0)}</font>", style(alignment=TA_CENTER)),
+                            Paragraph(f"<font size='8'>{fmt_qty(tarra, 0)}</font>", style(alignment=TA_CENTER)),
+                            Paragraph(f"<font size='8'>{fmt_qty(minus, 0)}</font>", style(alignment=TA_CENTER)),
+                            Paragraph(f"<font size='8'><b>{fmt_qty(netto, 3)}</b></font>", style(alignment=TA_CENTER)),
+                        ])
+                        date_qty += netto
+                    else:
+                        p = getattr(item, "sj_length", 0) or 0
+                        l = getattr(item, "sj_width", 0) or 0
+                        t_val = getattr(item, "sj_height", 0) or 0
+                        m = getattr(item, "sj_volume_minus", 0) or 0
+                        vol = getattr(item, "sj_volume", 0) or 0
+                        if not vol: vol = getattr(item, "quantity", 0) or 0
+                        
+                        row.extend([
+                            Paragraph(f"<font size='8'>{fmt_qty(p, 3)}</font>", style(alignment=TA_CENTER)),
+                            Paragraph(f"<font size='8'>{fmt_qty(l, 3)}</font>", style(alignment=TA_CENTER)),
+                            Paragraph(f"<font size='8'>{fmt_qty(t_val, 3)}</font>", style(alignment=TA_CENTER)),
+                            Paragraph(f"<font size='8'>{fmt_qty(m, 3)}</font>", style(alignment=TA_CENTER)),
+                            Paragraph(f"<font size='8'><b>{fmt_qty(vol, 3)}</b></font>", style(alignment=TA_CENTER)),
+                        ])
+                        date_qty += vol
+                    
+                    date_ritase += 1
+                    detail_data.append(row)
+                    
+                    bg_color = WHITE if item_counter % 2 != 0 else GRAY_LIGHT
+                    dt_styles.append(("BACKGROUND", (0, row_idx), (-1, row_idx), bg_color))
+                    
+                    item_counter += 1
+                    row_idx += 1
+                    
+                if is_tonase:
+                    sub_row = [
+                        Paragraph(f"<font size='8'><b>Total {dt_str_sub}</b></font>", style(alignment=TA_RIGHT)),
+                        "", "",
+                        Paragraph(f"<font size='8'><b>{date_ritase} Rit</b></font>", style(alignment=TA_CENTER)),
+                        "", "",
+                        Paragraph(f"<font size='8'><b>{fmt_qty(date_qty, 3)}</b></font>", style(alignment=TA_CENTER)),
+                    ]
+                    dt_styles.extend([
+                        ("SPAN", (0, row_idx), (2, row_idx)),
+                        ("SPAN", (3, row_idx), (4, row_idx)),
+                        ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#e5e7eb")),
+                    ])
+                else:
+                    sub_row = [
+                        Paragraph(f"<font size='8'><b>Total {dt_str_sub}</b></font>", style(alignment=TA_RIGHT)),
+                        "", "", "", "",
+                        Paragraph(f"<font size='8'><b>{date_ritase} Rit</b></font>", style(alignment=TA_CENTER)),
+                        "",
+                        Paragraph(f"<font size='8'><b>{fmt_qty(date_qty, 3)}</b></font>", style(alignment=TA_CENTER)),
+                    ]
+                    dt_styles.extend([
+                        ("SPAN", (0, row_idx), (4, row_idx)),
+                        ("SPAN", (5, row_idx), (6, row_idx)),
+                        ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#e5e7eb")),
+                    ])
+                
+                detail_data.append(sub_row)
+                
+                dt_table = Table(detail_data, colWidths=col_w, repeatRows=1)
+                dt_table.setStyle(TableStyle(dt_styles))
+                story.append(dt_table)
+                story.append(Spacer(1, 6 * mm))
 
     def add_footer(canvas, doc):
         canvas.saveState()

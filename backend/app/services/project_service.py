@@ -36,7 +36,7 @@ def _build_project_response(proj: Project, db: Session) -> ProjectResponse:
     items = [MaterialItemResponse.model_validate(i) for i in proj.material_items]
     total_val = sum(
         (i.target_quantity * i.unit_price) for i in proj.material_items
-        if i.unit_price is not None
+        if i.unit_price is not None and i.target_quantity is not None
     )
     realized = db.query(
         func.coalesce(func.sum(IncomeRecord.amount), 0)
@@ -163,6 +163,7 @@ class ProjectService:
                 project_id=proj.id,
                 material_type=item.material_type,
                 unit=item.unit,
+                vehicle_type=item.vehicle_type,
                 target_quantity=item.target_quantity,
                 unit_price=item.unit_price,
                 notes=item.notes,
@@ -204,6 +205,7 @@ class ProjectService:
                     project_id=proj.id,
                     material_type=item.material_type,
                     unit=item.unit,
+                    vehicle_type=item.vehicle_type,
                     target_quantity=item.target_quantity,
                     unit_price=item.unit_price,
                     notes=item.notes,
