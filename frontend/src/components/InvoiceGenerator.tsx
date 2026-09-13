@@ -28,7 +28,7 @@ interface InvoiceGeneratorProps {
   existingInvoice?: any;
 }
 
-const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, customers = [], existingInvoice = null }) => {
+const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, customers: _customers = [], existingInvoice = null }) => {
   const [step, setStep] = useState(1); // 1 = Form, 2 = Preview
   const [loading, setLoading] = useState(false);
   
@@ -307,13 +307,13 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
   const inputCls = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300";
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[92vh] overflow-y-auto flex flex-col">
+    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-2 sm:p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white rounded-t-2xl z-10 sticky top-0">
-          <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-emerald-600" />
-            Buat Invoice Penjualan Material
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-100 bg-white rounded-t-2xl z-10 sticky top-0">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-800 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-emerald-600 shrink-0" />
+            <span className="truncate">{existingInvoice ? "Edit Invoice Penjualan Material" : "Buat Invoice Penjualan Material"}</span>
           </h2>
           <button
             onClick={onClose}
@@ -324,7 +324,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
         </div>
 
         {/* Content */}
-        <div className="p-6 flex-1 overflow-y-auto">
+        <div className="p-4 sm:p-6 flex-1 overflow-y-auto">
           {step === 1 ? (
             <form id="invoice-form" onSubmit={handlePreview} className="space-y-4 max-w-lg mx-auto">
               <div>
@@ -345,8 +345,8 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
                   Hanya menampilkan customer yang memiliki tagihan belum dibuat invoice.
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Tanggal Invoice diterbitkan <span className="text-red-500">*</span>
                   </label>
@@ -384,16 +384,16 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Nomor Invoice <span className="text-red-500">*</span>
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <select 
                       value={invoiceNumberType} 
                       onChange={(e) => setInvoiceNumberType(e.target.value as any)}
-                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 w-1/3"
+                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 w-full sm:w-1/3"
                     >
                       <option value="auto">Auto (n+1)</option>
                       <option value="manual">Manual</option>
@@ -404,7 +404,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
                         value={invoiceNumber}
                         onChange={(e) => setInvoiceNumber(e.target.value)}
                         placeholder="Masukkan nomor..."
-                        className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 w-2/3"
+                        className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 w-full sm:w-2/3"
                         required
                       />
                     )}
@@ -464,16 +464,16 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
                 </div>
               ) : (
                 <>
-                  <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100 flex items-start justify-between">
+                  <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div>
-                      <h3 className="font-semibold text-emerald-800 text-lg">{previewData.customer_name}</h3>
-                      <p className="text-emerald-600 text-sm">
+                      <h3 className="font-semibold text-emerald-800 text-base sm:text-lg">{previewData.customer_name}</h3>
+                      <p className="text-emerald-600 text-xs sm:text-sm">
                         Periode: {formatDate(previewData.start_date)} - {formatDate(previewData.end_date)}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-emerald-600 font-medium">Total Tagihan</p>
-                      <p className="text-2xl font-bold text-emerald-700">
+                    <div className="sm:text-right">
+                      <p className="text-xs sm:text-sm text-emerald-600 font-medium">Total Tagihan</p>
+                      <p className="text-xl sm:text-2xl font-bold text-emerald-700">
                         {formatIDR(previewData.total_amount - (
                           discountType === 'percentage' && discountValue 
                             ? previewData.total_amount * (parseFloat(discountValue) / 100) 
@@ -487,7 +487,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
 
                   <div className="border border-gray-200 rounded-xl overflow-x-auto">
                     <table className="min-w-full text-sm divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
+                      <thead className="bg-gray-50 whitespace-nowrap">
                         <tr>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Tanggal</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Material</th>
@@ -503,10 +503,10 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
                         {previewData.items.map((item: any, i: number) => (
                           <tr key={i} className="hover:bg-gray-50">
                             <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatDate(item.income_date)}</td>
-                            <td className="px-4 py-3 text-gray-800">{item.material_type}</td>
-                            <td className="px-4 py-3 text-gray-800">{item.license_plate || '-'}</td>
-                            <td className="px-4 py-3 text-gray-800">{item.driver_name || '-'}</td>
-                            <td className="px-4 py-3 text-gray-500">{item.description}</td>
+                            <td className="px-4 py-3 text-gray-800 whitespace-nowrap">{item.material_type}</td>
+                            <td className="px-4 py-3 text-gray-800 whitespace-nowrap">{item.license_plate || '-'}</td>
+                            <td className="px-4 py-3 text-gray-800 whitespace-nowrap">{item.driver_name || '-'}</td>
+                            <td className="px-4 py-3 text-gray-500 max-w-xs truncate">{item.description}</td>
                             <td className="px-4 py-3 text-right text-gray-700 whitespace-nowrap">{item.quantity} {item.unit}</td>
                             <td className="px-4 py-3 text-right text-gray-600 whitespace-nowrap">{formatIDR(item.unit_price)}</td>
                             <td className="px-4 py-3 text-right font-medium text-gray-800 whitespace-nowrap">{formatIDR(item.amount)}</td>
@@ -548,7 +548,21 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
                     </table>
                   </div>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Rekening Pembayaran
+                      </label>
+                      <CustomSelect
+                        value={selectedBankId}
+                        onChange={(val) => setSelectedBankId(val as string)}
+                        options={[
+                          { value: "", label: "-- Tidak ada rekening / Lewati --" },
+                          ...bankAccounts.map((b) => ({ value: String(b.id), label: `${b.bank_name} - ${b.account_number}` })),
+                          { value: "add-new", label: "+ Tambah Rekening Baru" }
+                        ]}
+                      />
+                    </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Jenis Diskon
@@ -582,6 +596,23 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
                       />
                     </div>
                   </div>
+
+                  {selectedBankId === "add-new" && (
+                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Nama Bank *</label>
+                        <input type="text" value={newBank.bank_name} onChange={e => setNewBank({...newBank, bank_name: e.target.value})} className={inputCls} placeholder="BCA" required />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">No. Rekening *</label>
+                        <input type="text" value={newBank.account_number} onChange={e => setNewBank({...newBank, account_number: e.target.value})} className={inputCls} placeholder="12345678" required />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Atas Nama *</label>
+                        <input type="text" value={newBank.account_name} onChange={e => setNewBank({...newBank, account_name: e.target.value})} className={inputCls} placeholder="PT Kusuma" required />
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="mt-4">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -602,13 +633,13 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex justify-end gap-3 sticky bottom-0">
+        <div className="px-4 sm:px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex flex-col sm:flex-row justify-end gap-3 sticky bottom-0">
           {step === 1 ? (
             <>
               <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 border border-gray-200 rounded-xl text-gray-600 text-sm font-medium hover:bg-gray-100 transition-colors"
+                className="w-full sm:w-auto px-5 py-2.5 border border-gray-200 rounded-xl text-gray-600 text-sm font-medium hover:bg-gray-100 transition-colors"
               >
                 Batal
               </button>
@@ -616,7 +647,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
                 type="submit"
                 form="invoice-form"
                 disabled={loading}
-                className="px-5 py-2.5 rounded-xl text-white text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-60 bg-emerald-600 hover:bg-emerald-700"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-white text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-60 bg-emerald-600 hover:bg-emerald-700"
               >
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                 Preview Invoice
@@ -627,7 +658,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="px-5 py-2.5 border border-emerald-600 text-emerald-600 rounded-xl text-sm font-medium hover:bg-emerald-50 transition-colors mr-auto"
+                className="w-full sm:w-auto px-5 py-2.5 border border-emerald-600 text-emerald-600 rounded-xl text-sm font-medium hover:bg-emerald-50 transition-colors sm:mr-auto"
               >
                 {existingInvoice ? "Edit Kriteria" : "Kembali ke Form"}
               </button>
@@ -636,7 +667,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
                 type="button"
                 onClick={handleSaveOnly}
                 disabled={loading || !previewData}
-                className="px-5 py-2.5 border border-gray-200 rounded-xl text-gray-700 text-sm font-medium hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+                className="w-full sm:w-auto px-5 py-2.5 border border-gray-200 rounded-xl text-gray-700 text-sm font-medium hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                 {existingInvoice ? "Update Data" : "Simpan Data"}
@@ -645,7 +676,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
               <button
                 onClick={handleSaveAndDownload}
                 disabled={loading || !previewData}
-                className="px-5 py-2.5 rounded-xl text-white text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-60 bg-blue-600 hover:bg-blue-700 shadow-sm"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-white text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-60 bg-blue-600 hover:bg-blue-700 shadow-sm"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                 Download PDF

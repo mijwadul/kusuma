@@ -478,16 +478,16 @@ export default function ProjectInvoiceTab() {
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Nomor Invoice <span className="text-red-500">*</span>
                 </label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <select 
                     value={invoiceNumberType} 
                     onChange={(e) => setInvoiceNumberType(e.target.value as any)}
-                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 w-1/3"
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 w-full sm:w-1/3"
                   >
                     <option value="auto">Auto (n+1)</option>
                     <option value="manual">Manual</option>
@@ -498,7 +498,7 @@ export default function ProjectInvoiceTab() {
                       value={invoiceNumber}
                       onChange={(e) => setInvoiceNumber(e.target.value)}
                       placeholder="Masukkan nomor..."
-                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 w-2/3"
+                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 w-full sm:w-2/3"
                       required
                     />
                   )}
@@ -554,7 +554,7 @@ export default function ProjectInvoiceTab() {
               <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+                className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                 Preview Invoice
@@ -565,16 +565,16 @@ export default function ProjectInvoiceTab() {
 
         {view === "form" && step === 2 && previewData && (
           <div className="space-y-6 max-w-4xl mx-auto overflow-x-hidden">
-            <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 flex items-start justify-between">
+            <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
-                <h3 className="font-semibold text-blue-800 text-lg">{previewData.customer_name}</h3>
-                <p className="text-blue-600 text-sm">
+                <h3 className="font-semibold text-blue-800 text-base sm:text-lg">{previewData.customer_name}</h3>
+                <p className="text-blue-600 text-xs sm:text-sm">
                   Periode: {formatDate(previewData.start_date)} - {formatDate(previewData.end_date)}
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-blue-600 font-medium">Total Tagihan</p>
-                <p className="text-2xl font-bold text-blue-700">
+              <div className="sm:text-right">
+                <p className="text-xs sm:text-sm text-blue-600 font-medium">Total Tagihan</p>
+                <p className="text-xl sm:text-2xl font-bold text-blue-700">
                   {formatIDR(previewData.total_amount - (
                     discountType === 'percentage' && discountValue 
                       ? previewData.total_amount * (parseFloat(discountValue) / 100) 
@@ -658,7 +658,21 @@ export default function ProjectInvoiceTab() {
               </table>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Rekening Pembayaran
+                </label>
+                <CustomSelect
+                  value={selectedBankId}
+                  onChange={(val) => setSelectedBankId(val as string)}
+                  options={[
+                    { value: "", label: "-- Tidak ada rekening / Lewati --" },
+                    ...bankAccounts.map((b) => ({ value: String(b.id), label: `${b.bank_name} - ${b.account_number}` })),
+                    { value: "add-new", label: "+ Tambah Rekening Baru" }
+                  ]}
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Jenis Diskon
@@ -693,6 +707,23 @@ export default function ProjectInvoiceTab() {
               </div>
             </div>
 
+            {selectedBankId === "add-new" && (
+              <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Nama Bank *</label>
+                  <input type="text" value={newBank.bank_name} onChange={e => setNewBank({...newBank, bank_name: e.target.value})} className={inputCls} placeholder="BCA" required />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">No. Rekening *</label>
+                  <input type="text" value={newBank.account_number} onChange={e => setNewBank({...newBank, account_number: e.target.value})} className={inputCls} placeholder="12345678" required />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Atas Nama *</label>
+                  <input type="text" value={newBank.account_name} onChange={e => setNewBank({...newBank, account_name: e.target.value})} className={inputCls} placeholder="PT Kusuma" required />
+                </div>
+              </div>
+            )}
+
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Catatan Invoice (Dapat diedit di sini)
@@ -706,12 +737,12 @@ export default function ProjectInvoiceTab() {
               />
             </div>
             
-            <div className="flex flex-wrap justify-end gap-3 pt-6 border-t border-gray-100">
+            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-gray-100">
               <button
                 type="button"
                 onClick={handleSaveOnly}
                 disabled={loading || !previewData}
-                className="px-5 py-2.5 border border-gray-200 rounded-xl text-gray-700 text-sm font-medium hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+                className="w-full sm:w-auto px-5 py-2.5 border border-gray-200 rounded-xl text-gray-700 text-sm font-medium hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                 {editId ? "Simpan Perubahan Saja" : "Simpan Data Saja"}
@@ -719,7 +750,7 @@ export default function ProjectInvoiceTab() {
               <button
                 onClick={handleSaveAndDownload}
                 disabled={loading || !previewData}
-                className="px-5 py-2.5 rounded-xl text-white text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-60 bg-blue-600 hover:bg-blue-700 shadow-sm"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-white text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-60 bg-blue-600 hover:bg-blue-700 shadow-sm"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                 Simpan & Download PDF
