@@ -4,12 +4,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
 
 from .payroll_service import PayrollService
-from .invoice_service import InvoiceService
 from ..models.employee import Employee
-from ..models.income_record import IncomeRecord
 from ..models.user import User
 from ..schemas.employee import PayrollCreate
-from ..api.v1.invoices import InvoiceCreate
 from ..core.database import SessionLocal
 
 logger = logging.getLogger(__name__)
@@ -143,67 +140,3 @@ class AutomationService:
         finally:
             db.close()
             logger.info("Selesai proses auto-generate payrolls non-operator.")
-
-    @staticmethod
-    def auto_generate_invoices():
-        """
-        Harian (jam 03:00 WIB): Generate invoice untuk penjualan material yang belum ditagihkan.
-        """
-        logger.info("Memulai proses auto-generate invoices...")
-        db: Session = SessionLocal()
-        try:
-            uninvoiced_records = db.query(IncomeRecord).filter(
-                IncomeRecord.income_type == "material_sale",
-                (IncomeRecord.is_invoiced == False) | (IncomeRecord.is_invoiced == None),
-                IncomeRecord.customer_name.isnot(None),
-                IncomeRecord.customer_name != ""
-            ).all()
-
-            if not uninvoiced_records:
-                logger.info("Tidak ada penjualan material baru yang perlu dibuatkan invoice.")
-                return
-
-            # Kelompokkan berdasarkan customer_name dan customer_id
-            customer_map = {}
-            for rec in uninvoiced_records:
-                key = (rec.customer_name, rec.customer_id)
-                if key not in customer_map:
-                    customer_map[key] = {
-                        "dates": [],
-                        "total_amount": 0.0
-                    }
-                customer_map[key]["dates"].append(rec.income_date)
-                customer_map[key]["total_amount"] += float(rec.amount or 0)
-
-            system_user = AutomationService._get_system_user(db)
-
-            for (cust_name, cust_id), data in customer_map.items():
-                min_date = min(data["dates"])
-                max_date = max(data["dates"])
-                total_amount = data["total_amount"]
-
-                logger.info(f"Auto-generating invoice untuk {cust_name} periode {min_date} s/d {max_date}")
-
-                invoice_data = InvoiceCreate(
-                    customer_name=cust_name,
-                    customer_id=cust_id,
-                    start_date=min_date,
-                    end_date=max_date,
-                    total_amount=total_amount,
-                    invoice_date=date.today(),
-                    notes="[Auto-Generated] Invoice otomatis oleh sistem.",
-                    discount_type=None,
-                    discount_value=None
-                )
-
-                try:
-                    InvoiceService.create_invoice(db, system_user, invoice_data)
-                    logger.info(f"Berhasil membuat draft invoice untuk {cust_name}")
-                except Exception as e:
-                    logger.error(f"Gagal membuat invoice untuk {cust_name}: {str(e)}")
-
-        except Exception as e:
-            logger.error(f"Error pada auto_generate_invoices: {str(e)}")
-        finally:
-            db.close()
-            logger.info("Selesai proses auto-generate invoices.")

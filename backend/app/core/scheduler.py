@@ -28,21 +28,11 @@ def start_scheduler():
         replace_existing=True
     )
 
-    # Job 3: Invoice Material - Setiap hari jam 03:00 WIB
-    scheduler.add_job(
-        AutomationService.auto_generate_invoices,
-        trigger=CronTrigger(hour=3, minute=0, timezone="Asia/Jakarta"),
-        id="auto_generate_invoices",
-        name="[Harian 03:00] Generate invoice penjualan material",
-        replace_existing=True
-    )
-
     scheduler.start()
     logger.info(
         "Scheduler started. Jobs terdaftar:\n"
         "  - Payroll OPERATOR   : setiap hari 03:00 WIB\n"
-        "  - Payroll NON-OPERATOR: setiap Minggu 08:00 WIB\n"
-        "  - Invoice Material   : setiap hari 03:00 WIB"
+        "  - Payroll NON-OPERATOR: setiap Minggu 08:00 WIB"
     )
 
 
