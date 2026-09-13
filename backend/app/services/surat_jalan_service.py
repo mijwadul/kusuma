@@ -491,7 +491,7 @@ class SuratJalanService:
                     "vendor_id": sj.vendor_id,
                     "vendor_name": sj.vendor.name if sj.vendor else None,
                     "truck_id": sj.truck_id,
-                    "truck_type": None # Can't fetch easily from SJ, fallback below
+                    "truck_type": sj.truck_type or (sj.truck.tipe_truk if sj.truck else None)
                 }
                 
         return list(trucks.values())

@@ -55,6 +55,10 @@ const SuratJalanFormModal = ({
   const [pendingFieldChange, setPendingFieldChange] = useState<{name: string, value: string} | null>(null);
   const [showEditAlert, setShowEditAlert] = useState(false);
   
+  const [lockedTruckType, setLockedTruckType] = useState<string>(sjToEdit?.truck_type || '');
+  const [showTruckTypeAlert, setShowTruckTypeAlert] = useState(false);
+  const [pendingTruckType, setPendingTruckType] = useState<string | null>(null);
+
   const [migrationTarget, setMigrationTarget] = useState<{
     nopol: string;
     driver: string;
@@ -81,6 +85,8 @@ const SuratJalanFormModal = ({
     
     // Always search through trucksHistory first to find ownership globally
     const foundGlobal = trucksHistory.find((t: any) => t.nopol.toUpperCase() === val);
+    const foundVendorTruck = vendorTrucks?.find((t: any) => t.nopol.toUpperCase() === val);
+    const historyTruckType = foundGlobal?.truck_type || foundVendorTruck?.tipe_truk || '';
     
     if (foundGlobal) {
       if (formData.vendor_id && foundGlobal.vendor_id && foundGlobal.vendor_id.toString() !== formData.vendor_id) {
@@ -113,10 +119,29 @@ const SuratJalanFormModal = ({
         height: foundGlobal.tinggi?.toString() || prev.height,
         truck_type: foundGlobal.truck_type || prev.truck_type
       }));
+      setLockedTruckType(foundGlobal.truck_type || '');
       setIsAutoFilled(true);
     } else {
-      setFormData(prev => ({ ...prev, license_plate: val, truck_id: '' }));
+      setFormData(prev => ({ 
+        ...prev, 
+        license_plate: val, 
+        truck_id: foundVendorTruck?.id?.toString() || '',
+        truck_type: historyTruckType || prev.truck_type
+      }));
+      setLockedTruckType(historyTruckType || '');
       setIsAutoFilled(false);
+    }
+  };
+
+  const handleTruckTypeChange = (newVal: string) => {
+    if (formData.truck_type && newVal !== formData.truck_type && (measurementType === 'ritase' || lockedTruckType)) {
+      setPendingTruckType(newVal);
+      setShowTruckTypeAlert(true);
+    } else {
+      setFormData(prev => ({ ...prev, truck_type: newVal }));
+      if (newVal) {
+        setLockedTruckType(newVal);
+      }
     }
   };
 
@@ -545,15 +570,21 @@ const SuratJalanFormModal = ({
 
               {/* Tipe Kendaraan */}
               <div className="mt-3">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Tipe Kendaraan {measurementType === 'ritase' && <span className="text-red-500">*</span>}
-                  {formData.truck_type && measurementType !== 'ritase' && (
-                    <span className="ml-2 text-xs text-emerald-600 font-normal">✓ terdeteksi otomatis</span>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center justify-between">
+                  <span>
+                    Tipe Kendaraan {measurementType === 'ritase' && <span className="text-red-500">*</span>}
+                  </span>
+                  {formData.truck_type && (
+                    <span className="text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md font-medium border border-amber-200">
+                      {lockedTruckType || measurementType === 'ritase'
+                        ? '🔒 Terkunci dari Nopol' 
+                        : '✓ Terdeteksi Otomatis'}
+                    </span>
                   )}
                 </label>
                 <CustomSelect
                   value={formData.truck_type}
-                  onChange={(val) => handleChange({ target: { name: 'truck_type', value: val } } as any)}
+                  onChange={(val) => handleTruckTypeChange(val as string)}
                   options={[
                     { value: "", label: "-- Pilih Tipe --" },
                     { value: "tronton", label: "Tronton" },
@@ -643,6 +674,27 @@ const SuratJalanFormModal = ({
         message="Anda akan merubah data bawaan (supir/ukuran) dari truk ini. Lanjutkan?"
         confirmText="Ya, Lanjutkan"
         cancelText="Batal"
+      />
+
+      <AlertModal
+        isOpen={showTruckTypeAlert}
+        onClose={() => {
+          setShowTruckTypeAlert(false);
+          setPendingTruckType(null);
+        }}
+        onConfirm={() => {
+          if (pendingTruckType !== null) {
+            setFormData(prev => ({ ...prev, truck_type: pendingTruckType }));
+            setLockedTruckType(pendingTruckType);
+          }
+          setShowTruckTypeAlert(false);
+          setPendingTruckType(null);
+        }}
+        title="Ubah Tipe Kendaraan?"
+        message={`Pilihan tipe kendaraan untuk nopol "${formData.license_plate}" sebelumnya terkunci sebagai "${formData.truck_type === 'tronton' ? 'Tronton' : formData.truck_type === 'colt_diesel' ? 'Colt Diesel' : formData.truck_type}". Apakah Anda yakin ingin mengubah pilihan tipe kendaraan ini menjadi "${pendingTruckType === 'tronton' ? 'Tronton' : pendingTruckType === 'colt_diesel' ? 'Colt Diesel' : 'Kosong'}"?`}
+        confirmText="Ya, Ubah Tipe"
+        cancelText="Batal"
+        confirmColor="bg-amber-600 hover:bg-amber-700"
       />
     </div>
   );
