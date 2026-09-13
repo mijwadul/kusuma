@@ -1,444 +1,187 @@
-# Technical Debt - PT. Kusuma Samudera Berkah
+# Technical Debt & UI/UX Audit - PT. Kusuma Samudera Berkah
 
-This document tracks known technical debt, improvements needed, and optimization opportunities for the Kusuma management system.
+Dokumen ini mendokumentasikan *technical debt*, peluang optimasi, serta hasil **Audit Menyeluruh UI/UX Best Practices** untuk sistem manajemen PT. Kusuma Samudera Berkah, diurutkan secara hierarkis dari prioritas **High** hingga **Low**.
 
-**Last Updated:** August 2026  
-**Status:** Active Development
+**Terakhir Diperbarui:** September 2026  
+**Status:** Active Development  
+**Maintainer:** [@mijwadul](https://github.com/mijwadul)
 
 ---
 
-## 📋 Overview
+## 📋 Overview Monorepo
 
-This monorepo contains three main components:
-- **Backend**: FastAPI (Python)
-- **Frontend**: React + TypeScript + Vite
+Sistem monorepo ini terdiri dari 3 komponen utama:
+- **Backend**: FastAPI (Python 3.10+) + SQLAlchemy + APScheduler
+- **Frontend**: React + TypeScript + Vite + Tailwind CSS + React Query
 - **Mobile**: Android (Kotlin + Jetpack Compose)
 
-Below are categorized issues organized by priority and component.
+---
+
+## 🎨 SEKSI KHUSUS: REKAPITULASI AUDIT UI/UX
+
+Berdasarkan hasil *codebase scan* pada modul frontend (`frontend/src`), berikut adalah temuan audit UI/UX beserta posisi prioritasnya:
+
+| Area Audit | Masalah Utama | Dampak Pengguna (UX Impact) | Priority Level |
+| :--- | :--- | :--- | :--- |
+| **1. Accessibility (a11y)** | Dropdown custom (`CustomSelect`, `CustomCombobox`) & Modal (`AlertModal`) belum memiliki atribut ARIA & navigasi keyboard (`ArrowUp/Down`, `Enter`, `Esc`). | Pengguna keyboard & screen reader mengalami hambatan saat pengisian form. | 🔴 **HIGH** |
+| **2. Mobile Ergonomics** | Tabel data transaksi terpotong di HP tanpa indikator *horizontal scroll*; ukuran tap target aksi (Edit/Hapus) < 44px. | Checker & tim lapangan (*Field*) kesulitan menekan tombol aksi di layar HP/Tablet. | 🔴 **HIGH** |
+| **3. User Feedback & Loading** | Terlalu mengandalkan full-screen spinner universal (`FallbackLoader`); kurangnya *Skeleton Loading* & *Empty States*. | Layar terasa "stuck" dan terjadi *Cumulative Layout Shift* (CLS) saat data dimuat. | 🟠 **MEDIUM** |
+| **4. Form Ergonomi & Stepper** | Form modal panjang (15+ field di `MaterialSalesPage`) dalam 1 scroll; validasi bertumpu pada Toast pasca-submit. | Kelelahan kognitif (*form fatigue*) dan kebingungan pengguna ketika submit gagal. | 🟠 **MEDIUM** |
+| **5. Design System & Palette** | Penggunaan warna ad-hoc (`bg-blue-600`, `bg-emerald-50`, `glass-panel`) & variasi Dark/Light mode tidak seimbang antara Sidebar & Main Panel. | Visual kurang harmonis saat berpindah modul; risiko kontras warna rendah pada beberapa kartu. | 🟡 **MEDIUM-LOW** |
+| **6. Modularisasi Komponen** | `MaterialSalesPage.tsx` berukuran monolithic (> 1.000 baris); modal styling di-duplicate di banyak file. | Kode sulit dipelihara dan rentan regresivitas UI antar modul. | 🟢 **LOW** |
 
 ---
 
-## 🔴 HIGH PRIORITY
+## 🔴 HIGH PRIORITY DEBT
 
-### 1. **Missing Docker Configuration**
-- **Component**: Root
-- **Issue**: `docker-compose.yml` referenced in README but file does not exist in repository
-- **Impact**: Users cannot quickly spin up the entire system locally
-- **Status**: NOT STARTED
-- **Action Items**:
-  - [ ] Create `docker-compose.yml` with services for backend, frontend, database (PostgreSQL/MySQL)
-  - [ ] Add environment configuration examples
-  - [ ] Test full stack startup with Docker Compose
-- **Estimated Effort**: 4-6 hours
+### 1. **Accessibility (a11y) & Navigasi Keyboard pada Custom Controls**
+- **Komponen**: Frontend (`src/components/CustomSelect.tsx`, `CustomCombobox.tsx`, `AlertModal.tsx`)
+- **Masalah**: Kontrol custom tidak mendukung keyboard navigation (`ArrowUp/Down`, `Enter`, `Escape`) dan tidak memiliki atribut WAI-ARIA (`role="combobox"`, `role="listbox"`, `role="dialog"`, `aria-expanded`).
+- **Dampak**: Tidak memenuhi standar aksesibilitas web (WCAG 2.1), menyulitkan navigasi pengguna tanpa mouse.
+- **Rencana Aksi**:
+  - [ ] Tambahkan keyboard event handlers pada `CustomSelect` & `CustomCombobox`.
+  - [ ] Tambahkan atribut ARIA yang tepat untuk screen readers.
+  - [ ] Implementasikan *focus trap* dan tombol `Escape` pada komponen modal dialog.
 
-### 2. **Unpinned Dependencies - Backend**
-- **Component**: Backend (`requirements.txt`)
-- **Issue**: Dependencies lack version constraints (e.g., `fastapi`, `sqlalchemy`, `uvicorn`), causing reproducibility issues
-- **Current State**:
-  ```
-  fastapi              # No version pinned
-  uvicorn[standard]    # No version pinned
-  sqlalchemy           # No version pinned
-  ```
-- **Impact**: 
-  - Build inconsistency across environments
-  - Unexpected breaking changes in production
-  - Security vulnerabilities from outdated packages
-- **Status**: NOT STARTED
-- **Action Items**:
-  - [ ] Audit all dependencies for latest stable versions
-  - [ ] Pin to specific versions (e.g., `fastapi>=0.100.0,<0.110.0`)
-  - [ ] Separate dev dependencies into `requirements-dev.txt`
-  - [ ] Test full application with pinned versions
-  - [ ] Document Python version requirement (stated as 3.10+)
-- **Estimated Effort**: 3-4 hours
+### 2. **Mobile Ergonomics & Scroll Indicators pada Data Tables**
+- **Komponen**: Frontend (`src/pages/MaterialSalesPage.tsx`, `ProjectSuratJalanPage.tsx`, `IncomePage.tsx`, `index.css`)
+- **Masalah**: Tabel dengan banyak kolom terpotong secara horizontal di HP tanpa petunjuk visual (*scroll shadow*), dan tombol ikon aksi (*Edit*, *Delete*) memiliki ukuran area sentuh yang terlalu kecil (< 44px).
+- **Dampak**: Pengalaman pengguna mobile/tablet buruk untuk tim lapangan.
+- **Rencana Aksi**:
+  - [ ] Tambahkan utilitas CSS `scroll-shadows-x` untuk memberi indikator bayangan scroll.
+  - [ ] Tingkatkan ukuran tap target tombol aksi menjadi minimum 44px x 44px.
+  - [ ] Sediakan tampilan alternatif berbentuk *Mobile Card View* untuk tabel penting di ukuran layar < 640px.
 
-### 3. **Duplicate Dependencies - Backend**
-- **Component**: Backend (`requirements.txt`)
-- **Issue**: `python-multipart` listed twice (line 25 and line 36)
-- **Status**: NOT STARTED
-- **Action Items**:
-  - [ ] Remove duplicate entry
-  - [ ] Consolidate utilities section
-- **Estimated Effort**: 0.5 hours
+### 3. **Konfigurasi Docker Hilang**
+- **Komponen**: Root
+- **Masalah**: `docker-compose.yml` dirujuk dalam README tetapi file tidak ada di repositori.
+- **Dampak**: Developer/deployer tidak dapat dengan cepat menjalankan *full stack application* secara lokal.
+- **Rencana Aksi**:
+  - [ ] Buat `docker-compose.yml` (backend, frontend, postgresql/mysql).
+  - [ ] Tambahkan contoh konfigurasi `.env`.
+  - [ ] Uji jalan stack lengkap menggunakan Docker Compose.
 
-### 4. **Outdated Build Tools - Frontend**
-- **Component**: Frontend
-- **Issue**: Multiple build & tooling dependencies are outdated:
-  - `vite: 8.0.13` (should be v5+)
-  - `typescript: 5.2.2` (should be 5.3+)
-  - Other dev dependencies may have security patches
-- **Impact**: 
-  - Potential security vulnerabilities
-  - Missing performance improvements
-  - Loss of community support
-- **Status**: NOT STARTED
-- **Action Items**:
-  - [ ] Audit `package.json` for outdated packages
-  - [ ] Update Vite to latest v5.x
-  - [ ] Update TypeScript to 5.4+
-  - [ ] Run `npm audit` and fix vulnerabilities
-  - [ ] Test build and dev server after updates
-  - [ ] Update `package-lock.json`
-- **Estimated Effort**: 3-5 hours
+### 4. **Dependency Backend Tanpa Version Locking**
+- **Komponen**: Backend (`requirements.txt`)
+- **Masalah**: Dependensi utama seperti `fastapi`, `sqlalchemy`, `uvicorn` tidak memiliki batasan versi.
+- **Dampak**: Potensi *breaking change* atau ketidakcocokan build antar environment.
+- **Rencana Aksi**:
+  - [ ] Audit & kunci versi dependensi (misal: `fastapi>=0.100.0,<0.110.0`).
+  - [ ] Pisahkan dependensi development ke `requirements-dev.txt`.
+  - [ ] Hapus duplikasi `python-multipart` di `requirements.txt`.
 
-### 5. **Missing CI/CD Pipeline**
-- **Component**: GitHub Actions
-- **Issue**: No automated testing, linting, or deployment workflows
-- **Impact**: 
-  - No code quality enforcement
-  - Manual deployment risk
-  - No automated test runs before merge
-- **Status**: NOT STARTED
-- **Action Items**:
-  - [ ] Create `.github/workflows/backend-test.yml` - Run pytest, type checks
-  - [ ] Create `.github/workflows/frontend-test.yml` - Run ESLint, build verification
-  - [ ] Create `.github/workflows/security.yml` - Dependency scanning, vulnerability checks
-  - [ ] Add branch protection rules requiring passing checks
-  - [ ] Document CI/CD setup in CONTRIBUTING.md
-- **Estimated Effort**: 6-8 hours
+### 5. **Outdated Build Tools & Missing CI/CD Pipeline**
+- **Komponen**: Frontend & GitHub Actions
+- **Masalah**: Belum ada automated testing, linting, atau pipeline CI/CD di GitHub Actions; versi tooling dev perlu diperbarui.
+- **Rencana Aksi**:
+  - [ ] Buat workflow `.github/workflows/backend-test.yml` & `frontend-test.yml`.
+  - [ ] Audit dan perbarui Vite & TypeScript ke versi stabil terbaru.
 
 ---
 
-## 🟠 MEDIUM PRIORITY
+## 🟠 MEDIUM PRIORITY DEBT
 
-### 6. **Missing Frontend Linting & Formatting**
-- **Component**: Frontend
-- **Issue**: No ESLint, Prettier, or equivalent code quality tools configured
-- **Impact**: 
-  - Inconsistent code style
-  - Potential bugs from unused variables (noUnusedLocals configured but not enforced)
-  - No auto-formatting on save
-- **Status**: NOT STARTED
-- **Action Items**:
-  - [ ] Install `eslint` and `@typescript-eslint/*`
-  - [ ] Install and configure `prettier`
-  - [ ] Create `.eslintrc.json` and `.prettierrc`
-  - [ ] Add npm scripts: `lint`, `lint:fix`, `format`
-  - [ ] Update package.json with scripts
-  - [ ] Add pre-commit hook via husky if desired
-- **Estimated Effort**: 2-3 hours
+### 6. **Skeleton Loading & Empty State UX**
+- **Komponen**: Frontend (`src/components/ui/SkeletonTable.tsx`, `EmptyState.tsx`)
+- **Masalah**: Saat data dimuat, halaman mengalami lonjakan tata letak (*Layout Shift / CLS*). Ketika data kosong, hanya menampilkan teks polos "Tidak ada data".
+- **Rencana Aksi**:
+  - [ ] Buat komponen Skeleton Loader untuk tabel dan kartu statistik.
+  - [ ] Buat komponen `EmptyState` yang informatif dilengkapi ilustrasi dan tombol Call-To-Action (CTA).
 
-### 7. **Backend Architecture - Mixed Concerns**
-- **Component**: Backend (`backend/app/main.py`)
-- **Issue**: Main.py mixes concerns:
-  - Framework initialization (CORS, middleware, error handlers)
-  - Database bootstrap logic
-  - Scheduler setup
-  - Router includes (18+ routers registered)
-  - Global exception handling
-- **Impact**: 
-  - Hard to test
-  - Difficult to maintain
-  - Makes startup logic unclear
-- **Status**: NOT STARTED
-- **Action Items**:
-  - [ ] Extract database bootstrap to `core/bootstrap.py`
-  - [ ] Extract scheduler to separate module with clear lifecycle
-  - [ ] Extract exception handlers to `core/exception_handlers.py`
-  - [ ] Consider router factory pattern to organize includes
-  - [ ] Move middleware setup to `core/middleware.py`
-  - [ ] Add detailed comments explaining startup order
-- **Estimated Effort**: 4-5 hours
+### 7. **Refactoring Form Modal Kompleks (Multi-step Stepper)**
+- **Komponen**: Frontend (`src/pages/MaterialSalesPage.tsx`, `EquipmentPage.tsx`)
+- **Masalah**: Form modal penjualan material mengandung 15+ input field dalam satu scroll vertikal panjang.
+- **Rencana Aksi**:
+  - [ ] Restrukturisasi modal panjang menjadi *Multi-Step Form Stepper* (Langkah 1: Info Transaksi -> Langkah 2: Detail Tonase/Volume -> Langkah 3: Pembayaran).
+  - [ ] Tambahkan validasi *real-time inline* di bawah masing-masing field input.
 
-### 8. **Missing API Documentation**
-- **Component**: Backend
-- **Issue**: No OpenAPI/Swagger documentation setup in FastAPI
-- **Current**: FastAPI provides automatic docs but not explicitly documented in README
-- **Impact**: 
-  - Frontend developers can't easily discover endpoints
-  - No centralized API contract documentation
-- **Status**: PARTIALLY IMPLEMENTED
-- **Action Items**:
-  - [ ] Ensure FastAPI auto-docs are accessible at `/docs` (should be automatic)
-  - [ ] Document endpoint descriptions in route docstrings
-  - [ ] Add request/response schema documentation
-  - [ ] Link to Swagger docs in README
-  - [ ] Consider postman/insomnia collection export
-- **Estimated Effort**: 2-3 hours
+### 8. **Pemisahan Mixed Concerns pada Backend (`main.py`)**
+- **Komponen**: Backend (`backend/app/main.py`)
+- **Masalah**: File `main.py` menggabungkan inisialisasi framework, bootstrap database, pembuatan tabel, setup scheduler, dan pendaftaran 18+ router.
+- **Rencana Aksi**:
+  - [ ] Ekstrak bootstrap database ke `core/bootstrap.py`.
+  - [ ] Ekstrak manajemen lifecycle scheduler ke modul terpisah.
+  - [ ] Buat middleware & exception handler tersentralisasi di `core/middleware.py`.
 
-### 9. **Missing Architecture Documentation**
-- **Component**: Root
-- **Issue**: Complex division-based architecture not formally documented
-- **README states**: Multi-divisi system with 4 divisions but no architecture diagrams or data flow
-- **Status**: NOT STARTED
-- **Action Items**:
-  - [ ] Create `ARCHITECTURE.md` with:
-    - System overview diagram
-    - Division-based architecture explanation
-    - Data flow between services
-    - Role & permission hierarchy
-    - Database schema overview
-  - [ ] Add sequence diagrams for key flows (auth, approval workflows)
-  - [ ] Document service boundaries
-- **Estimated Effort**: 4-6 hours
-
-### 10. **No Automated Testing Infrastructure**
-- **Component**: Backend & Frontend
-- **Issue**: `pytest` in requirements but no test suite visible; frontend has no test setup
-- **Impact**: 
-  - No regression prevention
-  - Manual testing required
-  - Hard to refactor safely
-- **Status**: NOT STARTED
-- **Action Items**:
-  - [ ] Create `backend/tests/` directory structure
-  - [ ] Add conftest.py with fixtures and database setup
-  - [ ] Write unit tests for core services (auth, permissions)
-  - [ ] Write integration tests for API endpoints
-  - [ ] Achieve >70% code coverage
-  - [ ] Setup Jest/Vitest for frontend
-  - [ ] Write component tests for critical UI
-  - [ ] Add test coverage reporting
-- **Estimated Effort**: 12-16 hours
-
-### 11. **Backend Exception Handling - Print to Console**
-- **Component**: Backend (`backend/app/main.py`, lines 118-119)
-- **Issue**: Global exception handler prints errors to console instead of logging
-  ```python
-  print(f"ERROR: {exc}")
-  print(f"TRACEBACK: {traceback_str}")
-  ```
-- **Impact**: 
-  - Errors not persisted in production
-  - No centralized error tracking
-  - Difficult to debug issues post-deployment
-- **Status**: NOT STARTED
-- **Action Items**:
-  - [ ] Integrate structured logging (e.g., `structlog`, `loguru`, or `python-json-logger`)
-  - [ ] Replace `print()` calls with logger
-  - [ ] Add log level configuration in settings
-  - [ ] Setup log aggregation (if deploying to production)
-  - [ ] Add request ID tracking for debugging
-- **Estimated Effort**: 2-3 hours
-
-### 12. **Missing Environment Variable Documentation**
-- **Component**: Backend & Frontend
-- **Issue**: README says to create `.env` manually but doesn't provide template or list of required vars
-- **Impact**: 
-  - New developers unsure what to configure
-  - Errors from missing env vars
-- **Status**: NOT STARTED
-- **Action Items**:
-  - [ ] Create `.env.example` in backend and frontend
-  - [ ] List all required environment variables
-  - [ ] Add descriptions and default values
-  - [ ] Document which are optional
-  - [ ] Update README to reference `.env.example`
-- **Estimated Effort**: 1-2 hours
+### 9. **Struktur Komponen Layout & Router Refactoring**
+- **Komponen**: Frontend (`src/App.tsx`, `src/pages/`)
+- **Masalah**: Pengelompokan route di `App.tsx` semakin membengkak (30+ route), dan file page besar seperti `MaterialSalesPage.tsx` (> 1.000 baris) memerlukan modularisasi.
+- **Rencana Aksi**:
+  - [ ] Pecah halaman monolithic menjadi sub-komponen terpisah di folder komponen terkait.
+  - [ ] Rapikan manifes rute ke dalam modul `src/routes/`.
 
 ---
 
-## 🟡 MEDIUM-LOW PRIORITY
+## 🟡 MEDIUM-LOW PRIORITY DEBT
 
-### 13. **Monorepo Organization**
-- **Component**: Root
-- **Issue**: Backend, frontend, and Android are in single repo but lack clear workspace configuration
-- **Impact**: 
-  - Harder to manage CI/CD per component
-  - Dependency conflicts possible
-  - Unclear which root-level config applies where
-- **Status**: NOT STARTED
-- **Action Items**:
-  - [ ] Consider migrating to pnpm workspaces or monorepo tool
-  - [ ] Add root-level `package.json` with workspace definition
-  - [ ] Document monorepo structure in CONTRIBUTING.md
-  - [ ] Add scripts to run tests, lint for all components
-- **Estimated Effort**: 3-4 hours (optional, depends on growth)
+### 10. **Design System & Visual Palette Uniformity**
+- **Komponen**: Frontend (`src/index.css`, `tailwind.config.js`)
+- **Masalah**: Penggunaan warna ad-hoc di berbagai halaman serta inkonsistensi kontras Dark/Light mode antar elemen UI.
+- **Rencana Aksi**:
+  - [ ] Definisikan token warna terpusat di `tailwind.config.js`.
+  - [ ] Selaraskan background panel utama dengan sidebar agar transisi antarmuka lebih smooth.
 
-### 14. **Vite Configuration - Minimal**
-- **Component**: Frontend (`vite.config.ts`)
-- **Issue**: Very basic config; missing important optimizations
-- **Current**:
-  ```typescript
-  export default defineConfig({
-    plugins: [react()],
-    server: { port: 5173, open: true, proxy: { ... } },
-  })
-  ```
-- **Missing**:
-  - Build optimization (chunk size, lazy loading)
-  - Environment variable injection
-  - Source map handling
-  - Alias path configuration
-- **Status**: NOT STARTED
-- **Action Items**:
-  - [ ] Add build optimization settings
-  - [ ] Add environment-based configuration
-  - [ ] Configure path aliases for cleaner imports
-  - [ ] Add source maps for dev, disable for prod
-  - [ ] Document build output size
-- **Estimated Effort**: 1-2 hours
+### 11. **Frontend Linting & Code Style Enforcement**
+- **Komponen**: Frontend
+- **Masalah**: Tidak ada linter / auto-formatter yang memvalidasi sintaks sebelum commit.
+- **Rencana Aksi**:
+  - [ ] Install & konfigurasikan ESLint + Prettier di folder `frontend/`.
+  - [ ] Tambahkan npm script `lint` dan `format`.
 
-### 15. **React Router - All Routes at Top Level**
-- **Component**: Frontend (`frontend/src/App.tsx`)
-- **Issue**: All 30+ routes defined in single App.tsx; hard to maintain
-- **Impact**: 
-  - Large file (127 lines)
-  - Difficult to add new routes
-  - Hard to trace flow
-- **Status**: NOT STARTED
-- **Action Items**:
-  - [ ] Extract routes to `src/routes/` directory
-  - [ ] Group routes by feature (auth, dashboard, equipment, etc.)
-  - [ ] Use route factory pattern for cleaner config
-  - [ ] Create centralized route definitions
-  - [ ] Document route structure
-- **Estimated Effort**: 2-3 hours
-
-### 16. **Frontend Type Safety - Loose Typing**
-- **Component**: Frontend
-- **Issue**: While TypeScript is configured with `strict: true`, API response types may not be fully defined
-- **Missing**: 
-  - Generated types from OpenAPI/backend schema
-  - Type definitions for all API endpoints
-- **Status**: NOT STARTED
-- **Action Items**:
-  - [ ] Audit `src/types/` directory for completeness
-  - [ ] Consider using code generation from backend OpenAPI spec
-  - [ ] Add strict typing for all API calls
-  - [ ] Document type conventions
-- **Estimated Effort**: 3-4 hours
-
-### 17. **Scheduler Implementation - No Persistence**
-- **Component**: Backend (`core/scheduler.py`)
-- **Issue**: APScheduler running in-memory; no persistence of scheduled jobs
-- **Impact**: 
-  - Jobs lost if service restarts
-  - Can't verify scheduled jobs across restarts
-- **Status**: NOT STARTED
-- **Action Items**:
-  - [ ] Integrate APScheduler with persistent backend (DB or Redis)
-  - [ ] Add health check endpoint for scheduler status
-  - [ ] Document scheduled jobs and their purposes
-  - [ ] Add monitoring/alerting for failed jobs
-- **Estimated Effort**: 2-3 hours
+### 12. **Logging Terstruktur pada Backend**
+- **Komponen**: Backend (`backend/app/main.py`)
+- **Masalah**: Menggunakan `print()` sederhana untuk penanganan exception global.
+- **Rencana Aksi**:
+  - [ ] Gantikan `print()` dengan library logging terstruktur (`structlog` / `loguru`).
 
 ---
 
-## 🟢 LOW PRIORITY
+## 🟢 LOW PRIORITY DEBT
 
-### 18. **README - Outdated Reference**
-- **Component**: Root (`README.md`)
-- **Issue**: References `TECHNICAL_DEBT.md` (line 89) but file didn't exist until now
-- **Status**: RESOLVED
-- **Action Items**:
-  - [x] Create `TECHNICAL_DEBT.md`
+### 13. **Modularisasi Komponen UI Monolithic**
+- **Komponen**: Frontend (`src/pages/MaterialSalesPage.tsx`, `EquipmentPage.tsx`)
+- **Masalah**: Penulisan helper, badge, modal, dan tabel berada dalam 1 file besar (> 1.000 baris).
+- **Rencana Aksi**:
+  - [ ] Ekstrak komponen atomic UI ke `src/components/ui/`.
 
-### 19. **Android Documentation**
-- **Component**: Android
-- **Issue**: README mentions Android app but no details; referenced documentation appears incomplete
-- **Current**: "Detail lebih lanjut dapat dilihat di `Android/README.md`"
-- **Status**: NOT STARTED
-- **Action Items**:
-  - [ ] Verify `Android/README.md` exists and is complete
-  - [ ] Document build and deployment process
-  - [ ] Add signing key configuration instructions
-  - [ ] Document Firebase/Google services setup if needed
-
-### 20. **Code Comments & Docstrings**
-- **Component**: Backend & Frontend
-- **Issue**: Limited inline documentation of complex logic
-- **Impact**: 
-  - Harder for new contributors to understand codebase
-  - Complex division logic not explained
-- **Status**: NOT STARTED
-- **Action Items**:
-  - [ ] Add docstrings to all services and utilities
-  - [ ] Document division-based authorization logic
-  - [ ] Add comments for complex algorithms
-  - [ ] Create ADR (Architecture Decision Records) for major patterns
-- **Estimated Effort**: 4-6 hours
-
-### 21. **Database Migrations - Version Control**
-- **Component**: Backend (`backend/alembic/`)
-- **Issue**: Alembic setup exists but migration history not documented
-- **Status**: NOT STARTED
-- **Action Items**:
-  - [ ] Document migration naming convention
-  - [ ] Add guidance for creating new migrations
-  - [ ] Document rollback procedures
-  - [ ] Add migration testing to CI/CD
-
-### 22. **Error Handling - User-Friendly Messages**
-- **Component**: Backend
-- **Issue**: Global exception handler returns "Internal server error. Hubungi administrator" (line 121)
-- **Status**: PARTIAL (needs improvement)
-- **Action Items**:
-  - [ ] Standardize error response format
-  - [ ] Add error codes for frontend to display appropriate messages
-  - [ ] Localize error messages (Indonesian/English)
-  - [ ] Create error reference documentation
+### 14. **Dokumentasi Lingkungan (.env.example) & Arsitektur Sistem**
+- **Komponen**: Root & Backend/Frontend
+- **Masalah**: Belum ada file `.env.example` untuk memudahkan dev setup awal. *(Catatan: Dokumentasi `ARCHITECTURE.md` telah selesai dibuat)*.
+- **Rencana Aksi**:
+  - [x] Buat file [`ARCHITECTURE.md`](file:///d:/Titip/System%20Kusuma/kusuma/ARCHITECTURE.md) yang menjelaskan aliran data 4 divisi utama. (SELESAI)
+  - [ ] Buat file `.env.example` pada backend & frontend.
 
 ---
 
-## 📊 Debt Summary
+## 📊 Summary Rangkuman Technical Debt
 
-| Priority | Count | Est. Hours | Components |
-|----------|-------|-----------|------------|
-| 🔴 HIGH | 5 | 16-23 | Docker, Deps, CI/CD, Outdated Tools |
-| 🟠 MEDIUM | 8 | 24-37 | Architecture, Testing, Linting, Logging |
-| 🟡 MED-LOW | 4 | 6-12 | Code Organization, Config |
-| 🟢 LOW | 5 | 8-12 | Docs, Comments, Migrations |
-| **TOTAL** | **22** | **54-84 hours** | |
-
----
-
-## 🚀 Quick Wins (1-2 hour fixes)
-
-1. ✅ Add `TECHNICAL_DEBT.md` - DONE
-2. Remove duplicate `python-multipart` dependency
-3. Create `.env.example` files
-4. Add project-level `.gitignore` rules
-5. Update README with Swagger docs link
+| Kategori Prioritas | Jumlah Item | Estimasi Waktu | Komponen Utama |
+| :--- | :--- | :--- | :--- |
+| 🔴 **HIGH** | 5 Item | 18 - 25 Jam | Accessibility (a11y), Mobile Touch UX, Docker, Backend Dep Locking, CI/CD |
+| 🟠 **MEDIUM** | 4 Item | 16 - 24 Jam | Skeleton Loading & Empty State, Multi-step Forms, Refactoring Backend & App.tsx |
+| 🟡 **MEDIUM-LOW** | 3 Item | 8 - 12 Jam | Design System Palette, ESLint/Prettier, Structured Logging |
+| 🟢 **LOW** | 2 Item | 4 - 8 Jam | Sub-component Extraction, Template `.env.example` |
+| **TOTAL** | **14 Item** | **46 - 69 Jam** | *Full Stack (Frontend, Backend, DevOps)* |
 
 ---
 
-## 📅 Recommended Implementation Order
+## 🚀 Langkah Implementasi Direkomendasikan (Roadmap)
 
-### Phase 1: Foundation (Weeks 1-2)
-- [ ] Fix duplicate dependencies
-- [ ] Pin all backend dependencies
-- [ ] Create Docker configuration
-- [ ] Add `.env.example` files
-- [ ] Setup CI/CD pipeline (GitHub Actions)
+1. **Fase 1: Aksesibilitas & Responsive UI (🔴 HIGH)**
+   - [ ] Implementasi ARIA roles & keyboard navigation pada `CustomSelect`, `CustomCombobox`, & `Modal`.
+   - [ ] Tambahkan *scroll shadows* & optimasi *tap target* mobile (44px) pada tabel data.
+   - [ ] Perbaiki versi dependensi backend & buat `docker-compose.yml`.
 
-### Phase 2: Quality (Weeks 3-4)
-- [ ] Add frontend linting (ESLint, Prettier)
-- [ ] Update build tools (Vite, TypeScript)
-- [ ] Implement structured logging
-- [ ] Create architecture documentation
+2. **Fase 2: Visual Polish & User Feedback (🟠 MEDIUM)**
+   - [ ] Tambahkan Skeleton Loaders & Empty State Components di seluruh modul utama.
+   - [ ] Modularisasi form modal panjang (`MaterialSalesPage`) menjadi Multi-Step Forms.
 
-### Phase 3: Testing & Robustness (Weeks 5-6)
-- [ ] Implement automated testing (backend)
-- [ ] Implement automated testing (frontend)
-- [ ] Refactor backend main.py
-- [ ] API documentation (Swagger review)
-
-### Phase 4: Enhancement (Ongoing)
-- [ ] Improve error handling
-- [ ] Code comments and docstrings
-- [ ] Advanced monitoring
-- [ ] Performance optimization
+3. **Fase 3: Code Quality, Clean Architecture & Pipeline (🟡 MED-LOW & 🟢 LOW)**
+   - [ ] Konfigurasi ESLint & Prettier pada Frontend.
+   - [ ] Refactoring `backend/app/main.py` dan pembuatan CI/CD GitHub Actions.
+   - [ ] Implementasi structured logging & pemuatan `.env.example`.
 
 ---
 
-## 📝 Contributing
-
-When addressing technical debt:
-
-1. Create an issue from this document
-2. Reference the issue in your PR
-3. Update this file when closing items
-4. Add new items as they're discovered
-
----
-
-## 📞 Questions?
-
-Refer to individual issues or create a discussion in the repository.
-
----
-
-**Generated:** August 2026  
-**Maintainer**: [@mijwadul](https://github.com/mijwadul)
+**Terakhir Ditinjau:** September 2026  
+**Status Audit:** Approved for Implementation
