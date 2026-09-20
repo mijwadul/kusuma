@@ -146,10 +146,12 @@ def preview_invoice(
 
 @router.get("/next-number", response_model=str)
 def get_next_invoice_number(
+    customer_id: Optional[int] = Query(None, description="ID customer"),
+    customer_name: Optional[str] = Query(None, description="Nama customer"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return InvoiceService.get_next_invoice_number(db)
+    return InvoiceService.get_next_invoice_number(db, customer_id, customer_name)
 
 @router.post("", response_model=InvoiceResponse, status_code=status.HTTP_201_CREATED)
 def create_invoice(

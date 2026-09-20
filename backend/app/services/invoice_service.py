@@ -208,11 +208,19 @@ class InvoiceService:
             )
 
     @staticmethod
-    def get_next_invoice_number(db: Session) -> str:
+    def get_next_invoice_number(db: Session, customer_id: Optional[int] = None, customer_name: Optional[str] = None) -> str:
         today = date.today()
         date_str = today.strftime('%Y%m%d')
         
-        last_invoice = db.query(Invoice).filter(Invoice.invoice_number.like("INV-%")).order_by(Invoice.id.desc()).first()
+        query = db.query(Invoice).filter(Invoice.invoice_number.like("INV-%"))
+        
+        if customer_id is not None:
+            query = query.filter(Invoice.customer_id == customer_id)
+        elif customer_name is not None:
+            query = query.filter(Invoice.customer_name == customer_name)
+            
+        last_invoice = query.order_by(Invoice.id.desc()).first()
+        
         seq = 1
         if last_invoice and last_invoice.invoice_number:
             try:
@@ -230,7 +238,11 @@ class InvoiceService:
         if data.invoice_number:
             invoice_number = data.invoice_number
         else:
-            invoice_number = InvoiceService.get_next_invoice_number(db)
+            invoice_number = InvoiceService.get_next_invoice_number(
+                db, 
+                customer_id=data.customer_id, 
+                customer_name=data.customer_name
+            )
 
         discount_amount = 0.0
         final_amount = data.total_amount
@@ -249,7 +261,7 @@ class InvoiceService:
             invoice_number=invoice_number,
             customer_name=data.customer_name,
             customer_id=data.customer_id,
-            invoice_date=data.invoice_date if data.invoice_date else today,
+            invoice_date=data.invoice_date if data.invoice_date else date.today(),
             start_date=data.start_date,
             end_date=data.end_date,
             total_amount=data.total_amount,
