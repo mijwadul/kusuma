@@ -955,6 +955,12 @@ export default function ProjectSuratJalanPage() {
         ],
       ];
 
+      const formatQty = (n: number | null | undefined): string => {
+        if (n == null || isNaN(n)) return '0';
+        const rounded = Math.round((n + Number.EPSILON) * 100) / 100;
+        return rounded.toString();
+      };
+
       const rekapBody: (string | number | any)[][] = sortedRekapDates.map((item, idx) => {
         const [y, m, d] = item.dateStr.split('-');
         return [
@@ -963,7 +969,7 @@ export default function ProjectSuratJalanPage() {
           `${item.ritase} Rit`,
           `${item.tronton} Rit`,
           `${item.colt} Rit`,
-          mt === 'tonase' ? `${item.totalMeas} Ton` : mt === 'kubikasi' ? `${item.totalMeas} m³` : `${item.ritase} Rit`,
+          mt === 'tonase' ? `${formatQty(item.totalMeas)} Ton` : mt === 'kubikasi' ? `${formatQty(item.totalMeas)} m³` : `${item.ritase} Rit`,
         ];
       });
 
@@ -973,7 +979,7 @@ export default function ProjectSuratJalanPage() {
         { content: `${filtered.length} Rit`, styles: { fontStyle: 'bold', halign: 'center', fillColor: [241, 245, 249] } },
         { content: `${trontonCount} Rit`, styles: { fontStyle: 'bold', halign: 'center', fillColor: [241, 245, 249] } },
         { content: `${coltCount} Rit`, styles: { fontStyle: 'bold', halign: 'center', fillColor: [241, 245, 249] } },
-        { content: `${mt === 'tonase' ? totalTonase + ' Ton' : totalKubikasi + ' m³'}`, styles: { fontStyle: 'bold', halign: 'right', textColor: [13, 148, 136], fillColor: [241, 245, 249] } },
+        { content: `${mt === 'tonase' ? formatQty(totalTonase) + ' Ton' : formatQty(totalKubikasi) + ' m³'}`, styles: { fontStyle: 'bold', halign: 'right', textColor: [13, 148, 136], fillColor: [241, 245, 249] } },
       ]);
 
       const tableHead = [['No', 'Waktu', 'Nopol', 'Supir', 'Vendor', 'Tipe', mt === 'tonase' ? 'Bruto / Tarra (Kg)' : mt === 'kubikasi' ? 'P x L x T' : 'Keterangan', mt === 'tonase' ? 'Netto' : mt === 'kubikasi' ? 'Volume' : 'Jumlah']];
@@ -1034,13 +1040,13 @@ export default function ProjectSuratJalanPage() {
               mt === 'tonase'
                 ? `${sj.bruto ? Math.round(sj.bruto).toLocaleString('id-ID') : '-'} / ${sj.tarra ? Math.round(sj.tarra).toLocaleString('id-ID') : '-'}`
                 : mt === 'kubikasi' ? `${sj.panjang || '-'}x${sj.lebar || '-'}x${sj.tinggi || '-'}` : '-',
-              mt === 'tonase' ? `${val} T` : mt === 'kubikasi' ? `${val} m³` : '1 Rit'
+              mt === 'tonase' ? `${formatQty(val)} T` : mt === 'kubikasi' ? `${formatQty(val)} m³` : '1 Rit'
             ]);
           });
 
           tableBody.push([
             { content: 'Subtotal:', colSpan: 7, styles: { fontStyle: 'bold', halign: 'right' } },
-            { content: mt === 'tonase' ? `${subTotal} T` : mt === 'kubikasi' ? `${subTotal} m³` : `${subTotal} Rit`, styles: { fontStyle: 'bold', textColor: [13, 148, 136] } }
+            { content: mt === 'tonase' ? `${formatQty(subTotal)} T` : mt === 'kubikasi' ? `${formatQty(subTotal)} m³` : `${subTotal} Rit`, styles: { fontStyle: 'bold', textColor: [13, 148, 136] } }
           ]);
         });
       });
