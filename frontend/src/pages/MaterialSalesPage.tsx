@@ -1,21 +1,35 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import {
-  Plus, Pencil, Trash2, X, Loader2, ShoppingCart, Settings, Truck, FileText, Download, Scale, Package
+  Plus,
+  Trash2,
+  X,
+  Loader2,
+  Settings,
+  Truck,
+  FileText,
+  Download,
+  Scale,
+  Package,
 } from "lucide-react";
 import { generatePremiumPDF } from "../utils/pdfGenerator";
-import apiClient from "../api/apiClient";
 import { useCurrentUser } from "../hooks/useAuth";
 import {
-  useIncomeRecords, useMaterialPrices, useCreateIncomeRecord,
-  useUpdateIncomeRecord, useDeleteIncomeRecord, useCreateMaterialPrice,
-  useUpdateMaterialPrice, useDeleteMaterialPrice, useAddCustomerTruck,
-  IncomeRecord, MaterialPrice
+  useIncomeRecords,
+  useMaterialPrices,
+  useDeleteIncomeRecord,
+  useDeleteMaterialPrice,
+  IncomeRecord,
+  MaterialPrice,
 } from "../hooks/useMaterialSales";
-import { useCustomersList, useProjectsList, Customer } from "../hooks/useProjects";
-import { toLocalDateInput, formatNopol, formatTitleCase } from "../utils/formatters";
-import CustomSelect from "../components/CustomSelect";
-import CustomCombobox from "../components/CustomCombobox";
+import { useCustomersList, useProjectsList } from "../hooks/useProjects";
+import { toLocalDateInput } from "../utils/formatters";
+
+import MaterialBadge from "../components/material_sales/MaterialBadge";
+import SaleFormModal from "../components/material_sales/SaleFormModal";
+import PriceFormModal from "../components/material_sales/PriceFormModal";
+import SaleDetailModal from "../components/material_sales/SaleDetailModal";
+import PriceDetailModal from "../components/material_sales/PriceDetailModal";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const formatIDR = (v?: number | string | null) =>
@@ -28,713 +42,30 @@ const formatIDR = (v?: number | string | null) =>
 const formatDate = (d?: string | null) => {
   if (!d) return "-";
   return new Date(d).toLocaleDateString("id-ID", {
-    day: "2-digit", month: "short", year: "numeric",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
   });
 };
 
-const todayStr = () => {
-  return toLocalDateInput(new Date());
-};
+const todayStr = () => toLocalDateInput(new Date());
 
-const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300";
+const inputCls =
+  "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300";
 
-const MATERIAL_TYPES = ["Limestone (urugan)", "Dolomite", "Boulder", "Clay"];
-const VEHICLE_TYPES = ["Colt Diesel", "Tronton"];
-const UNITS = ["ritase", "m3", "ton"];
-
-// ── Components ─────────────────────────────────────────────────────────────────
-const MaterialBadge = ({ type }: { type?: string }) => {
-  let bg = "bg-emerald-50"; let text = "text-emerald-700"; let dot = "bg-emerald-400";
-  if (type === "Limestone (urugan)") { bg = "bg-amber-50"; text = "text-amber-700"; dot = "bg-amber-400"; }
-  if (type === "Dolomite") { bg = "bg-blue-50"; text = "text-blue-700"; dot = "bg-blue-400"; }
-  if (type === "Boulder") { bg = "bg-stone-50"; text = "text-stone-700"; dot = "bg-stone-400"; }
-  if (type === "Clay") { bg = "bg-orange-50"; text = "text-orange-700"; dot = "bg-orange-400"; }
-
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${bg} ${text}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
-      {type || "Unknown"}
-    </span>
-  );
-};
-
-// ── Modals ─────────────────────────────────────────────────────────────────────
-const SaleFormModal = ({
-  editData, onClose, customers, projects
+// ── PDF Export Modal ──────────────────────────────────────────────────────────
+const DownloadPdfModal = ({
+  sales,
+  onClose,
 }: {
-  editData: IncomeRecord | null, onClose: () => void,
-  customers: Customer[], projects: any[]
+  sales: IncomeRecord[];
+  onClose: () => void;
 }) => {
-  const [form, setForm] = useState({
-    income_date: editData?.income_date ? editData.income_date.split("T")[0] : todayStr(),
-    customer_name: editData?.customer_name || "",
-    license_plate: editData?.license_plate || "",
-    driver_name: editData?.driver_name || "",
-    vehicle_type: editData?.vehicle_type || "Colt Diesel",
-    material_type: editData?.material_type || "Limestone (urugan)",
-    unit: editData?.unit || "ritase",
-    quantity: editData?.quantity?.toString() || "1",
-    unit_price: editData?.unit_price?.toString() || "",
-    amount: editData?.amount?.toString() || "",
-    payment_method: editData?.payment_method || "transfer",
-    notes: editData?.notes || "",
-    project_id: editData?.project_id ? String(editData.project_id) : "",
-    sj_length: editData?.sj_length?.toString() || "",
-    sj_width: editData?.sj_width?.toString() || "",
-    sj_height: editData?.sj_height?.toString() || "",
-    sj_volume_minus: editData?.sj_volume_minus?.toString() || "",
-    sj_gross_weight: editData?.sj_gross_weight?.toString() || "",
-    sj_tare_weight: editData?.sj_tare_weight?.toString() || "",
-    sj_weight_minus: editData?.sj_weight_minus?.toString() || "",
-  });
-
-  const [saveTruckToCustomer, setSaveTruckToCustomer] = useState(true);
-  const [isNewCustomer, setIsNewCustomer] = useState(false);
-  const [migrationTarget, setMigrationTarget] = useState<{
-    nopol: string;
-    driver: string;
-    oldCustomerName: string;
-    newCustomerName: string;
-    vehicleType: string;
-  } | null>(null);
-
-  const createIncomeMutation = useCreateIncomeRecord();
-  const updateIncomeMutation = useUpdateIncomeRecord();
-  const addTruckMutation = useAddCustomerTruck();
-
-  const isSaving = createIncomeMutation.isPending || updateIncomeMutation.isPending;
-
-  const currentCust = useMemo(() => {
-    return customers.find(c => c.name === form.customer_name);
-  }, [customers, form.customer_name]);
-
-  const isNewTruck = useMemo(() => {
-    if (!currentCust || !form.license_plate) return false;
-    const hasTruck = (currentCust.trucks || []).some(t => t.license_plate.toUpperCase() === form.license_plate.toUpperCase());
-    return !hasTruck;
-  }, [currentCust, form.license_plate]);
-
-  useEffect(() => {
-    if (form.unit === "m3") {
-      const p = parseFloat(form.sj_length) || 0;
-      const l = parseFloat(form.sj_width) || 0;
-      const t = parseFloat(form.sj_height) || 0;
-      const m = parseFloat(form.sj_volume_minus) || 0;
-      if (p > 0 && l > 0 && t > 0) {
-        setForm(prev => ({ ...prev, quantity: (p * l * (t - m)).toString() }));
-      }
-    } else if (form.unit === "ton") {
-      const gross = parseFloat(form.sj_gross_weight) || 0;
-      const tare = parseFloat(form.sj_tare_weight) || 0;
-      const m = parseFloat(form.sj_weight_minus) || 0;
-      if (gross > 0) {
-        setForm(prev => ({ ...prev, quantity: (gross - tare - m).toString() }));
-      }
-    } else {
-      setForm(prev => ({ ...prev, quantity: "1" }));
-    }
-  }, [form.unit, form.sj_length, form.sj_width, form.sj_height, form.sj_volume_minus, form.sj_gross_weight, form.sj_tare_weight, form.sj_weight_minus]);
-
-  useEffect(() => {
-    const q = parseFloat(form.quantity) || 0;
-    const p = parseFloat(form.unit_price) || 0;
-    if (q > 0 && p > 0) {
-      setForm(prev => ({ ...prev, amount: (q * p).toString() }));
-    }
-  }, [form.quantity, form.unit_price]);
-
-  useEffect(() => {
-    const { material_type, unit, customer_name, vehicle_type } = form;
-    if (!material_type || !unit) return;
-    
-    let cancelled = false;
-    const lookup = async () => {
-      try {
-        const params = new URLSearchParams({ material_type, unit });
-        if (customer_name.trim()) params.set("customer_name", customer_name.trim());
-        if (vehicle_type) params.set("vehicle_type", vehicle_type);
-        const res = await apiClient.get(`/material-prices/lookup?${params.toString()}`);
-        if (cancelled) return;
-        
-        if (res.data?.found) {
-          setForm(prev => ({ ...prev, unit_price: String(res.data.price_per_unit) }));
-        }
-      } catch (err) {
-        // ignore lookup errors
-      }
-    };
-    
-    const timer = setTimeout(lookup, 400);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [form.material_type, form.unit, form.customer_name, form.vehicle_type]);
-
-  const handleSubmit = async (e?: React.FormEvent, isMigrationConfirmed = false, migrationData?: any) => {
-    if (e) e.preventDefault();
-    
-    const finalForm = migrationData ? { ...form, ...migrationData } : form;
-    let finalCustomerName = finalForm.customer_name;
-    if (!isNewCustomer) {
-      const exactCust = customers.find(c => (c.name || "").toLowerCase().trim() === (finalForm.customer_name || "").toLowerCase().trim());
-      if (!exactCust) {
-        toast.error("Nama pelanggan tidak cocok. Pastikan tidak salah ketik, atau pilih 'Pelanggan Baru'.");
-        return;
-      }
-      finalCustomerName = exactCust.name; // Normalize
-    }
-
-    try {
-      const payload: Partial<IncomeRecord> = {
-        income_date: finalForm.income_date,
-        income_type: "material_sale",
-        description: `Penjualan ${finalForm.material_type || "Unknown"} - ${finalCustomerName}`,
-        customer_name: finalCustomerName,
-        license_plate: finalForm.license_plate,
-        driver_name: finalForm.driver_name,
-        vehicle_type: finalForm.vehicle_type,
-        material_type: finalForm.material_type,
-        quantity: parseFloat(finalForm.quantity) || 1,
-        unit: finalForm.unit || "ritase",
-        unit_price: parseFloat(finalForm.unit_price) || 0,
-        amount: (parseFloat(finalForm.quantity) || 1) * (parseFloat(finalForm.unit_price) || 0),
-        payment_method: finalForm.payment_method || "transfer",
-        notes: finalForm.notes,
-        project_id: finalForm.project_id ? parseInt(finalForm.project_id) : undefined,
-        sj_length: finalForm.sj_length ? parseFloat(finalForm.sj_length) : undefined,
-        sj_width: finalForm.sj_width ? parseFloat(finalForm.sj_width) : undefined,
-        sj_height: finalForm.sj_height ? parseFloat(finalForm.sj_height) : undefined,
-        sj_volume_minus: finalForm.sj_volume_minus ? parseFloat(finalForm.sj_volume_minus) : undefined,
-        sj_gross_weight: finalForm.sj_gross_weight ? parseFloat(finalForm.sj_gross_weight) : undefined,
-        sj_tare_weight: finalForm.sj_tare_weight ? parseFloat(finalForm.sj_tare_weight) : undefined,
-        sj_weight_minus: finalForm.sj_weight_minus ? parseFloat(finalForm.sj_weight_minus) : undefined,
-        migrate_truck: isMigrationConfirmed,
-        old_customer_name: isMigrationConfirmed && migrationTarget ? migrationTarget.oldCustomerName : undefined,
-      } as any;
-
-      if (editData) {
-        await updateIncomeMutation.mutateAsync({ id: editData.id, data: payload });
-      } else {
-        await createIncomeMutation.mutateAsync(payload);
-      }
-
-      if (isNewTruck && saveTruckToCustomer && currentCust) {
-        try {
-          await addTruckMutation.mutateAsync({
-            customerId: currentCust.id,
-            data: {
-              license_plate: finalForm.license_plate.toUpperCase(),
-              driver_name: finalForm.driver_name,
-              vehicle_type: finalForm.vehicle_type
-            }
-          });
-        } catch (e) {
-          console.error("Gagal simpan armada baru:", e);
-        }
-      }
-
-      toast.success("Penjualan berhasil dicatat");
-      onClose();
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || err.message || "Gagal menyimpan penjualan");
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
-          <h2 className="text-lg font-semibold">{editData ? "Edit Penjualan" : "Catat Penjualan"}</h2>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"><X size={18} /></button>
-        </div>
-        <form onSubmit={(e) => handleSubmit(e)} className="px-6 py-5 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Tanggal</label>
-              <input type="date" required value={form.income_date} onChange={e => setForm(p => ({...p, income_date: e.target.value}))} className={inputCls} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Pembeli / Customer</label>
-              <div className="flex gap-4 mb-2">
-                <label className="flex items-center gap-1.5 text-sm cursor-pointer">
-                  <input type="radio" checked={!isNewCustomer} onChange={() => setIsNewCustomer(false)} className="w-4 h-4 text-emerald-600" />
-                  Pelanggan Terdaftar
-                </label>
-                <label className="flex items-center gap-1.5 text-sm cursor-pointer">
-                  <input type="radio" checked={isNewCustomer} onChange={() => {
-                    setIsNewCustomer(true);
-                    setForm(p => ({...p, customer_name: ""}));
-                  }} className="w-4 h-4 text-emerald-600" />
-                  Pelanggan Baru
-                </label>
-              </div>
-              {!isNewCustomer ? (
-                <>
-                  <CustomCombobox
-                    required
-                    value={form.customer_name}
-                    onChange={(val) => {
-                      const foundCust = customers.find(c => c.name === val);
-                      if (form.license_plate && currentCust && foundCust && currentCust.name !== foundCust.name) {
-                        const truckInCurrent = (currentCust.trucks || []).find(t => t.license_plate === form.license_plate);
-                        if (truckInCurrent) {
-                          setMigrationTarget({
-                            nopol: form.license_plate,
-                            driver: form.driver_name,
-                            oldCustomerName: currentCust.name,
-                            newCustomerName: foundCust.name,
-                            vehicleType: form.vehicle_type,
-                          });
-                          return;
-                        }
-                      }
-                      setForm(p => ({...p, customer_name: val}));
-                    }}
-                    placeholder="Pilih Pelanggan..."
-                    options={customers.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((c: any) => ({
-                      value: c.name,
-                      label: c.name
-                    }))}
-                  />
-                </>
-              ) : (
-                <input 
-                  type="text" 
-                  required 
-                  value={form.customer_name} 
-                  onChange={e => setForm(p => ({...p, customer_name: e.target.value}))} 
-                  placeholder="Ketik nama pelanggan baru..."
-                  className={inputCls} 
-                />
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Plat Nomor</label>
-              <CustomCombobox
-                value={form.license_plate}
-                onChange={(rawVal) => {
-                  const val = formatNopol(rawVal);
-                  
-                  let foundInOther: any = null;
-                  let foundInCurrent: any = null;
-
-                  for (const cust of customers) {
-                    const truck = (cust.trucks || []).find(t => t.license_plate.toUpperCase() === val);
-                    if (truck) {
-                      if (currentCust && cust.name !== currentCust.name) {
-                        foundInOther = { cust, truck };
-                      } else if (currentCust && cust.name === currentCust.name) {
-                        foundInCurrent = truck;
-                      } else if (!currentCust) {
-                        foundInOther = { cust, truck }; 
-                      }
-                    }
-                  }
-
-                  if (currentCust && foundInOther && !foundInCurrent) {
-                     setMigrationTarget({
-                       nopol: val,
-                       driver: foundInOther.truck.driver_name || "",
-                       oldCustomerName: foundInOther.cust.name,
-                       newCustomerName: currentCust.name,
-                       vehicleType: foundInOther.truck.vehicle_type || "Colt Diesel",
-                     });
-                     return;
-                  }
-
-                  const targetCust = foundInCurrent ? { cust: currentCust, truck: foundInCurrent } : foundInOther;
-
-                  setForm(p => {
-                    const newForm = {...p, license_plate: val};
-                    if (targetCust) {
-                      newForm.customer_name = targetCust.cust.name;
-                      newForm.driver_name = targetCust.truck.driver_name || "";
-                      newForm.vehicle_type = targetCust.truck.vehicle_type || "Colt Diesel";
-                      
-                      const pref = targetCust.cust.material_preferences?.find((m: any) => m.vehicle_type === newForm.vehicle_type) || targetCust.cust.material_preferences?.[0];
-                      if (pref) {
-                        newForm.material_type = pref.material_type;
-                      }
-                      newForm.unit = "ritase";
-                      newForm.quantity = "1";
-                    }
-                    return newForm;
-                  });
-                }}
-                placeholder="Contoh: B 1234 CD"
-                options={
-                  Array.from(new Set([
-                    ...(currentCust?.trucks || []),
-                    ...customers.flatMap(c => c.trucks || [])
-                  ].map(t => t.license_plate))).map(plate => {
-                    const t = currentCust?.trucks?.find(x => x.license_plate === plate) || 
-                              customers.flatMap(c => c.trucks || []).find(x => x.license_plate === plate);
-                    return {
-                      value: t?.license_plate || plate,
-                      label: t?.driver_name ? `${t?.license_plate} (${t?.driver_name})` : (t?.license_plate || plate)
-                    }
-                  })
-                }
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Nama Supir</label>
-              <input 
-                type="text" 
-                value={form.driver_name} 
-                onChange={e => setForm(p => ({...p, driver_name: formatTitleCase(e.target.value)}))} 
-                placeholder="Contoh: Budi"
-                className={inputCls} 
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Jenis Kendaraan</label>
-              <CustomSelect
-                value={form.vehicle_type}
-                onChange={(val) => setForm(p => ({...p, vehicle_type: val as string}))}
-                options={VEHICLE_TYPES.map(v => ({ value: v, label: v }))}
-              />
-            </div>
-          </div>
-
-          {isNewTruck && (
-            <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3 flex items-start gap-3">
-              <input 
-                type="checkbox" 
-                id="saveNewTruck" 
-                checked={saveTruckToCustomer} 
-                onChange={e => setSaveTruckToCustomer(e.target.checked)} 
-                className="mt-1 w-4 h-4 text-emerald-600 rounded"
-              />
-              <div>
-                <label htmlFor="saveNewTruck" className="text-sm font-semibold text-blue-800 cursor-pointer block mb-0.5">
-                  Simpan Kendaraan Baru
-                </label>
-                <p className="text-xs text-blue-600">
-                  Nopol <span className="font-bold">{form.license_plate.toUpperCase()}</span> belum ada di data armada <span className="font-bold">{form.customer_name}</span>. Centang ini agar otomatis ditambahkan.
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Material</label>
-              <CustomSelect
-                value={form.material_type}
-                onChange={(val) => setForm(p => ({...p, material_type: val as string}))}
-                options={MATERIAL_TYPES.map(m => ({ value: m, label: m }))}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Satuan <span className="text-red-500">*</span></label>
-              <CustomSelect
-                value={form.unit}
-                onChange={(val) => setForm(p => ({ ...p, unit: val as string, quantity: val === 'ritase' ? '1' : p.quantity }))}
-                options={UNITS.map(u => ({
-                  value: u,
-                  label: u === 'm3' ? 'Kubikasi (m³)' : u === 'ton' ? 'Tonase (ton)' : 'Ritase'
-                }))}
-              />
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Harga / Satuan</label>
-              <input type="number" required value={form.unit_price} onChange={e => setForm(p => ({...p, unit_price: e.target.value}))} className={inputCls} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Project <span className="text-xs font-normal text-gray-400">(opsional)</span></label>
-              <CustomSelect
-                value={form.project_id}
-                onChange={(val) => setForm(p => ({...p, project_id: val as string}))}
-                options={[
-                  { value: "", label: "-- Tanpa Project (General) --" },
-                  ...projects.slice().sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((p: any) => ({
-                    value: String(p.id),
-                    label: p.name
-                  }))
-                ]}
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 border rounded-xl text-sm font-medium">Batal</button>
-            <button type="submit" disabled={isSaving} className="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold disabled:opacity-60 flex justify-center items-center gap-2">
-              {isSaving && <Loader2 size={18} className="animate-spin" />}
-              Simpan Penjualan
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {migrationTarget && (
-        <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-2">Pindah Kepemilikan Armada</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Armada nopol <strong>{migrationTarget.nopol}</strong> dengan supir <strong>{migrationTarget.driver}</strong> ini sebelumnya milik pelanggan <strong>{migrationTarget.oldCustomerName}</strong>. Apakah Anda yakin ingin memindahkannya ke <strong>{migrationTarget.newCustomerName}</strong>?
-            </p>
-            <div className="bg-amber-50 text-amber-800 text-xs p-3 rounded-xl border border-amber-200 mb-5">
-              <p className="font-semibold mb-1">Jika Anda setuju:</p>
-              <ol className="list-decimal pl-4 space-y-1">
-                <li>Transaksi ini akan dicatat atas nama {migrationTarget.newCustomerName}.</li>
-                <li>Sistem akan memindahkan kepemilikan armada di database secara permanen ke {migrationTarget.newCustomerName}.</li>
-                <li>Data armada akan dihapus dari profil {migrationTarget.oldCustomerName}.</li>
-                <li>Data riwayat transaksi di masa lalu tidak akan rusak/berubah.</li>
-              </ol>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setMigrationTarget(null)}
-                className="flex-1 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors"
-              >
-                Batal
-              </button>
-              <button
-                onClick={() => {
-                  const newFormData = {
-                    license_plate: migrationTarget.nopol,
-                    driver_name: migrationTarget.driver,
-                    customer_name: migrationTarget.newCustomerName,
-                    vehicle_type: migrationTarget.vehicleType
-                  };
-                  setForm(prev => ({
-                    ...prev,
-                    ...newFormData
-                  }));
-                  setMigrationTarget(null);
-                  handleSubmit(undefined, true, newFormData);
-                }}
-                className="flex-1 py-2.5 bg-amber-600 text-white rounded-xl text-sm font-semibold hover:bg-amber-700 transition-colors"
-              >
-                Ya, Pindahkan
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-    </div>
-  );
-};
-
-
-const PriceFormModal = ({ editData, onClose }: { editData: MaterialPrice | null, onClose: () => void }) => {
-  const [form, setForm] = useState({
-    material_type: editData?.material_type || "Limestone (urugan)",
-    unit: editData?.unit || "ritase",
-    vehicle_type: editData?.vehicle_type || "",
-    price_per_unit: editData?.price_per_unit?.toString() || "",
-    is_active: editData?.is_active ?? true,
-    notes: editData?.notes || "",
-  });
-
-  const createMutation = useCreateMaterialPrice();
-  const updateMutation = useUpdateMaterialPrice();
-  const isSaving = createMutation.isPending || updateMutation.isPending;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const body: Partial<MaterialPrice> = {
-        ...form,
-        vehicle_type: form.vehicle_type === "" ? undefined : form.vehicle_type,
-        price_per_unit: parseFloat(form.price_per_unit),
-      };
-      if (editData) {
-        await updateMutation.mutateAsync({ id: editData.id, data: body });
-      } else {
-        await createMutation.mutateAsync(body);
-      }
-      toast.success("Harga berhasil disimpan");
-      onClose();
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Gagal menyimpan harga");
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="text-lg font-semibold">{editData ? "Edit Harga" : "Tambah Harga"}</h2>
-          <button onClick={onClose} className="p-2"><X size={18} /></button>
-        </div>
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Material</label>
-              <CustomSelect
-                value={form.material_type}
-                onChange={(val) => setForm(p => ({...p, material_type: val as string, unit: "ritase"}))}
-                options={MATERIAL_TYPES.map(m => ({ value: m, label: m }))}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Jenis Kendaraan</label>
-              <CustomSelect
-                value={form.vehicle_type}
-                onChange={(val) => setForm(p => ({...p, vehicle_type: val as string}))}
-                options={[
-                  { value: "", label: "Semua Kendaraan" },
-                  ...VEHICLE_TYPES.map(v => ({ value: v, label: v }))
-                ]}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Satuan</label>
-              <CustomSelect
-                value={form.unit}
-                onChange={(val) => setForm(p => ({ ...p, unit: val as string }))}
-                options={[
-                  { value: "ritase", label: "Ritase" },
-                  { value: "m3", label: "Kubikasi (m³)" },
-                  { value: "ton", label: "Tonase (ton)" }
-                ]}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Harga / Satuan (Rp)</label>
-              <input
-                type="number" required min={0} placeholder="Contoh: 150000"
-                value={form.price_per_unit}
-                onChange={(e) => setForm(p => ({ ...p, price_per_unit: e.target.value }))}
-                className={inputCls}
-              />
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <input type="checkbox" id="is_active" checked={form.is_active} onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))} className="w-4 h-4 rounded text-emerald-600" />
-            <label htmlFor="is_active" className="text-sm">Aktif</label>
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 py-2 border rounded-xl text-sm">Batal</button>
-            <button type="submit" disabled={isSaving} className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold flex justify-center items-center gap-2 transition-colors">
-              {isSaving && <Loader2 className="animate-spin" size={16}/>} Simpan Harga
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-
-const SaleDetailModal = ({ sale, isGM, currentUser, onClose, onEdit, onDelete }: any) => {
-  const canEdit = isGM || sale.created_by === currentUser?.id;
-  const rows = [
-    { label: "Tanggal",         value: formatDate(sale.income_date) },
-    { label: "Customer",        value: sale.customer_name || "-" },
-    { label: "Plat Nomor",      value: sale.license_plate || "-" },
-    { label: "Nama Supir",      value: sale.driver_name || "-" },
-    { label: "Jenis Kendaraan", value: sale.vehicle_type || "-" },
-    { label: "Material",        value: <MaterialBadge type={sale.material_type} /> },
-    { label: "Volume",          value: `${Number(sale.quantity).toLocaleString("id-ID")} ${sale.unit}` },
-    { label: "Harga / Satuan",  value: formatIDR(sale.unit_price) },
-    { label: "Total",           value: <span className="text-emerald-700 font-bold text-base">{formatIDR(sale.amount)}</span> },
-    { label: "Pembayaran",      value: <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${sale.payment_method === "cash" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"}`}>{sale.payment_method === "cash" ? "Cash" : "Transfer"}</span> },
-    ...(sale.notes ? [{ label: "Catatan", value: sale.notes }] : []),
-  ];
-
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <div className="flex items-center gap-2">
-            <ShoppingCart size={18} className="text-emerald-600" />
-            <h2 className="text-base font-semibold text-gray-800">Detail Penjualan</h2>
-          </div>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-            <X size={16} />
-          </button>
-        </div>
-        <div className="px-6 py-5 space-y-3">
-          {rows.map(({ label, value }) => (
-            <div key={label} className="flex items-start justify-between gap-4">
-              <span className="text-xs font-medium text-gray-400 uppercase tracking-wide w-32 shrink-0 pt-0.5">{label}</span>
-              <span className="text-sm text-gray-800 text-right">{value}</span>
-            </div>
-          ))}
-        </div>
-        {canEdit && (
-          <div className="flex gap-3 px-6 pb-5 pt-2 border-t border-gray-50">
-            <button onClick={onDelete} className="flex-1 flex items-center justify-center gap-2 py-2.5 border border-red-200 text-red-600 hover:bg-red-50 rounded-xl text-sm font-semibold transition-colors">
-              <Trash2 size={15} /> Hapus
-            </button>
-            <button onClick={onEdit} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors">
-              <Pencil size={15} /> Edit
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const PriceDetailModal = ({ price, isGM, onClose, onEdit, onDelete }: any) => {
-  if (!price) return null;
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <div className="flex items-center gap-2">
-            <Settings size={18} className="text-indigo-600" />
-            <h2 className="text-base font-semibold text-gray-800">Detail Harga</h2>
-          </div>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-            <X size={16} />
-          </button>
-        </div>
-        <div className="px-6 py-5 space-y-4">
-          <div>
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Material</p>
-            <div className="font-medium text-gray-800">{price.material_type}</div>
-          </div>
-          <div>
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Kendaraan</p>
-            <div className="text-sm text-gray-800">{price.vehicle_type || "Semua Kendaraan"}</div>
-          </div>
-          <div>
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Satuan</p>
-            <div className="text-sm text-gray-800">{price.unit === 'm3' ? 'Kubikasi (m³)' : price.unit === 'ton' ? 'Tonase (ton)' : 'Ritase'}</div>
-          </div>
-          <div className="bg-indigo-50 p-3 rounded-xl border border-indigo-100">
-            <p className="text-xs font-medium text-indigo-600 mb-1">Harga / Satuan</p>
-            <div className="text-xl font-bold text-indigo-700">{formatIDR(price.price_per_unit)}</div>
-          </div>
-          <div>
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Status</p>
-            <div className="text-sm">{price.is_active ? <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">Aktif</span> : <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">Nonaktif</span>}</div>
-          </div>
-        </div>
-        {isGM && (
-          <div className="flex gap-3 px-6 pb-5 pt-2 border-t border-gray-50">
-            <button onClick={onDelete} className="flex-1 flex items-center justify-center gap-2 py-2.5 border border-red-200 text-red-600 hover:bg-red-50 rounded-xl text-sm font-semibold transition-colors">
-              <Trash2 size={15} /> Hapus
-            </button>
-            <button onClick={onEdit} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm">
-              <Pencil size={15} /> Edit
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// ── Modals ─────────────────────────────────────────────────────────────────────
-const DownloadPdfModal = ({ sales, onClose }: { sales: IncomeRecord[], onClose: () => void }) => {
   const [startDate, setStartDate] = useState(todayStr());
   const [endDate, setEndDate] = useState(todayStr());
 
   const handleDownload = async () => {
-    const filtered = sales.filter(s => {
+    const filtered = sales.filter((s) => {
       if (!s.income_date) return false;
       const d = s.income_date.split("T")[0];
       return d >= startDate && d <= endDate;
@@ -745,7 +76,9 @@ const DownloadPdfModal = ({ sales, onClose }: { sales: IncomeRecord[], onClose: 
       return;
     }
 
-    const tableHead = [["No.", "Tanggal", "Nopol", "Supir", "Jenis Kendaraan", "Material", "Volume"]];
+    const tableHead = [
+      ["No.", "Tanggal", "Nopol", "Supir", "Jenis Kendaraan", "Material", "Volume"],
+    ];
     const tableBody = filtered.map((s, index) => [
       index + 1,
       formatDate(s.income_date),
@@ -753,16 +86,16 @@ const DownloadPdfModal = ({ sales, onClose }: { sales: IncomeRecord[], onClose: 
       s.driver_name || "-",
       s.vehicle_type || "-",
       s.material_type || "-",
-      `${s.quantity} ${s.unit}`
+      `${s.quantity} ${s.unit}`,
     ]);
 
     // Ringkasan Material & Kendaraan
     const summary: Record<string, Record<string, number>> = {};
-    filtered.forEach(s => {
+    filtered.forEach((s) => {
       const mat = s.material_type || "Unknown";
       const veh = s.vehicle_type || "Unknown";
       const qty = Number(s.quantity) || 1;
-      
+
       if (!summary[mat]) summary[mat] = {};
       summary[mat][veh] = (summary[mat][veh] || 0) + qty;
     });
@@ -782,7 +115,7 @@ const DownloadPdfModal = ({ sales, onClose }: { sales: IncomeRecord[], onClose: 
         filename: `Laporan_Material_${startDate}_${endDate}.pdf`,
         tableHead,
         tableBody,
-        summaryItems
+        summaryItems,
       });
       toast.success("PDF berhasil didownload");
       onClose();
@@ -800,20 +133,43 @@ const DownloadPdfModal = ({ sales, onClose }: { sales: IncomeRecord[], onClose: 
             <FileText size={18} className="text-blue-600" />
             <h2 className="text-lg font-semibold text-gray-800">Download Report PDF</h2>
           </div>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"><X size={18} /></button>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <X size={18} />
+          </button>
         </div>
         <div className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Dari Tanggal</label>
-            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={inputCls} />
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className={inputCls}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Sampai Tanggal</label>
-            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={inputCls} />
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className={inputCls}
+            />
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={onClose} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">Batal</button>
-            <button onClick={handleDownload} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm">
+            <button
+              onClick={onClose}
+              className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleDownload}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
+            >
               <Download size={16} /> Download
             </button>
           </div>
@@ -827,9 +183,14 @@ const DownloadPdfModal = ({ sales, onClose }: { sales: IncomeRecord[], onClose: 
 export default function MaterialSalesPage() {
   const [activeTab, setActiveTab] = useState<"sales" | "prices">("sales");
   const { data: currentUser } = useCurrentUser();
-  
-  const { data: sales = [], isLoading: loadingSales } = useIncomeRecords({ income_type: "material_sale" }, { enabled: activeTab === "sales" });
-  const { data: prices = [], isLoading: loadingPrices } = useMaterialPrices(undefined, { enabled: activeTab === "prices" });
+
+  const { data: sales = [], isLoading: loadingSales } = useIncomeRecords(
+    { income_type: "material_sale" },
+    { enabled: activeTab === "sales" }
+  );
+  const { data: prices = [], isLoading: loadingPrices } = useMaterialPrices(undefined, {
+    enabled: activeTab === "prices",
+  });
 
   const { data: customers = [] } = useCustomersList();
   const { data: projects = [] } = useProjectsList();
@@ -846,7 +207,10 @@ export default function MaterialSalesPage() {
   const [viewPrice, setViewPrice] = useState<MaterialPrice | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<any>(null);
 
-  const isGM = currentUser?.is_admin || currentUser?.is_superuser || ["gm", "admin", "manager"].includes(currentUser?.role || "");
+  const isGM =
+    currentUser?.is_admin ||
+    currentUser?.is_superuser ||
+    ["gm", "admin", "manager"].includes(currentUser?.role || "");
   const isLoading = activeTab === "sales" ? loadingSales : loadingPrices;
 
   const handleDelete = async () => {
@@ -868,13 +232,17 @@ export default function MaterialSalesPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Penjualan Material</h1>
-          <p className="text-sm text-gray-500 mt-1">Catat transaksi material & kelola harga</p>
+          <p className="text-sm text-gray-500 mt-1">Catat transaksi material &amp; kelola harga</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {isGM && (
             <button
-              onClick={() => setActiveTab(t => t === "sales" ? "prices" : "sales")}
-              className={`flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2 ${activeTab === "prices" ? "bg-indigo-100 text-indigo-700" : "bg-white border text-gray-600 hover:bg-gray-50"}`}
+              onClick={() => setActiveTab((t) => (t === "sales" ? "prices" : "sales"))}
+              className={`flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2 ${
+                activeTab === "prices"
+                  ? "bg-indigo-100 text-indigo-700"
+                  : "bg-white border text-gray-600 hover:bg-gray-50"
+              }`}
             >
               <Settings size={16} /> Atur Harga (GM)
             </button>
@@ -888,7 +256,10 @@ export default function MaterialSalesPage() {
                 <FileText size={16} /> Download PDF
               </button>
               <button
-                onClick={() => { setEditDataSale(null); setShowSaleModal(true); }}
+                onClick={() => {
+                  setEditDataSale(null);
+                  setShowSaleModal(true);
+                }}
                 className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
               >
                 <Plus size={16} /> Catat Penjualan
@@ -897,7 +268,10 @@ export default function MaterialSalesPage() {
           )}
           {activeTab === "prices" && (
             <button
-              onClick={() => { setEditDataPrice(null); setShowPriceModal(true); }}
+              onClick={() => {
+                setEditDataPrice(null);
+                setShowPriceModal(true);
+              }}
               className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm"
             >
               <Plus size={16} /> Tambah Harga
@@ -908,7 +282,9 @@ export default function MaterialSalesPage() {
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px]">
         {isLoading ? (
-          <div className="flex items-center justify-center py-20 text-gray-400"><Loader2 size={24} className="animate-spin" /></div>
+          <div className="flex items-center justify-center py-20 text-gray-400">
+            <Loader2 size={24} className="animate-spin" />
+          </div>
         ) : activeTab === "sales" ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -924,7 +300,7 @@ export default function MaterialSalesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {sales.map(s => (
+                {sales.map((s) => (
                   <tr
                     key={s.id}
                     onClick={() => setViewSale(s)}
@@ -933,18 +309,34 @@ export default function MaterialSalesPage() {
                     <td className="px-4 py-3 whitespace-nowrap">{formatDate(s.income_date)}</td>
                     <td className="px-4 py-3 font-medium whitespace-nowrap">{s.customer_name}</td>
                     <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5"><Truck size={12}/> {s.license_plate || "-"}</div>
-                      <div className="mt-0.5 text-gray-400">{s.vehicle_type || "-"} • {s.driver_name || "Tanpa Supir"}</div>
+                      <div className="flex items-center gap-1.5">
+                        <Truck size={12} /> {s.license_plate || "-"}
+                      </div>
+                      <div className="mt-0.5 text-gray-400">
+                        {s.vehicle_type || "-"} • {s.driver_name || "Tanpa Supir"}
+                      </div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap"><MaterialBadge type={s.material_type} /></td>
-                    <td className="px-4 py-3 text-right font-medium whitespace-nowrap">{s.quantity} {s.unit}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-emerald-700 whitespace-nowrap">{formatIDR(s.amount)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <MaterialBadge type={s.material_type} />
+                    </td>
+                    <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
+                      {s.quantity} {s.unit}
+                    </td>
+                    <td className="px-4 py-3 text-right font-semibold text-emerald-700 whitespace-nowrap">
+                      {formatIDR(s.amount)}
+                    </td>
                     <td className="px-4 py-3 text-center whitespace-nowrap">
                       <span className="text-gray-300 text-xs">›</span>
                     </td>
                   </tr>
                 ))}
-                {sales.length === 0 && <tr><td colSpan={7} className="text-center py-10 text-gray-400">Belum ada catatan penjualan material.</td></tr>}
+                {sales.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="text-center py-10 text-gray-400">
+                      Belum ada catatan penjualan material.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -963,29 +355,67 @@ export default function MaterialSalesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {prices.map(p => (
-                  <tr 
-                    key={p.id} 
+                {prices.map((p) => (
+                  <tr
+                    key={p.id}
                     onClick={() => setViewPrice(p)}
                     className="hover:bg-indigo-50/60 cursor-pointer transition-colors"
                   >
-                    <td className="px-4 py-3 whitespace-nowrap"><MaterialBadge type={p.material_type} /></td>
-                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{p.vehicle_type ? <span className="px-2 py-0.5 bg-gray-100 rounded text-xs font-medium">{p.vehicle_type}</span> : <span className="text-gray-400 italic text-xs">Semua</span>}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <span className="text-emerald-600 text-xs font-bold bg-emerald-50 px-2 py-1 rounded">Harga Default</span>
+                      <MaterialBadge type={p.material_type} />
                     </td>
                     <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                        p.unit === 'm3' ? 'bg-blue-50 text-blue-700' :
-                        p.unit === 'ton' ? 'bg-orange-50 text-orange-700' :
-                        'bg-purple-50 text-purple-700'
-                      }`}>
-                        {p.unit === 'm3' ? <><Package size={14} /> Kubikasi (m³)</> : p.unit === 'ton' ? <><Scale size={14} /> Tonase (ton)</> : <><Truck size={14} /> Ritase</>}
+                      {p.vehicle_type ? (
+                        <span className="px-2 py-0.5 bg-gray-100 rounded text-xs font-medium">
+                          {p.vehicle_type}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 italic text-xs">Semua</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="text-emerald-600 text-xs font-bold bg-emerald-50 px-2 py-1 rounded">
+                        Harga Default
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right font-bold text-gray-800 whitespace-nowrap">{formatIDR(p.price_per_unit)}</td>
+                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                      <span
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                          p.unit === "m3"
+                            ? "bg-blue-50 text-blue-700"
+                            : p.unit === "ton"
+                            ? "bg-orange-50 text-orange-700"
+                            : "bg-purple-50 text-purple-700"
+                        }`}
+                      >
+                        {p.unit === "m3" ? (
+                          <>
+                            <Package size={14} /> Kubikasi (m³)
+                          </>
+                        ) : p.unit === "ton" ? (
+                          <>
+                            <Scale size={14} /> Tonase (ton)
+                          </>
+                        ) : (
+                          <>
+                            <Truck size={14} /> Ritase
+                          </>
+                        )}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right font-bold text-gray-800 whitespace-nowrap">
+                      {formatIDR(p.price_per_unit)}
+                    </td>
                     <td className="px-4 py-3 text-center whitespace-nowrap">
-                      {p.is_active ? <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">Aktif</span> : <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs">Nonaktif</span>}
+                      {p.is_active ? (
+                        <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">
+                          Aktif
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs">
+                          Nonaktif
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-center whitespace-nowrap">
                       <span className="text-gray-300 text-xs">›</span>
@@ -998,9 +428,23 @@ export default function MaterialSalesPage() {
         )}
       </div>
 
-      {showSaleModal && <SaleFormModal editData={editDataSale} onClose={() => setShowSaleModal(false)} customers={customers} projects={projects} />}
-      {showPriceModal && <PriceFormModal editData={editDataPrice} onClose={() => setShowPriceModal(false)} />}
-      {showPdfModal && <DownloadPdfModal sales={sales} onClose={() => setShowPdfModal(false)} />}
+      {showSaleModal && (
+        <SaleFormModal
+          editData={editDataSale}
+          onClose={() => setShowSaleModal(false)}
+          customers={customers}
+          projects={projects}
+        />
+      )}
+      {showPriceModal && (
+        <PriceFormModal
+          editData={editDataPrice}
+          onClose={() => setShowPriceModal(false)}
+        />
+      )}
+      {showPdfModal && (
+        <DownloadPdfModal sales={sales} onClose={() => setShowPdfModal(false)} />
+      )}
 
       {/* Price Detail Modal */}
       {viewPrice && !showPriceModal && (
@@ -1047,9 +491,19 @@ export default function MaterialSalesPage() {
             <h3 className="text-lg font-bold text-gray-800 mb-2">Hapus Data?</h3>
             <p className="text-sm text-gray-500 mb-6">Data yang dihapus tidak dapat dikembalikan.</p>
             <div className="flex gap-3">
-              <button onClick={() => setConfirmDelete(null)} className="flex-1 py-2 border rounded-xl text-sm font-medium">Batal</button>
-              <button onClick={handleDelete} className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2">
-                {(deleteIncomeMutation.isPending || deletePriceMutation.isPending) && <Loader2 size={16} className="animate-spin" />}
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="flex-1 py-2 border rounded-xl text-sm font-medium"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleDelete}
+                className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2"
+              >
+                {(deleteIncomeMutation.isPending || deletePriceMutation.isPending) && (
+                  <Loader2 size={16} className="animate-spin" />
+                )}
                 Hapus
               </button>
             </div>
