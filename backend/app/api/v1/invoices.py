@@ -32,6 +32,15 @@ class InvoicePreviewItem(BaseModel):
     sj_volume_minus: Optional[float] = None
     sj_volume: Optional[float] = None
     
+    # Alias kompatibilitas bahasa Indonesia (digunakan oleh generator PDF invoice)
+    sj_bruto: Optional[float] = None
+    sj_tarra: Optional[float] = None
+    sj_potongan: Optional[float] = None
+    sj_netto: Optional[float] = None
+    sj_panjang: Optional[float] = None
+    sj_lebar: Optional[float] = None
+    sj_tinggi: Optional[float] = None
+    
     # Tambahan untuk Jasa Loading PDF
     loading_vendor_id: Optional[int] = None
     loading_vendor_name: Optional[str] = None

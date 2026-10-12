@@ -1,3 +1,4 @@
+import re
 from collections import defaultdict
 from datetime import date, datetime
 from io import BytesIO
@@ -515,35 +516,107 @@ def generate_project_invoice_pdf(invoice) -> bytes:
                     ]
                     
                     if is_tonase:
-                        bruto = getattr(item, "sj_bruto", 0) or 0
-                        tarra = getattr(item, "sj_tarra", 0) or 0
-                        pot = getattr(item, "sj_potongan", 0) or 0
-                        netto = getattr(item, "sj_netto", 0) or 0
-                        if not netto: netto = getattr(item, "quantity", 0) or 0
-                        
+                        bruto = getattr(item, "sj_bruto", None)
+                        if bruto is None: bruto = getattr(item, "sj_gross_weight", None)
+                        if bruto is None: bruto = getattr(item, "bruto", None)
+
+                        tarra = getattr(item, "sj_tarra", None)
+                        if tarra is None: tarra = getattr(item, "sj_tare_weight", None)
+                        if tarra is None: tarra = getattr(item, "tarra", None)
+
+                        pot = getattr(item, "sj_potongan", None)
+                        if pot is None: pot = getattr(item, "sj_weight_minus", None)
+                        if pot is None: pot = getattr(item, "minus_berat", None)
+
+                        netto = getattr(item, "sj_netto", None)
+                        if netto is None: netto = getattr(item, "sj_net_weight", None)
+                        if netto is None: netto = getattr(item, "netto", None)
+                        if netto is None or netto == 0: netto = getattr(item, "quantity", 0) or 0
+
+                        # Fallback parsing description if bruto or tarra are empty
+                        if (not bruto or bruto == 0) and getattr(item, "description", None):
+                            match_desc = re.search(r"B1:([0-9.]+)\s+B2:([0-9.]+)\s+M:([0-9.]+)", str(item.description))
+                            if match_desc:
+                                try:
+                                    bruto = float(match_desc.group(1))
+                                    tarra = float(match_desc.group(2))
+                                    pot = float(match_desc.group(3))
+                                except (ValueError, TypeError):
+                                    pass
+
+                        def _fmt_w(val):
+                            if val is None or val == "":
+                                return "0"
+                            try:
+                                v = float(val)
+                                if v == 0:
+                                    return "0"
+                                if v.is_integer():
+                                    return fmt_qty(v, 0)
+                                return fmt_qty(v, 2)
+                            except (ValueError, TypeError):
+                                return "0"
+
                         row.extend([
-                            Paragraph(f"<font size='8'>{fmt_qty(bruto, 3)}</font>", style(alignment=TA_CENTER)),
-                            Paragraph(f"<font size='8'>{fmt_qty(tarra, 3)}</font>", style(alignment=TA_CENTER)),
-                            Paragraph(f"<font size='8'>{fmt_qty(pot, 3)}</font>", style(alignment=TA_CENTER)),
+                            Paragraph(f"<font size='8'>{_fmt_w(bruto)}</font>", style(alignment=TA_CENTER)),
+                            Paragraph(f"<font size='8'>{_fmt_w(tarra)}</font>", style(alignment=TA_CENTER)),
+                            Paragraph(f"<font size='8'>{_fmt_w(pot)}</font>", style(alignment=TA_CENTER)),
                             Paragraph(f"<font size='8'><b>{fmt_qty(netto, 3)}</b></font>", style(alignment=TA_CENTER)),
                         ])
-                        date_qty += netto
+                        date_qty += float(netto or 0)
                     else:
-                        p = getattr(item, "sj_panjang", 0) or 0
-                        l = getattr(item, "sj_lebar", 0) or 0
-                        t_val = getattr(item, "sj_tinggi", 0) or 0
-                        m = getattr(item, "sj_volume_minus", 0) or 0
-                        vol = getattr(item, "sj_volume", 0) or 0
-                        if not vol: vol = getattr(item, "quantity", 0) or 0
-                        
+                        p = getattr(item, "sj_panjang", None)
+                        if p is None: p = getattr(item, "sj_length", None)
+                        if p is None: p = getattr(item, "panjang", None)
+
+                        l = getattr(item, "sj_lebar", None)
+                        if l is None: l = getattr(item, "sj_width", None)
+                        if l is None: l = getattr(item, "lebar", None)
+
+                        t_val = getattr(item, "sj_tinggi", None)
+                        if t_val is None: t_val = getattr(item, "sj_height", None)
+                        if t_val is None: t_val = getattr(item, "tinggi", None)
+
+                        m = getattr(item, "sj_volume_minus", None)
+                        if m is None: m = getattr(item, "minus_tinggi", None)
+
+                        vol = getattr(item, "sj_volume", None)
+                        if vol is None: vol = getattr(item, "volume", None)
+                        if vol is None or vol == 0: vol = getattr(item, "quantity", 0) or 0
+
+                        # Fallback parsing description if dimensions are empty
+                        if (not p or p == 0) and getattr(item, "description", None):
+                            match_desc = re.search(r"P:([0-9.]+)\s+L:([0-9.]+)\s+T:([0-9.]+)\s+M:([0-9.]+)", str(item.description))
+                            if match_desc:
+                                try:
+                                    p = float(match_desc.group(1))
+                                    l = float(match_desc.group(2))
+                                    t_val = float(match_desc.group(3))
+                                    m = float(match_desc.group(4))
+                                except (ValueError, TypeError):
+                                    pass
+
+                        def _fmt_dim(val):
+                            if val is None or val == "":
+                                return "0"
+                            try:
+                                v = float(val)
+                                if v == 0:
+                                    return "0"
+                                if v.is_integer():
+                                    return fmt_qty(v, 0)
+                                return fmt_qty(v, 2)
+                            except (ValueError, TypeError):
+                                return "0"
+
                         row.extend([
-                            Paragraph(f"<font size='8'>{fmt_qty(p, 3)}</font>", style(alignment=TA_CENTER)),
-                            Paragraph(f"<font size='8'>{fmt_qty(l, 3)}</font>", style(alignment=TA_CENTER)),
-                            Paragraph(f"<font size='8'>{fmt_qty(t_val, 3)}</font>", style(alignment=TA_CENTER)),
-                            Paragraph(f"<font size='8'>{fmt_qty(m, 3)}</font>", style(alignment=TA_CENTER)),
+                            Paragraph(f"<font size='8'>{_fmt_dim(p)}</font>", style(alignment=TA_CENTER)),
+                            Paragraph(f"<font size='8'>{_fmt_dim(l)}</font>", style(alignment=TA_CENTER)),
+                            Paragraph(f"<font size='8'>{_fmt_dim(t_val)}</font>", style(alignment=TA_CENTER)),
+                            Paragraph(f"<font size='8'>{_fmt_dim(m)}</font>", style(alignment=TA_CENTER)),
                             Paragraph(f"<font size='8'><b>{fmt_qty(vol, 3)}</b></font>", style(alignment=TA_CENTER)),
                         ])
-                        date_qty += vol
+                        date_qty += float(vol or 0)
                     
                     date_ritase += 1
                     detail_data.append(row)
@@ -564,7 +637,7 @@ def generate_project_invoice_pdf(invoice) -> bytes:
                     ]
                     dt_styles.extend([
                         ("SPAN", (0, row_idx), (2, row_idx)),
-                        ("SPAN", (3, row_idx), (4, row_idx)),
+                        ("SPAN", (3, row_idx), (5, row_idx)),
                         ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#e5e7eb")),
                     ])
                 else:
