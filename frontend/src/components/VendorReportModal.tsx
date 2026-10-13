@@ -4,8 +4,8 @@ import { X, FileText, Download } from 'lucide-react';
 import apiClient from '../api/apiClient';
 import { Vendor } from '../hooks/useVendors';
 import CustomSelect from './CustomSelect';
-import { useQuery } from '@tanstack/react-query';
 import { useVendorHaulingDetails } from '../hooks/useHauling';
+import { useProjectsList } from '../hooks/useProjects';
 import { generatePremiumPDF } from '../utils/pdfGenerator';
 import { toLocalDateInput } from '../utils/formatters';
 
@@ -25,6 +25,7 @@ export default function VendorReportModal({ isOpen, onClose, vendor }: VendorRep
   const [isGenerating, setIsGenerating] = useState(false);
 
   const { data: vendorDetails = [] } = useVendorHaulingDetails(isOpen ? vendor?.id : null);
+  const { data: allProjects = [] } = useProjectsList();
   
   // Ambil data unik dari project yang ada di rincian kewajiban hauling vendor
   const uniqueProjectsMap = new Map();
@@ -36,6 +37,18 @@ export default function VendorReportModal({ isOpen, onClose, vendor }: VendorRep
       });
     }
   });
+
+  if (uniqueProjectsMap.size === 0 && allProjects.length > 0) {
+    allProjects.forEach((p: any) => {
+      if (!uniqueProjectsMap.has(p.id)) {
+        uniqueProjectsMap.set(p.id, {
+          id: p.id,
+          name: p.name,
+        });
+      }
+    });
+  }
+
   const projects = Array.from(uniqueProjectsMap.values());
 
   if (!isOpen || !vendor) return null;

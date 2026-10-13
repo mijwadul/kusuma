@@ -166,12 +166,15 @@ class HaulingService:
         sjs = (
             db.query(SuratJalan)
             .filter(SuratJalan.vendor_id == vendor_id)
+            .order_by(SuratJalan.created_at.asc())
             .all()
         )
 
         projects_map = {}
         for sj in sjs:
             pid = sj.project_id
+            if not pid:
+                continue
             if pid not in projects_map:
                 p_name = sj.project.name if sj.project else f"Project #{pid}"
                 meas_type = (
@@ -184,18 +187,54 @@ class HaulingService:
                     "project_name": p_name,
                     "measurement_type": meas_type,
                     "total_ritase": 0,
+                    "total_measurement": 0.0,
+                    "total_obligation": 0.0,
                     "total_tonase": 0.0,
                     "total_volume": 0.0,
                     "total_cost": 0.0,
+                    "nopols": {},
                     "trucks": {},
                 }
             p_data = projects_map[pid]
+            meas_type = p_data["measurement_type"]
+            meas = float(sj.volume or 0.0) if meas_type == "kubikasi" else float(sj.netto or 0.0)
+            cost = float(sj.hauling_cost or 0.0)
+
             p_data["total_ritase"] += 1
+            p_data["total_measurement"] += meas
+            p_data["total_obligation"] += cost
             p_data["total_tonase"] += float(sj.netto or 0.0)
             p_data["total_volume"] += float(sj.volume or 0.0)
-            p_data["total_cost"] += float(sj.hauling_cost or 0.0)
+            p_data["total_cost"] += cost
 
             nopol = sj.nopol or "Tanpa Nopol"
+            if nopol not in p_data["nopols"]:
+                p_data["nopols"][nopol] = {
+                    "nopol": nopol,
+                    "driver_name": sj.nama_supir or "-",
+                    "total_ritase": 0,
+                    "total_measurement": 0.0,
+                    "total_obligation": 0.0,
+                    "dates": {},
+                }
+            nop_data = p_data["nopols"][nopol]
+            nop_data["total_ritase"] += 1
+            nop_data["total_measurement"] += meas
+            nop_data["total_obligation"] += cost
+
+            sj_date = sj.created_at.date() if sj.created_at else date.today()
+            if sj_date not in nop_data["dates"]:
+                nop_data["dates"][sj_date] = {
+                    "date": sj_date,
+                    "ritase": 0,
+                    "measurement": 0.0,
+                    "obligation": 0.0,
+                }
+            d_data = nop_data["dates"][sj_date]
+            d_data["ritase"] += 1
+            d_data["measurement"] += meas
+            d_data["obligation"] += cost
+
             if nopol not in p_data["trucks"]:
                 p_data["trucks"][nopol] = {
                     "nopol": nopol,
@@ -209,10 +248,26 @@ class HaulingService:
             t["ritase"] += 1
             t["tonase"] += float(sj.netto or 0.0)
             t["volume"] += float(sj.volume or 0.0)
-            t["cost"] += float(sj.hauling_cost or 0.0)
+            t["cost"] += cost
 
         result = []
         for p in projects_map.values():
+            nopol_list = []
+            for n in p["nopols"].values():
+                date_list = sorted(list(n["dates"].values()), key=lambda x: x["date"], reverse=True)
+                for d in date_list:
+                    d["measurement"] = round(d["measurement"], 2)
+                    d["obligation"] = round(d["obligation"], 2)
+                n["dates"] = date_list
+                n["total_measurement"] = round(n["total_measurement"], 2)
+                n["total_obligation"] = round(n["total_obligation"], 2)
+                nopol_list.append(n)
+            p["nopols"] = nopol_list
+            p["total_measurement"] = round(p["total_measurement"], 2)
+            p["total_obligation"] = round(p["total_obligation"], 2)
+            p["total_tonase"] = round(p["total_tonase"], 2)
+            p["total_volume"] = round(p["total_volume"], 2)
+            p["total_cost"] = round(p["total_cost"], 2)
             p["trucks"] = list(p["trucks"].values())
             result.append(p)
 

@@ -358,7 +358,12 @@ export default function CreateHaulingBillTab({
                                   <tr key={r.sj_id} className="hover:bg-blue-50/40 transition-colors">
                                     <td className="px-3 py-2 text-gray-500">{idx + 1}</td>
                                     <td className="px-3 py-2 font-medium text-gray-900 whitespace-nowrap">
-                                      {r.nopol}
+                                      <div>{r.nopol}</div>
+                                      {r.project_name && (
+                                        <div className="text-[10px] text-gray-500 font-normal truncate max-w-[160px]" title={r.project_name}>
+                                          {r.project_name}
+                                        </div>
+                                      )}
                                     </td>
                                     <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{r.supir || '-'}</td>
                                     <td className="px-3 py-2 text-right font-semibold text-gray-900">

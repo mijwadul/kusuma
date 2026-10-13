@@ -14,7 +14,9 @@ import {
   useCreateHaulingBill,
   useHaulingBills,
   useDeleteHaulingBill,
+  useVendorHaulingDetails,
 } from '../../hooks/useHauling';
+import { useProjectsList } from '../../hooks/useProjects';
 import { toLocalDateInput } from '../../utils/formatters';
 import { generateHaulingBillingPDF } from '../../utils/pdf/haulingBillingPdf';
 import CreateHaulingBillTab from './CreateHaulingBillTab';
@@ -46,6 +48,8 @@ export default function HaulingBillingModal({ isOpen, onClose, vendor }: Hauling
 
   // Queries
   const { data: trucks = [] } = useVendorTrucks(vendor?.id);
+  const { data: vendorDetails = [] } = useVendorHaulingDetails(isOpen ? vendor?.id : null);
+  const { data: allProjects = [] } = useProjectsList();
 
   const {
     data: billingData,
@@ -66,15 +70,35 @@ export default function HaulingBillingModal({ isOpen, onClose, vendor }: Hauling
 
   // Projects list for dropdown filter
   const uniqueProjects = useMemo(() => {
-    if (!billingData?.rows) return [];
     const map = new Map<number, string>();
-    billingData.rows.forEach((r: any) => {
-      if (r.project_id && r.project_name) {
-        map.set(r.project_id, r.project_name);
+
+    // 1. Prioritaskan proyek di mana vendor memiliki riwayat/kewajiban hauling
+    vendorDetails.forEach((d: any) => {
+      if (d.project_id && d.project_name) {
+        map.set(d.project_id, d.project_name);
       }
     });
+
+    // 2. Tambahkan proyek yang muncul di baris billing saat ini (jika ada)
+    if (billingData?.rows) {
+      billingData.rows.forEach((r: any) => {
+        if (r.project_id && r.project_name) {
+          map.set(r.project_id, r.project_name);
+        }
+      });
+    }
+
+    // 3. Jika belum ada proyek spesifik vendor, fallback ke seluruh daftar proyek
+    if (map.size === 0 && allProjects.length > 0) {
+      allProjects.forEach((p: any) => {
+        if (p.id && p.name) {
+          map.set(p.id, p.name);
+        }
+      });
+    }
+
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [billingData]);
+  }, [vendorDetails, billingData, allProjects]);
 
   // Mutations
   const createBillMutation = useCreateHaulingBill();

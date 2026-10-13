@@ -121,6 +121,8 @@ class HaulingBillingService:
                 sj_date=sj_date_val,
                 nopol=sj.nopol or "-",
                 supir=sj.nama_supir,
+                project_id=sj.project_id,
+                project_name=proj.name if proj else None,
                 measurement=measurement,
                 measurement_unit=sj_meas_unit,
                 hauling_price=hp,
@@ -322,7 +324,11 @@ class HaulingBillingService:
             if sj.project_id is not None
         })
 
+        project_map = {}
         if project_ids:
+            projects = db.query(Project).filter(Project.id.in_(project_ids)).all()
+            project_map = {p.id: p for p in projects}
+
             prices = (
                 db.query(ProjectHaulingPrice)
                 .filter(
@@ -406,11 +412,16 @@ class HaulingBillingService:
                 else "ton"
             )
 
+            proj = project_map.get(sj.project_id) if sj.project_id else None
+            p_name = proj.name if proj else (bill.project.name if bill.project else "-")
+
             row_item = HaulingBillingSJ(
                 sj_id=sj.id,
                 sj_date=sj_date_val,
                 nopol=sj.nopol or "-",
                 supir=sj.nama_supir,
+                project_id=sj.project_id,
+                project_name=p_name,
                 measurement=meas,
                 measurement_unit=unit_val,
                 hauling_price=hp,

@@ -7,7 +7,9 @@ class HaulingBillingSJ(BaseModel):
     sj_id: int
     sj_date: date
     nopol: str
-    supir: Optional[str]
+    supir: Optional[str] = None
+    project_id: Optional[int] = None
+    project_name: Optional[str] = None
     measurement: float          # volume (m³) atau netto (ton) tanpa pembulatan
     measurement_unit: str       # 'm3' atau 'ton'
     hauling_price: float        # harga hauling per unit

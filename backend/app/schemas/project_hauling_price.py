@@ -46,18 +46,24 @@ class HaulingDetailDate(BaseModel):
 
 class HaulingDetailNopol(BaseModel):
     nopol: str
+    driver_name: Optional[str] = None
     total_ritase: int
     total_measurement: float
     total_obligation: float
-    dates: List[HaulingDetailDate]
+    dates: List[HaulingDetailDate] = []
 
 class HaulingDetailProject(BaseModel):
     project_id: int
     project_name: str
+    measurement_type: Optional[str] = "tonase"
     total_ritase: int
     total_measurement: float
     total_obligation: float
-    nopols: List[HaulingDetailNopol]
+    total_tonase: Optional[float] = 0.0
+    total_volume: Optional[float] = 0.0
+    total_cost: Optional[float] = 0.0
+    nopols: List[HaulingDetailNopol] = []
+    trucks: Optional[List[dict]] = None
 
 # ── Billing / Rekap Tagihan ──────────────────────────────────────────────────
 
@@ -66,7 +72,9 @@ class HaulingBillingSJ(BaseModel):
     sj_id: int
     sj_date: date
     nopol: str
-    supir: Optional[str]
+    supir: Optional[str] = None
+    project_id: Optional[int] = None
+    project_name: Optional[str] = None
     measurement: float          # volume (m³) atau netto (ton)
     measurement_unit: str       # 'm3' atau 'ton'
     hauling_price: float        # harga hauling per unit
