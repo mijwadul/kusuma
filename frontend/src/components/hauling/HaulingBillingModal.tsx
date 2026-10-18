@@ -121,6 +121,25 @@ export default function HaulingBillingModal({ isOpen, onClose, vendor }: Hauling
     }));
   };
 
+  const downloadPDFBlob = async (url: string, filename: string) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) throw new Error('Gagal mengunduh dokumen PDF dari server');
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+  };
+
   const handleSaveAndExport = async () => {
     if (!billingData || billingData.rows.length === 0) {
       toast.error('Tidak ada data surat jalan untuk disimpan pada filter ini.');
@@ -141,12 +160,20 @@ export default function HaulingBillingModal({ isOpen, onClose, vendor }: Hauling
         sj_ids: billingData.rows.map((r: any) => r.sj_id),
       });
 
-      // 2. Generate PDF
-      await generateHaulingBillingPDF(vendor, billingData, {
-        billNo: savedBill.bill_number,
-        selectedNopols,
-        notes: billNotes,
-      });
+      // 2. Generate PDF via Backend ReportLab, fallback to client jsPDF
+      try {
+        await downloadPDFBlob(
+          `/api/v1/hauling/bills/${savedBill.id}/export/pdf`,
+          `Rekap_Hauling_${savedBill.bill_number.replace(/\//g, '_')}.pdf`
+        );
+      } catch (pdfErr) {
+        console.warn('Backend PDF generation fallback to client-side:', pdfErr);
+        await generateHaulingBillingPDF(vendor, billingData, {
+          billNo: savedBill.bill_number,
+          selectedNopols,
+          notes: billNotes,
+        });
+      }
 
       toast.success(`Laporan ${savedBill.bill_number} berhasil disimpan dan dicetak!`);
       refetchBilling();
@@ -167,11 +194,30 @@ export default function HaulingBillingModal({ isOpen, onClose, vendor }: Hauling
 
     setIsGeneratingPDF(true);
     try {
-      await generateHaulingBillingPDF(vendor, billingData, {
-        billNo: 'DRAFT-PREVIEW',
-        selectedNopols,
-        notes: billNotes,
-      });
+      // Try backend PDF first
+      try {
+        const params = new URLSearchParams({
+          start_date: startDate,
+          end_date: endDate,
+          only_unbilled: String(onlyUnbilled),
+        });
+        if (selectedProjectId) params.append('project_id', String(selectedProjectId));
+        if (selectedNopols.length > 0) params.append('nopol', selectedNopols.join(','));
+        if (billNumber) params.append('bill_number', billNumber);
+        if (billNotes) params.append('notes', billNotes);
+
+        await downloadPDFBlob(
+          `/api/v1/hauling/vendors/${vendor.id}/billing/export/pdf?${params.toString()}`,
+          `Draft_Rekap_Hauling_${vendor.name.replace(/\s+/g, '_')}_${startDate}_${endDate}.pdf`
+        );
+      } catch (pdfErr) {
+        console.warn('Backend draft PDF generation fallback to client-side:', pdfErr);
+        await generateHaulingBillingPDF(vendor, billingData, {
+          billNo: billNumber || 'DRAFT-PREVIEW',
+          selectedNopols,
+          notes: billNotes,
+        });
+      }
       toast.success('Draft Laporan PDF berhasil didownload!');
     } catch (err) {
       console.error(err);
@@ -184,20 +230,28 @@ export default function HaulingBillingModal({ isOpen, onClose, vendor }: Hauling
   const handleDownloadSavedBill = async (bill: any) => {
     setIsGeneratingPDF(true);
     try {
-      const response = await fetch(`/api/v1/hauling/bills/${bill.id}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      if (!response.ok) throw new Error('Gagal mengambil data laporan tersimpan');
-      const billDetail = await response.json();
+      try {
+        await downloadPDFBlob(
+          `/api/v1/hauling/bills/${bill.id}/export/pdf`,
+          `Rekap_Hauling_${bill.bill_number.replace(/\//g, '_')}.pdf`
+        );
+      } catch (pdfErr) {
+        console.warn('Backend PDF fallback to client-side:', pdfErr);
+        const response = await fetch(`/api/v1/hauling/bills/${bill.id}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        if (!response.ok) throw new Error('Gagal mengambil data laporan tersimpan');
+        const billDetail = await response.json();
 
-      await generateHaulingBillingPDF(vendor, billDetail, {
-        billNo: billDetail.bill_number,
-        selectedNopols,
-        notes: billDetail.notes,
-      });
-      toast.success(`Laporan ${billDetail.bill_number} berhasil didownload!`);
+        await generateHaulingBillingPDF(vendor, billDetail, {
+          billNo: billDetail.bill_number,
+          selectedNopols,
+          notes: billDetail.notes,
+        });
+      }
+      toast.success(`Laporan ${bill.bill_number} berhasil didownload!`);
     } catch (err) {
       console.error(err);
       toast.error('Gagal mendownload laporan tersimpan');
@@ -205,6 +259,7 @@ export default function HaulingBillingModal({ isOpen, onClose, vendor }: Hauling
       setIsGeneratingPDF(false);
     }
   };
+
 
   const handleDeleteSavedBill = async (billId: number, billNumberStr: string) => {
     if (

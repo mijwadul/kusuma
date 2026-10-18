@@ -10,7 +10,8 @@ from .pdf_generator import (
     generate_fuel_purchases_pdf,
     generate_income_records_pdf,
     generate_expense_records_pdf,
-    generate_invoice_pdf
+    generate_invoice_pdf,
+    generate_hauling_billing_pdf,
 )
 
 __all__ = [
@@ -19,5 +20,7 @@ __all__ = [
     "generate_fuel_purchases_pdf",
     "generate_income_records_pdf",
     "generate_expense_records_pdf",
-    "generate_invoice_pdf"
+    "generate_invoice_pdf",
+    "generate_hauling_billing_pdf",
 ]
+

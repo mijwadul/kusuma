@@ -130,3 +130,84 @@ def delete_hauling_bill(
 ):
     return HaulingService.delete_hauling_bill(db, bill_id=bill_id)
 
+
+# ── PDF Exports ───────────────────────────────────────────────────────────────
+from fastapi.responses import Response
+from ...services.pdf_service import generate_hauling_billing_pdf
+from ...models.vendor import Vendor
+from ...models.hauling_bill import HaulingBill
+
+@router.get("/bills/{bill_id}/export/pdf")
+def export_saved_hauling_bill_pdf(
+    bill_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    bill_detail = HaulingService.get_hauling_bill_detail(db, bill_id=bill_id)
+    vendor = db.query(Vendor).filter(Vendor.id == bill_detail.vendor_id).first()
+
+    pdf_bytes = generate_hauling_billing_pdf(
+        billing_data=bill_detail,
+        vendor=vendor,
+        options={
+            "bill_no": bill_detail.bill_number,
+            "notes": bill_detail.notes,
+        }
+    )
+
+    # Tandai bill telah didownload
+    db_bill = db.query(HaulingBill).filter(HaulingBill.id == bill_id).first()
+    if db_bill and not db_bill.is_downloaded:
+        db_bill.is_downloaded = True
+        db.commit()
+
+    filename = f"Rekap_Hauling_{bill_detail.bill_number.replace('/', '_')}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@router.get("/vendors/{vendor_id}/billing/export/pdf")
+def export_draft_hauling_billing_pdf(
+    vendor_id: int,
+    start_date: str           = Query(..., description="Tanggal awal YYYY-MM-DD"),
+    end_date: str             = Query(..., description="Tanggal akhir YYYY-MM-DD"),
+    project_id: Optional[int] = Query(None, description="Filter project (opsional)"),
+    nopol: Optional[str]      = Query(None, description="Filter nopol truk (opsional)"),
+    only_unbilled: bool       = Query(False, description="Hanya tampilkan yang belum ditagih"),
+    bill_number: Optional[str]= Query(None, description="Nomor tagihan draft (opsional)"),
+    notes: Optional[str]      = Query(None, description="Catatan tagihan (opsional)"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    billing_data = HaulingService.get_hauling_billing(
+        db,
+        vendor_id=vendor_id,
+        start_date=date.fromisoformat(start_date),
+        end_date=date.fromisoformat(end_date),
+        project_id=project_id,
+        nopol=nopol,
+        only_unbilled=only_unbilled,
+    )
+    vendor = db.query(Vendor).filter(Vendor.id == vendor_id).first()
+
+    pdf_bytes = generate_hauling_billing_pdf(
+        billing_data=billing_data,
+        vendor=vendor,
+        options={
+            "bill_no": bill_number or "DRAFT-PREVIEW",
+            "notes": notes,
+        }
+    )
+
+    vendor_slug = (vendor.name if vendor else "Vendor").replace(" ", "_")
+    filename = f"Draft_Rekap_Hauling_{vendor_slug}_{start_date}_{end_date}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
