@@ -1,15 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useDivision, Division } from '../context/DivisionContext';
-import { Truck, Factory, Map, Building2, LogOut } from 'lucide-react';
+import { Truck, Factory, Map, Building2, LogOut, Trash2 } from 'lucide-react';
 import { logout as apiLogout } from '../api/auth';
 import { useQueryClient } from '@tanstack/react-query';
+import PurgeDatabaseModal from '../components/PurgeDatabaseModal';
 
 const PortalPage: React.FC = () => {
   const navigate = useNavigate();
   const { setActiveDivision } = useDivision();
   const queryClient = useQueryClient();
+  const [showPurgeModal, setShowPurgeModal] = useState<boolean>(false);
 
   const handleSelectDivision = (division: Division) => {
     setActiveDivision(division);
@@ -68,6 +70,7 @@ const PortalPage: React.FC = () => {
     } catch (e) { }
   }
   const isGM = currentUser?.role === 'gm' || currentUser?.role === 'direktur' || currentUser?.is_admin || currentUser?.is_superuser;
+  const canPurgeDatabase = currentUser?.role === 'gm' || currentUser?.role === 'direktur' || currentUser?.is_superuser;
   const userDivision = currentUser?.division;
   const isValidDivision = Boolean(userDivision && allDivisions.some(d => d.id === userDivision));
 
@@ -112,13 +115,25 @@ const PortalPage: React.FC = () => {
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight">PT. Kusuma Samudera Berkah</h1>
             <p className="text-slate-400 text-lg">Silakan pilih divisi ruang lingkup kerja Anda</p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center space-x-2 text-slate-300 hover:text-white bg-slate-800 hover:bg-red-600/80 px-4 py-2 rounded-lg transition-all duration-300 backdrop-blur-md"
-          >
-            <LogOut size={18} />
-            <span className="hidden sm:inline">Keluar</span>
-          </button>
+          <div className="flex items-center space-x-3">
+            {canPurgeDatabase && (
+              <button
+                onClick={() => setShowPurgeModal(true)}
+                className="flex items-center space-x-2 text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-600 border border-rose-500/40 hover:border-rose-500 px-4 py-2 rounded-lg transition-all duration-300 backdrop-blur-md shadow-lg shadow-rose-950/30 group"
+                title="Khusus GM: Purge seluruh data operasional database"
+              >
+                <Trash2 size={18} className="text-rose-400 group-hover:text-white transition-colors" />
+                <span className="hidden sm:inline font-semibold">Purge Database</span>
+              </button>
+            )}
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-2 text-slate-300 hover:text-white bg-slate-800 hover:bg-red-600/80 px-4 py-2 rounded-lg transition-all duration-300 backdrop-blur-md"
+            >
+              <LogOut size={18} />
+              <span className="hidden sm:inline">Keluar</span>
+            </button>
+          </div>
         </div>
 
         <motion.div
@@ -154,6 +169,17 @@ const PortalPage: React.FC = () => {
           ))}
         </motion.div>
       </div>
+
+      {/* Modal Purge Database Sakti (Khusus Akun GM) */}
+      {canPurgeDatabase && (
+        <PurgeDatabaseModal
+          isOpen={showPurgeModal}
+          onClose={() => setShowPurgeModal(false)}
+          onSuccess={() => {
+            queryClient.clear();
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -145,6 +145,7 @@ from .api.v1.hauling import router as hauling_router
 from .api.v1.vision import router as vision_router
 from .api.v1.loading_prices import router as loading_prices_router
 from .api.v1.bank_accounts import router as bank_accounts_router
+from .api.v1.system import router as system_router
 
 # ... inside router inclusion block ...
 app.include_router(material_prices_router, prefix="/api/v1/material-prices", tags=["material-prices"], dependencies=[Depends(require_division(["material"]))])
@@ -156,7 +157,9 @@ app.include_router(hauling_router, prefix="/api/v1/hauling", tags=["hauling"], d
 app.include_router(surat_jalans_router, prefix="/api/v1", tags=["surat-jalan"], dependencies=[Depends(require_division(["hauling"]))])
 app.include_router(loading_prices_router, prefix="/api/v1", tags=["loading-prices"], dependencies=[Depends(require_division(["alat-berat"]))])
 app.include_router(vision_router, prefix="/api/v1/vision", tags=["vision"])
+app.include_router(system_router, prefix="/api/v1/system", tags=["system"])
 
 @app.get("/")
 def read_root():
     return {"message": "Welcome to PT. Kusuma Samudera Berkah API"}
+
