@@ -213,11 +213,26 @@ def delete_invoice(
     return None
 
 from fastapi.responses import Response
-from ...services.pdf_service import generate_invoice_pdf
+from ...services.pdf_service import generate_invoice_pdf, generate_kuitansi_pdf
+
+class CustomKuitansiRequest(BaseModel):
+    kuitansi_no: Optional[str] = None
+    customer_name: str
+    amount: float
+    payment_date: Optional[date] = None
+    description: str
+    payment_method: Optional[str] = "Transfer Bank"
+    bank_name: Optional[str] = None
+    account_number: Optional[str] = None
+    signatory_name: Optional[str] = "Bagian Keuangan"
+    city: Optional[str] = "Lamongan"
+    include_materai: Optional[bool] = None
+    is_paid: Optional[bool] = True
 
 @router.get("/{invoice_id}/export/pdf")
 def export_invoice_pdf_endpoint(
     invoice_id: int,
+    bundle: bool = Query(False, description="Sertakan Kuitansi dalam 1 bundel PDF invoice"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -242,13 +257,13 @@ def export_invoice_pdf_endpoint(
     # Attach items to invoice object dynamically so the generator can read them
     inv.items = preview_data.items
     
-    pdf_bytes = generate_invoice_pdf(inv)
+    pdf_bytes = generate_invoice_pdf(inv, include_kuitansi=bundle)
     
     # Mark as downloaded
     inv.is_downloaded = True
     db.commit()
     
-    filename = f"Invoice_{inv.invoice_number}.pdf"
+    filename = f"Paket_Tagihan_{inv.invoice_number}.pdf" if bundle else f"Invoice_{inv.invoice_number}.pdf"
     
     return Response(
         content=pdf_bytes,
@@ -257,6 +272,58 @@ def export_invoice_pdf_endpoint(
             "Content-Disposition": f'attachment; filename="{filename}"'
         }
     )
+
+@router.get("/{invoice_id}/kuitansi/pdf")
+def export_invoice_kuitansi_pdf_endpoint(
+    invoice_id: int,
+    kuitansi_no: Optional[str] = Query(None, description="Nomor Kuitansi kustom"),
+    signatory_name: Optional[str] = Query(None, description="Nama penandatangan"),
+    description: Optional[str] = Query(None, description="Deskripsi keperluan pembayaran"),
+    include_materai: Optional[bool] = Query(None, description="Sertakan kotak meterai"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    from ...models.invoice import Invoice
+    from ...core.exceptions import NotFoundError
+    inv = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+    if not inv:
+        raise NotFoundError("Invoice not found")
+
+    options = {
+        "kuitansi_no": kuitansi_no,
+        "signatory_name": signatory_name or "Bagian Keuangan",
+        "description": description,
+        "include_materai": include_materai,
+    }
+
+    pdf_bytes = generate_kuitansi_pdf(inv, options=options)
+    clean_inv_num = inv.invoice_number.replace("/", "_")
+    filename = f"Kuitansi_{clean_inv_num}.pdf"
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )
+
+@router.post("/kuitansi/custom-pdf")
+def export_custom_kuitansi_pdf_endpoint(
+    data: CustomKuitansiRequest,
+    current_user: User = Depends(get_current_user),
+):
+    pdf_bytes = generate_kuitansi_pdf(data.model_dump(), options=data.model_dump())
+    filename = f"Kuitansi_{(data.kuitansi_no or 'Draft').replace('/', '_')}.pdf"
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )
+
 
 from ...services.pdf_generator.loading import generate_jasa_loading_pdf
 

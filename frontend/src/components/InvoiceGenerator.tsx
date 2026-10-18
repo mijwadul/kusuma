@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { X, FileText, Download, Loader2 } from "lucide-react";
+import { X, FileText, Download, Loader2, Receipt } from "lucide-react";
 import { API_URL } from "../api/apiClient";
 import { toLocalDateInput } from "../utils/formatters";
 import CustomSelect from "./CustomSelect";
@@ -250,7 +250,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
     }
   };
 
-  const handleSaveAndDownload = async () => {
+  const handleSaveAndDownload = async (mode: "invoice" | "bundle" = "invoice") => {
     setLoading(true);
     
     try {
@@ -275,7 +275,12 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
       
       const invoiceId = res.id;
       const token = localStorage.getItem("token");
-      const pdfRes = await fetch(`${API_URL}/invoices/${invoiceId}/export/pdf`, {
+      const isBundle = mode === "bundle";
+      const endpointUrl = isBundle
+        ? `${API_URL}/invoices/${invoiceId}/export/pdf?bundle=true`
+        : `${API_URL}/invoices/${invoiceId}/export/pdf`;
+
+      const pdfRes = await fetch(endpointUrl, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -287,7 +292,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Invoice_${res.invoice_number}.pdf`;
+      a.download = isBundle ? `Paket_Tagihan_${res.invoice_number}.pdf` : `Invoice_${res.invoice_number}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -301,6 +306,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
       setLoading(false);
     }
   };
+
 
 
 
@@ -672,17 +678,30 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ isOpen, onClose, cu
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                 {existingInvoice ? "Update Data" : "Simpan Data"}
               </button>
+
+              <button
+                type="button"
+                onClick={() => handleSaveAndDownload("bundle")}
+                disabled={loading || !previewData}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-60 bg-blue-600 hover:bg-blue-700 shadow-sm"
+                title="Download 1 file PDF gabungan: Invoice + Kuitansi + Lampiran"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Receipt className="w-4 h-4" />}
+                Paket Tagihan (+ Kuitansi)
+              </button>
               
               <button
-                onClick={handleSaveAndDownload}
+                type="button"
+                onClick={() => handleSaveAndDownload("invoice")}
                 disabled={loading || !previewData}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-white text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-60 bg-blue-600 hover:bg-blue-700 shadow-sm"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-60 bg-emerald-600 hover:bg-emerald-700 shadow-sm"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                Download PDF
+                Download Invoice
               </button>
             </>
           )}
+
         </div>
       </div>
     </div>

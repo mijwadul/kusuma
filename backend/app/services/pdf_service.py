@@ -12,6 +12,8 @@ from .pdf_generator import (
     generate_expense_records_pdf,
     generate_invoice_pdf,
     generate_hauling_billing_pdf,
+    generate_kuitansi_pdf,
+    build_kuitansi_story,
 )
 
 __all__ = [
@@ -22,5 +24,8 @@ __all__ = [
     "generate_expense_records_pdf",
     "generate_invoice_pdf",
     "generate_hauling_billing_pdf",
+    "generate_kuitansi_pdf",
+    "build_kuitansi_story",
 ]
+
 

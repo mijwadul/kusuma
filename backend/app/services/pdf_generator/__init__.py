@@ -6,6 +6,7 @@ from .expenses import generate_expense_records_pdf
 from .invoice import generate_invoice_pdf
 from .loading import generate_jasa_loading_pdf
 from .hauling_billing import generate_hauling_billing_pdf
+from .kuitansi import generate_kuitansi_pdf, build_kuitansi_story
 
 __all__ = [
     "generate_payroll_pdf",
@@ -16,5 +17,8 @@ __all__ = [
     "generate_invoice_pdf",
     "generate_jasa_loading_pdf",
     "generate_hauling_billing_pdf",
+    "generate_kuitansi_pdf",
+    "build_kuitansi_story",
 ]
+
 

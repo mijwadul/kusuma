@@ -3,6 +3,7 @@ from collections import defaultdict
 from datetime import date, datetime
 from io import BytesIO
 from itertools import groupby
+from typing import Optional
 
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
@@ -35,7 +36,7 @@ from .base import (
 )
 
 
-def generate_project_invoice_pdf(invoice) -> bytes:
+def generate_project_invoice_pdf(invoice, include_kuitansi: bool = False, kuitansi_options: Optional[dict] = None) -> bytes:
     buf = BytesIO()
     doc = SimpleDocTemplate(
         buf,
@@ -399,6 +400,11 @@ def generate_project_invoice_pdf(invoice) -> bytes:
     ]))
     story.append(sig_wrapper)
     story.append(Spacer(1, 4 * mm))
+
+    if include_kuitansi:
+        from .kuitansi import build_kuitansi_story
+        story.append(PageBreak())
+        story.extend(build_kuitansi_story(invoice, options=kuitansi_options, content_w=content_w))
 
     if len(items) > 0:
         story.append(PageBreak())

@@ -37,6 +37,7 @@ import IncomeDetailModal from "../components/income/IncomeDetailModal";
 import IncomeTable from "../components/income/IncomeTable";
 import InvoiceTable from "../components/income/InvoiceTable";
 import IncomeFormModal from "../components/income/IncomeFormModal";
+import KuitansiModal from "../components/KuitansiModal";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const formatIDR = (v?: number | string | null) =>
@@ -104,6 +105,7 @@ export default function IncomePage() {
   });
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [kuitansiModalInvoice, setKuitansiModalInvoice] = useState<Invoice | null>(null);
 
   // ── Summary Metrics ──
   const summary = useMemo(() => {
@@ -374,6 +376,7 @@ export default function IncomePage() {
             }}
             onUpdateStatus={handleUpdateInvoiceStatus}
             onDeleteInvoice={(id) => setDeleteModal({ isOpen: true, id })}
+            onGenerateKuitansi={(inv) => setKuitansiModalInvoice(inv)}
             formatIDR={formatIDR}
             formatDate={formatDate}
           />
@@ -438,6 +441,16 @@ export default function IncomePage() {
           existingInvoice={selectedInvoice}
         />
       )}
+
+      {/* Kuitansi Modal */}
+      {kuitansiModalInvoice && (
+        <KuitansiModal
+          isOpen={!!kuitansiModalInvoice}
+          onClose={() => setKuitansiModalInvoice(null)}
+          invoice={kuitansiModalInvoice}
+        />
+      )}
     </div>
   );
 }
+
